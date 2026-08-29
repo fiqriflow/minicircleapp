@@ -1,0 +1,105 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+export default function AdminPlayerPage() {
+  const supabase = createClient();
+  const [players, setPlayers] = useState<any[]>([]);
+  const [editing, setEditing] = useState<any>(null);
+
+  const load = async () => {
+    const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    setPlayers(data ?? []);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const handleSave = async () => {
+    await supabase.from("profiles").update(editing).eq("id", editing.id);
+    setEditing(null);
+    load();
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Hapus user ini?")) return;
+    await supabase.from("profiles").delete().eq("id", id);
+    load();
+  };
+
+  return (
+    <div className="space-y-6">
+      <h1 className="text-xl font-bold">Player</h1>
+
+      <div className="bg-white rounded-2xl border overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-100 text-left">
+            <tr>
+              <th className="p-3">Nama</th>
+              <th className="p-3">Panggilan</th>
+              <th className="p-3">Lokasi</th>
+              <th className="p-3">Gender</th>
+              <th className="p-3">Admin</th>
+              <th className="p-3">Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {players.map((p) => (
+              <tr key={p.id} className="border-t">
+                <td className="p-3">{p.full_name}</td>
+                <td className="p-3">{p.nickname}</td>
+                <td className="p-3">{p.location}</td>
+                <td className="p-3">{p.gender}</td>
+                <td className="p-3">{p.is_super_admin ? "✅" : "-"}</td>
+                <td className="p-3 space-x-2">
+                  <button onClick={() => setEditing(p)} className="text-primary underline">Edit</button>
+                  <button onClick={() => handleDelete(p.id)} className="text-red-500 underline">Hapus</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {editing && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-3">
+            <h2 className="font-bold">Edit Player</h2>
+            <input
+              className="w-full border rounded-xl px-3 py-2"
+              value={editing.full_name ?? ""}
+              onChange={(e) => setEditing({ ...editing, full_name: e.target.value })}
+              placeholder="Nama Lengkap"
+            />
+            <input
+              className="w-full border rounded-xl px-3 py-2"
+              value={editing.nickname ?? ""}
+              onChange={(e) => setEditing({ ...editing, nickname: e.target.value })}
+              placeholder="Nama Panggilan"
+            />
+            <input
+              className="w-full border rounded-xl px-3 py-2"
+              value={editing.location ?? ""}
+              onChange={(e) => setEditing({ ...editing, location: e.target.value })}
+              placeholder="Lokasi"
+            />
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={!!editing.is_super_admin}
+                onChange={(e) => setEditing({ ...editing, is_super_admin: e.target.checked })}
+              />
+              Jadikan Super Admin
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setEditing(null)} className="px-4 py-2 text-gray-500">Batal</button>
+              <button onClick={handleSave} className="px-4 py-2 bg-primary text-white rounded-xl">Simpan</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
