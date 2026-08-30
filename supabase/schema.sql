@@ -18,12 +18,14 @@ create table if not exists profiles (
 create table if not exists circles (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  group_name text,
   description text,
   category text not null,                 -- 'Gowes','Jalan Santai','Running', dst
   location text not null,
   lat double precision,
   lng double precision,
   event_date timestamptz not null,
+  max_participants int check (max_participants between 5 and 10) default 10,
   cover_url text,
   status text default 'active',           -- 'active' | 'completed' | 'cancelled'
   created_by uuid references profiles(id),

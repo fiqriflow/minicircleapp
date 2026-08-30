@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Running", "Lainnya"];
 
 export default function ProfilePage() {
   const supabase = createClient();
+  const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -60,6 +62,12 @@ export default function ProfilePage() {
     setSaving(true);
     await supabase.from("profiles").upsert(profile);
     setSaving(false);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+    router.refresh();
   };
 
   if (!profile) return <p className="p-6 text-gray-400">Memuat...</p>;
@@ -165,6 +173,13 @@ export default function ProfilePage() {
           className="w-full bg-primary text-white rounded-xl py-3 font-medium hover:bg-primary-dark"
         >
           {saving ? "Menyimpan..." : "Simpan Profil"}
+        </button>
+
+        <button
+          onClick={handleLogout}
+          className="w-full border border-red-300 text-red-600 rounded-xl py-3 font-medium hover:bg-red-50"
+        >
+          Logout
         </button>
       </div>
     </div>
