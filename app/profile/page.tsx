@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Running", "Lainnya"];
@@ -166,6 +168,16 @@ export default function ProfilePage() {
             onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
           />
         </div>
+
+        {profile.is_super_admin && (
+          <Link
+            href="/admin/dashboard"
+            className="w-full flex items-center justify-center gap-2 border border-primary text-primary rounded-xl py-3 font-medium hover:bg-primary/5"
+          >
+            <ShieldCheck size={18} />
+            Buka Panel Admin
+          </Link>
+        )}
 
         <button
           onClick={handleSave}

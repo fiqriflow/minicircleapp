@@ -1,5 +1,5 @@
 import "./globals.css";
-import BottomNav from "@/components/BottomNav";
+import AppShell from "@/components/AppShell";
 
 export const metadata = {
   title: "Mabar Circle",
@@ -10,8 +10,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id">
       <body>
-        <BottomNav />
-        <main className="pb-20 md:pb-8">{children}</main>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

@@ -33,7 +33,39 @@ export default function AdminPlayerPage() {
     <div className="space-y-6">
       <h1 className="text-xl font-bold">Player</h1>
 
-      <div className="bg-white rounded-2xl border overflow-x-auto">
+      {/* Mobile: card list */}
+      <div className="space-y-3 md:hidden">
+        {players.map((p) => (
+          <div key={p.id} className="bg-white rounded-2xl border p-4 space-y-2">
+            <div className="flex items-center gap-3">
+              <img
+                src={p.avatar_url || "https://ui-avatars.com/api/?name=" + (p.full_name || "U")}
+                alt=""
+                className="w-12 h-12 rounded-full object-cover border"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold truncate">{p.full_name || "-"}</p>
+                <p className="text-sm text-gray-500 truncate">{p.nickname || "-"}</p>
+              </div>
+              {p.is_super_admin && (
+                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full shrink-0">Admin</span>
+              )}
+            </div>
+            <div className="text-sm text-gray-500 grid grid-cols-2 gap-1">
+              <span>📍 {p.location || "-"}</span>
+              <span>⚧ {p.gender || "-"}</span>
+            </div>
+            <div className="flex gap-4 pt-1 border-t text-sm">
+              <button onClick={() => setEditing(p)} className="text-primary font-medium py-2">Edit</button>
+              <button onClick={() => handleDelete(p.id)} className="text-red-500 font-medium py-2">Hapus</button>
+            </div>
+          </div>
+        ))}
+        {!players.length && <p className="text-gray-400 text-sm">Belum ada player.</p>}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden md:block bg-white rounded-2xl border overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-gray-100 text-left">
             <tr>
@@ -64,8 +96,8 @@ export default function AdminPlayerPage() {
       </div>
 
       {editing && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-3">
+        <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-3 max-h-[90vh] overflow-y-auto">
             <h2 className="font-bold">Edit Player</h2>
             <input
               className="w-full border rounded-xl px-3 py-2"

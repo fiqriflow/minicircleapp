@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Users, UserCircle } from "lucide-react";
+import { Home, Compass, Users, UserCircle, ShieldCheck } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import NotificationProfile from "./NotificationProfile";
 
-const menu = [
+const baseMenu = [
   { href: "/", label: "Beranda", icon: Home },
   { href: "/explore", label: "Explore", icon: Compass },
   { href: "/my-circle", label: "My Circle", icon: Users },
@@ -14,6 +16,24 @@ const menu = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const supabase = createClient();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("is_super_admin").eq("id", user.id).single();
+      setIsAdmin(!!data?.is_super_admin);
+    };
+    checkAdmin();
+  }, []);
+
+  if (pathname === "/login") return null;
+
+  const menu = isAdmin
+    ? [...baseMenu, { href: "/admin/dashboard", label: "Admin", icon: ShieldCheck }]
+    : baseMenu;
 
   return (
     <>
@@ -26,7 +46,7 @@ export default function BottomNav() {
       {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden justify-around bg-white border-t py-2">
         {menu.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
+          const active = pathname === href || (href !== "/" && pathname.startsWith(href));
           return (
             <Link
               key={href}
@@ -48,7 +68,7 @@ export default function BottomNav() {
           <span className="font-bold text-primary text-lg">Mabar Circle</span>
           <div className="flex gap-6">
             {menu.map(({ href, label }) => {
-              const active = pathname === href;
+              const active = pathname === href || (href !== "/" && pathname.startsWith(href));
               return (
                 <Link
                   key={href}
