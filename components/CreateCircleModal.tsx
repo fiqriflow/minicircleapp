@@ -47,17 +47,32 @@ export default function CreateCircleModal({
     setError("");
 
     const { data: { user } } = await supabase.auth.getUser();
-    const { error: insertError } = await supabase.from("circles").insert({
-      ...form,
-      status: "active",
-      created_by: user?.id,
-    });
+    const { data: newCircle, error: insertError } = await supabase
+      .from("circles")
+      .insert({
+        ...form,
+        status: "active",
+        created_by: user?.id,
+      })
+      .select("id")
+      .single();
 
-    setSaving(false);
     if (insertError) {
+      setSaving(false);
       setError(insertError.message);
       return;
     }
+
+    // host otomatis masuk line up
+    if (newCircle && user) {
+      await supabase.from("circle_members").insert({
+        circle_id: newCircle.id,
+        user_id: user.id,
+        status: "joined",
+      });
+    }
+
+    setSaving(false);
     onCreated();
     onClose();
   };
