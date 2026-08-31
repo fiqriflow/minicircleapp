@@ -14,6 +14,9 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [settingPassword, setSettingPassword] = useState(false);
+  const [passwordMsg, setPasswordMsg] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -66,6 +69,29 @@ export default function ProfilePage() {
     setSaving(false);
   };
 
+  const handleSetPassword = async () => {
+    if (!profile.username) {
+      setPasswordMsg("Isi Username dulu dan Simpan Profil, baru atur password.");
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPasswordMsg("Password minimal 6 karakter.");
+      return;
+    }
+    setSettingPassword(true);
+    setPasswordMsg("");
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+    setSettingPassword(false);
+    if (error) {
+      setPasswordMsg("Gagal: " + error.message);
+      return;
+    }
+    setNewPassword("");
+    setPasswordMsg("Password berhasil diatur. Sekarang bisa login pakai Username & Password.");
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
@@ -113,6 +139,16 @@ export default function ProfilePage() {
             className="w-full border rounded-xl px-4 py-2"
             value={profile.nickname ?? ""}
             onChange={(e) => setProfile({ ...profile, nickname: e.target.value })}
+          />
+        </div>
+
+        <div>
+          <label className="text-sm text-gray-500">Username (untuk login)</label>
+          <input
+            className="w-full border rounded-xl px-4 py-2"
+            placeholder="mis. budi123"
+            value={profile.username ?? ""}
+            onChange={(e) => setProfile({ ...profile, username: e.target.value.trim() })}
           />
         </div>
 
@@ -178,6 +214,25 @@ export default function ProfilePage() {
             Buka Panel Admin
           </Link>
         )}
+
+        <div className="border-t pt-4 space-y-2">
+          <label className="text-sm text-gray-500">Atur Password Login</label>
+          <input
+            type="password"
+            className="w-full border rounded-xl px-4 py-2"
+            placeholder="Password baru (min. 6 karakter)"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+          {passwordMsg && <p className="text-sm text-gray-500">{passwordMsg}</p>}
+          <button
+            onClick={handleSetPassword}
+            disabled={settingPassword}
+            className="w-full border border-primary text-primary rounded-xl py-2 font-medium hover:bg-primary/5"
+          >
+            {settingPassword ? "Menyimpan..." : "Simpan Password"}
+          </button>
+        </div>
 
         <button
           onClick={handleSave}
