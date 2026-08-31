@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Compass, Users, UserCircle, ShieldCheck } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { Home, Compass, Users, UserCircle } from "lucide-react";
 import NotificationProfile from "./NotificationProfile";
 
-const baseMenu = [
+const menu = [
   { href: "/", label: "Beranda", icon: Home },
   { href: "/explore", label: "Explore", icon: Compass },
   { href: "/my-circle", label: "My Circle", icon: Users },
@@ -16,28 +14,12 @@ const baseMenu = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const supabase = createClient();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  useEffect(() => {
-    const checkAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase.from("profiles").select("is_super_admin").eq("id", user.id).single();
-      setIsAdmin(!!data?.is_super_admin);
-    };
-    checkAdmin();
-  }, []);
 
   if (pathname === "/login") return null;
 
-  const menu = isAdmin
-    ? [...baseMenu, { href: "/admin/dashboard", label: "Admin", icon: ShieldCheck }]
-    : baseMenu;
-
   return (
     <>
-      {/* Mobile top bar: logo + notif + avatar */}
+      {/* Mobile top bar: logo + notif */}
       <header className="flex md:hidden items-center justify-between px-4 py-3 bg-white border-b sticky top-0 z-40">
         <span className="font-bold text-primary text-lg">Mabar Circle</span>
         <NotificationProfile />
