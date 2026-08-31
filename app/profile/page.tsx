@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Settings, ShieldCheck, MapPin, Instagram as InstagramIcon } from "lucide-react";
+import { Settings, ShieldCheck, MapPin, Instagram as InstagramIcon, Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import LocationInput from "@/components/LocationInput";
+import AvatarCropModal from "@/components/AvatarCropModal";
 
-const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Running", "Lainnya"];
+const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Running"];
 
 export default function ProfilePage() {
   const supabase = createClient();
@@ -16,6 +18,7 @@ export default function ProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,17 +47,15 @@ export default function ProfilePage() {
     });
   };
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !profile?.id) return;
-
+  const handleCropConfirm = async (blob: Blob) => {
+    if (!profile?.id) return;
+    setCropFile(null);
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `${profile.id}/avatar.${ext}`;
 
+    const path = `${profile.id}/avatar.jpg`;
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(path, file, { upsert: true });
+      .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
 
     if (uploadError) {
       alert("Gagal upload foto: " + uploadError.message);
@@ -133,11 +134,23 @@ export default function ProfilePage() {
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={handleAvatarUpload}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) setCropFile(file);
+              e.target.value = "";
+            }}
             disabled={uploading}
           />
         </label>
       </div>
+
+      {cropFile && (
+        <AvatarCropModal
+          file={cropFile}
+          onCancel={() => setCropFile(null)}
+          onConfirm={handleCropConfirm}
+        />
+      )}
 
       {/* Section: Detail Info User */}
       {!editMode ? (
@@ -149,6 +162,14 @@ export default function ProfilePage() {
           <div>
             <p className="text-xs text-gray-400">Nama Panggilan</p>
             <p className="font-medium">{profile.nickname || "-"}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Cake size={16} className="text-gray-400" />
+            <p className="text-sm">
+              {profile.birth_date
+                ? new Date(profile.birth_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+                : "-"}
+            </p>
           </div>
           <div>
             <p className="text-xs text-gray-400">Kategori Disukai</p>
@@ -200,6 +221,16 @@ export default function ProfilePage() {
           </div>
 
           <div>
+            <label className="text-sm text-gray-500">Tanggal Lahir</label>
+            <input
+              type="date"
+              className="w-full border rounded-xl px-4 py-2"
+              value={profile.birth_date ?? ""}
+              onChange={(e) => setProfile({ ...profile, birth_date: e.target.value })}
+            />
+          </div>
+
+          <div>
             <label className="text-sm text-gray-500">Kategori Disukai</label>
             <div className="flex flex-wrap gap-2 mt-1">
               {CATEGORY_OPTIONS.map((cat) => {
@@ -221,11 +252,11 @@ export default function ProfilePage() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-500">Lokasi</label>
-            <input
-              className="w-full border rounded-xl px-4 py-2"
+            <label className="text-sm text-gray-500">Lokasi / Domisili</label>
+            <LocationInput
+              id="profile-city-list"
               value={profile.location ?? ""}
-              onChange={(e) => setProfile({ ...profile, location: e.target.value })}
+              onChange={(v) => setProfile({ ...profile, location: v })}
             />
           </div>
 

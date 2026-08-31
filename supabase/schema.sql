@@ -10,6 +10,7 @@ create table if not exists profiles (
   lng double precision,
   gender text,                            -- 'male' | 'female'
   instagram text,
+  birth_date date,
   avatar_url text,
   is_super_admin boolean default false,
   created_at timestamptz default now()
@@ -27,6 +28,7 @@ create table if not exists circles (
   lng double precision,
   event_date timestamptz not null,
   max_participants int check (max_participants between 5 and 10) default 10,
+  requires_approval boolean default false,
   cover_url text,
   status text default 'active',           -- 'active' | 'completed' | 'cancelled'
   created_by uuid references profiles(id),
@@ -92,6 +94,14 @@ create policy "circles_delete_owner_or_admin" on circles for delete using (
 create policy "members_select_all" on circle_members for select using (true);
 create policy "members_insert_own" on circle_members for insert with check (auth.uid() = user_id);
 create policy "members_delete_own" on circle_members for delete using (auth.uid() = user_id);
+
+-- host circle boleh approve/reject member (untuk circle yang butuh approval)
+create policy "members_update_host" on circle_members for update using (
+  exists (select 1 from circles c where c.id = circle_members.circle_id and c.created_by = auth.uid())
+);
+create policy "members_delete_host" on circle_members for delete using (
+  exists (select 1 from circles c where c.id = circle_members.circle_id and c.created_by = auth.uid())
+);
 
 -- circle_comments: hanya member yang join boleh insert/select
 create policy "comments_select_member" on circle_comments for select using (

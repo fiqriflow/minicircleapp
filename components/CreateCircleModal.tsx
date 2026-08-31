@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 const CATEGORY_OPTIONS = ["Running", "Jalan Santai", "Gowes"];
@@ -26,6 +26,17 @@ export default function CreateCircleModal({
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [host, setHost] = useState<any>(null);
+
+  useEffect(() => {
+    const loadHost = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("full_name, nickname, avatar_url").eq("id", user.id).single();
+      setHost(data);
+    };
+    loadHost();
+  }, []);
 
   const handleSave = async () => {
     if (!form.name || !form.group_name || !form.location || !form.event_date) {
@@ -55,6 +66,21 @@ export default function CreateCircleModal({
     <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
       <div className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-3 max-h-[90vh] overflow-y-auto">
         <h2 className="font-bold text-lg">Buat Circle Baru</h2>
+
+        {host && (
+          <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
+            <img
+              src={host.avatar_url || "https://ui-avatars.com/api/?name=" + (host.full_name || "U")}
+              className="w-8 h-8 rounded-full object-cover"
+              alt=""
+            />
+            <div>
+              <p className="text-xs text-gray-400">Host / Pembuat Circle</p>
+              <p className="text-sm font-medium">{host.nickname || host.full_name}</p>
+            </div>
+          </div>
+        )}
+
 
         <div>
           <label className="text-sm text-gray-500">Nama Event</label>

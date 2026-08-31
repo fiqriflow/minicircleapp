@@ -2,19 +2,28 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { MoreVertical } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import MemberProfileModal from "@/components/MemberProfileModal";
 
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const supabase = createClient();
 
   const [circle, setCircle] = useState<any>(null);
+  const [host, setHost] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
+  const [pendingMembers, setPendingMembers] = useState<any[]>([]);
   const [comments, setComments] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
-  const [isJoined, setIsJoined] = useState(false);
+  const [myStatus, setMyStatus] = useState<"joined" | "pending" | null>(null);
   const [tab, setTab] = useState<"lineup" | "chat">("lineup");
   const [newComment, setNewComment] = useState("");
+  const [showHostMenu, setShowHostMenu] = useState(false);
+  const [selectedMember, setSelectedMember] = useState<any>(null);
+
+  const isJoined = myStatus === "joined";
+  const isHost = !!(userId && circle && userId === circle.created_by);
 
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -23,14 +32,25 @@ export default function CircleDetailPage() {
     const { data: c } = await supabase.from("circles").select("*").eq("id", id).single();
     setCircle(c);
 
-    const { data: m } = await supabase
-      .from("circle_members")
-      .select("*, profile:profiles(full_name, nickname, avatar_url)")
-      .eq("circle_id", id);
-    setMembers(m ?? []);
-    setIsJoined(!!m?.some((row) => row.user_id === user?.id));
+    if (c?.created_by) {
+      const { data: h } = await supabase.from("profiles").select("*").eq("id", c.created_by).single();
+      setHost(h);
+    }
 
-    if (m?.some((row) => row.user_id === user?.id)) {
+    const { data: allMembers } = await supabase
+      .from("circle_members")
+      .select("*, profile:profiles(*)")
+      .eq("circle_id", id);
+
+    const joined = (allMembers ?? []).filter((m) => m.status === "joined");
+    const pending = (allMembers ?? []).filter((m) => m.status === "pending");
+    setMembers(joined);
+    setPendingMembers(pending);
+
+    const mine = allMembers?.find((m) => m.user_id === user?.id);
+    setMyStatus(mine ? (mine.status as "joined" | "pending") : null);
+
+    if (mine?.status === "joined") {
       const { data: cm } = await supabase
         .from("circle_comments")
         .select("*, profile:profiles(full_name, avatar_url)")
@@ -47,11 +67,25 @@ export default function CircleDetailPage() {
 
   const handleJoinToggle = async () => {
     if (!userId) return;
-    if (isJoined) {
+    if (myStatus) {
       await supabase.from("circle_members").delete().eq("circle_id", id).eq("user_id", userId);
     } else {
-      await supabase.from("circle_members").insert({ circle_id: id, user_id: userId });
+      await supabase.from("circle_members").insert({
+        circle_id: id,
+        user_id: userId,
+        status: circle.requires_approval ? "pending" : "joined",
+      });
     }
+    load();
+  };
+
+  const handleApprove = async (memberId: string) => {
+    await supabase.from("circle_members").update({ status: "joined" }).eq("id", memberId);
+    load();
+  };
+
+  const handleReject = async (memberId: string) => {
+    await supabase.from("circle_members").delete().eq("id", memberId);
     load();
   };
 
@@ -66,6 +100,18 @@ export default function CircleDetailPage() {
     load();
   };
 
+  const handleSetStatus = async (status: string) => {
+    await supabase.from("circles").update({ status }).eq("id", id);
+    setShowHostMenu(false);
+    load();
+  };
+
+  const handleToggleApproval = async () => {
+    await supabase.from("circles").update({ requires_approval: !circle.requires_approval }).eq("id", id);
+    setShowHostMenu(false);
+    load();
+  };
+
   if (!circle) return <p className="p-6 text-gray-400">Memuat...</p>;
 
   return (
@@ -77,24 +123,105 @@ export default function CircleDetailPage() {
             <img src={circle.cover_url} alt={circle.name} className="w-full h-full object-cover" />
           )}
         </div>
-        <h1 className="text-2xl font-bold">{circle.name}</h1>
+
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{circle.name}</h1>
+            {circle.group_name && <p className="text-sm text-gray-400">{circle.group_name}</p>}
+          </div>
+
+          {isHost && (
+            <div className="relative">
+              <button
+                onClick={() => setShowHostMenu((s) => !s)}
+                className="p-2 rounded-full hover:bg-gray-100"
+                aria-label="Pengaturan Circle"
+              >
+                <MoreVertical size={20} />
+              </button>
+              {showHostMenu && (
+                <div className="absolute right-0 mt-2 w-56 bg-white border rounded-xl shadow-lg overflow-hidden z-50">
+                  <button
+                    onClick={() => handleSetStatus("completed")}
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b"
+                  >
+                    Tandai Selesai
+                  </button>
+                  <button
+                    onClick={() => handleSetStatus("cancelled")}
+                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 border-b"
+                  >
+                    Batalkan Circle
+                  </button>
+                  <button
+                    onClick={handleToggleApproval}
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50"
+                  >
+                    {circle.requires_approval ? "Matikan" : "Aktifkan"} Perlu Approval Join
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         <p className="text-gray-500">{circle.description}</p>
+
+        {host && (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <img
+              src={host.avatar_url || "https://ui-avatars.com/api/?name=" + (host.full_name || "U")}
+              className="w-6 h-6 rounded-full object-cover"
+              alt=""
+            />
+            <span>Dibuat oleh {host.nickname || host.full_name}</span>
+          </div>
+        )}
+
         <div className="text-sm text-gray-500 space-y-1">
           <p>📍 {circle.location}</p>
           <p>🏷️ {circle.category}</p>
           <p>🗓️ {new Date(circle.event_date).toLocaleString("id-ID")}</p>
+          {circle.max_participants && <p>👥 Maks {circle.max_participants} orang</p>}
+          {circle.requires_approval && <p>🔒 Perlu persetujuan host untuk join</p>}
         </div>
       </div>
 
       {/* Join button */}
-      <button
-        onClick={handleJoinToggle}
-        className={`w-full rounded-xl py-3 font-medium ${
-          isJoined ? "bg-red-50 text-red-600 border border-red-300" : "bg-primary text-white"
-        }`}
-      >
-        {isJoined ? "Batal Join" : "Join Circle"}
-      </button>
+      {!isHost && (
+        <button
+          onClick={handleJoinToggle}
+          disabled={myStatus === "pending"}
+          className={`w-full rounded-xl py-3 font-medium ${
+            myStatus === "joined"
+              ? "bg-red-50 text-red-600 border border-red-300"
+              : myStatus === "pending"
+              ? "bg-gray-100 text-gray-400"
+              : "bg-primary text-white"
+          }`}
+        >
+          {myStatus === "joined" ? "Batal Join" : myStatus === "pending" ? "Menunggu Persetujuan" : "Join Circle"}
+        </button>
+      )}
+
+      {/* Approval requests untuk host */}
+      {isHost && pendingMembers.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="font-semibold text-sm text-gray-700">Menunggu Persetujuan ({pendingMembers.length})</h3>
+          {pendingMembers.map((m) => (
+            <div key={m.id} className="flex items-center gap-3 border rounded-xl p-3">
+              <img
+                src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
+                className="w-10 h-10 rounded-full object-cover"
+                alt=""
+              />
+              <p className="flex-1 font-medium">{m.profile?.nickname || m.profile?.full_name}</p>
+              <button onClick={() => handleApprove(m.id)} className="text-primary text-sm font-medium">Terima</button>
+              <button onClick={() => handleReject(m.id)} className="text-red-500 text-sm font-medium">Tolak</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b">
@@ -115,7 +242,11 @@ export default function CircleDetailPage() {
       {tab === "lineup" && (
         <div className="space-y-3">
           {members.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 border rounded-xl p-3">
+            <button
+              key={m.id}
+              onClick={() => isJoined && setSelectedMember(m.profile)}
+              className="w-full flex items-center gap-3 border rounded-xl p-3 text-left hover:bg-gray-50"
+            >
               <img
                 src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
                 className="w-10 h-10 rounded-full object-cover"
@@ -123,8 +254,9 @@ export default function CircleDetailPage() {
               />
               <div>
                 <p className="font-medium">{m.profile?.nickname || m.profile?.full_name}</p>
+                {isJoined && <p className="text-xs text-gray-400">Lihat profil</p>}
               </div>
-            </div>
+            </button>
           ))}
           {!members.length && <p className="text-gray-400 text-sm">Belum ada yang join.</p>}
         </div>
@@ -160,6 +292,10 @@ export default function CircleDetailPage() {
             <p className="text-gray-400 text-sm">Join circle ini dulu untuk ikut chat.</p>
           )}
         </div>
+      )}
+
+      {selectedMember && (
+        <MemberProfileModal profile={selectedMember} onClose={() => setSelectedMember(null)} />
       )}
     </div>
   );

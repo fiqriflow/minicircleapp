@@ -5,8 +5,9 @@ import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/CircleCard";
 import CreateCircleModal from "@/components/CreateCircleModal";
+import LocationInput from "@/components/LocationInput";
 
-const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Running", "Lainnya"];
+const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Running"];
 
 export default function ExplorePage() {
   const supabase = createClient();
@@ -38,11 +39,11 @@ export default function ExplorePage() {
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
-        <input
-          type="text"
-          placeholder="Cari lokasi terdekat..."
+        <LocationInput
+          id="explore-city-list"
           value={location}
-          onChange={(e) => setLocation(e.target.value)}
+          onChange={setLocation}
+          placeholder="Cari lokasi terdekat..."
           className="border rounded-xl px-4 py-2 flex-1"
         />
         <select
