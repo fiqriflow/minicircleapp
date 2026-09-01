@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/CircleCard";
 import { getDefaultCircleCover } from "@/lib/appSettings";
+import { getCircleDisplayStatus } from "@/lib/circleStatus";
 
 export default function MyCirclePage() {
   const supabase = createClient();
@@ -27,8 +28,8 @@ export default function MyCirclePage() {
         .eq("status", "joined");
 
       const all = (memberships?.map((m: any) => m.circle).filter(Boolean) ?? []) as Circle[];
-      setActive(all.filter((c: any) => c.status === "active"));
-      setCompleted(all.filter((c: any) => c.status === "completed"));
+      setActive(all.filter((c: any) => getCircleDisplayStatus(c) === "active"));
+      setCompleted(all.filter((c: any) => getCircleDisplayStatus(c) !== "active"));
       setLoading(false);
     };
     load();

@@ -25,6 +25,7 @@ export default function CircleDetailPage() {
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [showJoinQuestion, setShowJoinQuestion] = useState(false);
   const [defaultCoverUrl, setDefaultCoverUrl] = useState<string | null>(null);
+  const [hasNewComment, setHasNewComment] = useState(false);
 
   const isJoined = myStatus === "joined";
   const isHost = !!(userId && circle && userId === circle.created_by);
@@ -69,6 +70,25 @@ export default function CircleDetailPage() {
     getDefaultCircleCover(supabase).then(setDefaultCoverUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // polling komen baru tiap 8 detik (kalau sudah join)
+  useEffect(() => {
+    if (!isJoined) return;
+    const interval = setInterval(async () => {
+      const { data: cm } = await supabase
+        .from("circle_comments")
+        .select("*, profile:profiles(full_name, avatar_url)")
+        .eq("circle_id", id)
+        .order("created_at", { ascending: true });
+      if (cm) {
+        setComments((prev) => {
+          if (cm.length > prev.length && tab !== "chat") setHasNewComment(true);
+          return cm;
+        });
+      }
+    }, 8000);
+    return () => clearInterval(interval);
+  }, [isJoined, tab, id]);
 
   const doJoin = async (answer?: string) => {
     if (!userId) return;
@@ -215,6 +235,7 @@ export default function CircleDetailPage() {
         )}
 
         <div className="text-sm text-gray-500 space-y-1">
+          {circle.city && <p>🏙️ {circle.city}</p>}
           <p>📍 {circle.location}</p>
           <p>🏷️ {circle.category}</p>
           <p>🗓️ {new Date(circle.event_date).toLocaleString("id-ID")}</p>
@@ -285,10 +306,16 @@ export default function CircleDetailPage() {
           Line Up ({members.length})
         </button>
         <button
-          onClick={() => setTab("chat")}
-          className={`flex-1 py-2 font-medium ${tab === "chat" ? "border-b-2 border-primary text-primary" : "text-gray-400"}`}
+          onClick={() => {
+            setTab("chat");
+            setHasNewComment(false);
+          }}
+          className={`relative flex-1 py-2 font-medium ${tab === "chat" ? "border-b-2 border-primary text-primary" : "text-gray-400"}`}
         >
           Komen Grup
+          {hasNewComment && (
+            <span className="absolute top-1 right-1/4 w-2.5 h-2.5 bg-red-500 rounded-full" />
+          )}
         </button>
       </div>
 
@@ -320,12 +347,23 @@ export default function CircleDetailPage() {
           {isJoined ? (
             <>
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {comments.map((c) => (
-                  <div key={c.id} className="bg-white border rounded-xl p-3">
-                    <p className="text-sm font-medium">{c.profile?.full_name}</p>
-                    <p className="text-sm text-gray-600">{c.message}</p>
-                  </div>
-                ))}
+                {comments.map((c) => {
+                  const isMine = c.user_id === userId;
+                  return (
+                    <div key={c.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                      <div
+                        className={`max-w-[75%] rounded-2xl p-3 ${
+                          isMine ? "bg-primary text-white rounded-br-sm" : "bg-gray-100 text-gray-800 rounded-bl-sm"
+                        }`}
+                      >
+                        {!isMine && (
+                          <p className="text-xs font-semibold mb-1 opacity-70">{c.profile?.full_name}</p>
+                        )}
+                        <p className="text-sm">{c.message}</p>
+                      </div>
+                    </div>
+                  );
+                })}
                 {!comments.length && <p className="text-gray-400 text-sm">Belum ada komentar.</p>}
               </div>
               <div className="flex gap-2">

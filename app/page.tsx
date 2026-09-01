@@ -10,6 +10,7 @@ export default async function BerandaPage() {
     .from("circles")
     .select("*")
     .eq("status", "active")
+    .gte("event_date", new Date().toISOString())
     .order("event_date", { ascending: true })
     .limit(6);
 

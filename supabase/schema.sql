@@ -23,7 +23,8 @@ create table if not exists circles (
   group_name text,
   description text,
   category text not null,                 -- 'Gowes','Jalan Santai','Running', dst
-  location text not null,
+  city text,                               -- domisili/kota
+  location text not null,                 -- titik kumpul (alamat spesifik)
   lat double precision,
   lng double precision,
   event_date timestamptz not null,

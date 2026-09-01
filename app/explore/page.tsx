@@ -27,10 +27,15 @@ export default function ExplorePage() {
 
   const fetchCircles = useCallback(async () => {
     setLoading(true);
-    let query = supabase.from("circles").select("*").eq("status", "active").eq("is_private", false);
+    let query = supabase
+      .from("circles")
+      .select("*")
+      .eq("status", "active")
+      .eq("is_private", false)
+      .gte("event_date", new Date().toISOString());
 
     if (category !== "Semua") query = query.eq("category", category);
-    if (location.trim()) query = query.ilike("location", `%${location.trim()}%`);
+    if (location.trim()) query = query.ilike("city", `%${location.trim()}%`);
 
     const { data } = await query.order("event_date", { ascending: true });
     setCircles((data as Circle[]) ?? []);

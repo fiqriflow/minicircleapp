@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { generateInviteCode } from "@/lib/inviteCode";
+import LocationInput from "@/components/LocationInput";
 
 const CATEGORY_OPTIONS = ["Running", "Jalan Santai", "Gowes"];
 
@@ -25,6 +26,7 @@ export default function CreateCircleModal({
     group_name: "",
     max_participants: isPlus ? 8 : 5,
     category: "Running",
+    city: "",
     location: "",
     event_date: "",
     description: "",
@@ -66,7 +68,7 @@ export default function CreateCircleModal({
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.group_name || !form.location || !form.event_date) {
+    if (!form.name || !form.group_name || !form.city || !form.location || !form.event_date) {
       setError("Lengkapi semua field wajib dulu ya.");
       return;
     }
@@ -80,6 +82,7 @@ export default function CreateCircleModal({
       group_name: form.group_name,
       max_participants: form.max_participants,
       category: form.category,
+      city: form.city,
       location: form.location,
       event_date: form.event_date,
       description: form.description,
@@ -184,17 +187,22 @@ export default function CreateCircleModal({
         </div>
 
         <div>
-          <label className="text-sm text-gray-500">Jumlah Orang ({minP}-{maxP})</label>
+          <label className="text-sm text-gray-500">
+            Jumlah Orang: <span className="font-semibold text-primary">{form.max_participants}</span> ({minP}-{maxP})
+          </label>
           <input
-            type="number"
+            type="range"
             min={minP}
             max={maxP}
-            className="w-full border rounded-xl px-3 py-2"
+            step={1}
             value={form.max_participants}
-            onChange={(e) =>
-              setForm({ ...form, max_participants: Math.min(maxP, Math.max(minP, Number(e.target.value))) })
-            }
+            onChange={(e) => setForm({ ...form, max_participants: Number(e.target.value) })}
+            className="w-full accent-primary"
           />
+          <div className="flex justify-between text-xs text-gray-400">
+            <span>{minP}</span>
+            <span>{maxP}</span>
+          </div>
         </div>
 
         <div>
@@ -208,6 +216,16 @@ export default function CreateCircleModal({
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="text-sm text-gray-500">Lokasi / Domisili</label>
+          <LocationInput
+            id="create-circle-city-list"
+            value={form.city}
+            onChange={(v) => setForm({ ...form, city: v })}
+            placeholder="Ketik nama kota..."
+          />
         </div>
 
         <div>
