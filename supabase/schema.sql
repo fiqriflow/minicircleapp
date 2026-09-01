@@ -66,6 +66,7 @@ create table if not exists app_settings (
   value text
 );
 insert into app_settings (key, value) values ('default_circle_cover', null) on conflict (key) do nothing;
+insert into app_settings (key, value) values ('circle_plus_enabled', 'true') on conflict (key) do nothing;
 
 -- ================= TRIGGER: auto create profile saat sign up =================
 create or replace function public.handle_new_user()

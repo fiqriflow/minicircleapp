@@ -8,6 +8,7 @@ import MemberProfileModal from "@/components/MemberProfileModal";
 import JoinQuestionModal from "@/components/JoinQuestionModal";
 import { getDefaultCircleCover } from "@/lib/appSettings";
 import { getCircleDisplayStatus } from "@/lib/circleStatus";
+import { extractStoragePath } from "@/lib/storagePath";
 
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -161,7 +162,11 @@ export default function CircleDetailPage() {
     if (!confirm("Yakin mau hapus circle ini? Semua data line up dan komentar akan ikut terhapus dan tidak bisa dikembalikan.")) {
       return;
     }
+    const coverPath = extractStoragePath(circle.cover_url, "circle-covers");
     await supabase.from("circles").delete().eq("id", id);
+    if (coverPath) {
+      await supabase.storage.from("circle-covers").remove([coverPath]);
+    }
     router.push("/my-circle");
   };
 

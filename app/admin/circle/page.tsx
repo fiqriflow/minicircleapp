@@ -2,21 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-
-const emptyForm = {
-  name: "",
-  description: "",
-  category: "Gowes",
-  location: "",
-  event_date: "",
-  status: "active",
-};
+import { extractStoragePath } from "@/lib/storagePath";
+import { getCirclePlusEnabled } from "@/lib/appSettings";
+import ChooseCircleTypeModal from "@/components/ChooseCircleTypeModal";
+import CreateCircleModal from "@/components/CreateCircleModal";
 
 export default function AdminCirclePage() {
   const supabase = createClient();
   const [circles, setCircles] = useState<any[]>([]);
-  const [form, setForm] = useState<any>(null); // null = modal closed
+  const [editForm, setEditForm] = useState<any>(null); // form edit (existing circle)
   const [uploading, setUploading] = useState(false);
+  const [showChooser, setShowChooser] = useState(false);
+  const [createType, setCreateType] = useState<"regular" | "plus" | null>(null);
+  const [circlePlusEnabled, setCirclePlusEnabled] = useState(true);
 
   const load = async () => {
     const { data } = await supabase.from("circles").select("*").order("event_date", { ascending: false });
@@ -25,19 +23,14 @@ export default function AdminCirclePage() {
 
   useEffect(() => {
     load();
+    getCirclePlusEnabled(supabase).then(setCirclePlusEnabled);
   }, []);
 
-  const openCreate = () => setForm({ ...emptyForm });
-  const openEdit = (c: any) => setForm({ ...c });
+  const openEdit = (c: any) => setEditForm({ ...c });
 
-  const handleSave = async () => {
-    if (form.id) {
-      await supabase.from("circles").update(form).eq("id", form.id);
-    } else {
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from("circles").insert({ ...form, created_by: user?.id });
-    }
-    setForm(null);
+  const handleSaveEdit = async () => {
+    await supabase.from("circles").update(editForm).eq("id", editForm.id);
+    setEditForm(null);
     load();
   };
 
@@ -47,7 +40,7 @@ export default function AdminCirclePage() {
 
     setUploading(true);
     const ext = file.name.split(".").pop();
-    const path = `${form.id ?? "new"}-${Date.now()}.${ext}`;
+    const path = `${editForm.id ?? "new"}-${Date.now()}.${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from("circle-covers")
@@ -60,13 +53,17 @@ export default function AdminCirclePage() {
     }
 
     const { data } = supabase.storage.from("circle-covers").getPublicUrl(path);
-    setForm((f: any) => ({ ...f, cover_url: data.publicUrl }));
+    setEditForm((f: any) => ({ ...f, cover_url: data.publicUrl }));
     setUploading(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Hapus circle ini?")) return;
-    await supabase.from("circles").delete().eq("id", id);
+  const handleDelete = async (circle: any) => {
+    if (!confirm("Hapus circle ini? Line up dan komentar ikut terhapus.")) return;
+    const coverPath = extractStoragePath(circle.cover_url, "circle-covers");
+    await supabase.from("circles").delete().eq("id", circle.id);
+    if (coverPath) {
+      await supabase.storage.from("circle-covers").remove([coverPath]);
+    }
     load();
   };
 
@@ -74,7 +71,7 @@ export default function AdminCirclePage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-xl font-bold">Circle</h1>
-        <button onClick={openCreate} className="bg-primary text-white px-4 py-2 rounded-xl text-sm">
+        <button onClick={() => setShowChooser(true)} className="bg-primary text-white px-4 py-2 rounded-xl text-sm">
           + Tambah Circle
         </button>
       </div>
@@ -101,7 +98,7 @@ export default function AdminCirclePage() {
                 <td className="p-3 capitalize">{c.status}</td>
                 <td className="p-3 space-x-2">
                   <button onClick={() => openEdit(c)} className="text-primary underline">Edit</button>
-                  <button onClick={() => handleDelete(c.id)} className="text-red-500 underline">Hapus</button>
+                  <button onClick={() => handleDelete(c)} className="text-red-500 underline">Hapus</button>
                 </td>
               </tr>
             ))}
@@ -109,15 +106,35 @@ export default function AdminCirclePage() {
         </table>
       </div>
 
-      {form && (
+      {/* Alur tambah circle - sama seperti user */}
+      {showChooser && (
+        <ChooseCircleTypeModal
+          circlePlusEnabled={circlePlusEnabled}
+          onClose={() => setShowChooser(false)}
+          onChoose={(type) => {
+            setCreateType(type);
+            setShowChooser(false);
+          }}
+        />
+      )}
+      {createType && (
+        <CreateCircleModal
+          circleType={createType}
+          onClose={() => setCreateType(null)}
+          onCreated={load}
+        />
+      )}
+
+      {/* Modal edit circle (khusus admin) */}
+      {editForm && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-3">
-            <h2 className="font-bold">{form.id ? "Edit Circle" : "Tambah Circle"}</h2>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md space-y-3 max-h-[90vh] overflow-y-auto">
+            <h2 className="font-bold">Edit Circle</h2>
 
             <div className="space-y-1">
               <div className="h-32 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
-                {form.cover_url ? (
-                  <img src={form.cover_url} alt="cover" className="w-full h-full object-cover" />
+                {editForm.cover_url ? (
+                  <img src={editForm.cover_url} alt="cover" className="w-full h-full object-cover" />
                 ) : (
                   <span className="text-gray-400 text-sm">Belum ada cover</span>
                 )}
@@ -137,48 +154,54 @@ export default function AdminCirclePage() {
             <input
               className="w-full border rounded-xl px-3 py-2"
               placeholder="Nama Circle"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              value={editForm.name}
+              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
             />
             <textarea
               className="w-full border rounded-xl px-3 py-2"
               placeholder="Deskripsi"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              value={editForm.description}
+              onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
             />
             <select
               className="w-full border rounded-xl px-3 py-2"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value })}
+              value={editForm.category}
+              onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
             >
-              {["Gowes", "Jalan Santai", "Running", "Lainnya"].map((c) => (
+              {["Gowes", "Jalan Santai", "Running"].map((c) => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
             <input
               className="w-full border rounded-xl px-3 py-2"
-              placeholder="Lokasi"
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              placeholder="Domisili"
+              value={editForm.city ?? ""}
+              onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+            />
+            <input
+              className="w-full border rounded-xl px-3 py-2"
+              placeholder="Titik Kumpul"
+              value={editForm.location}
+              onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
             />
             <input
               type="datetime-local"
               className="w-full border rounded-xl px-3 py-2"
-              value={form.event_date?.slice(0, 16) ?? ""}
-              onChange={(e) => setForm({ ...form, event_date: e.target.value })}
+              value={editForm.event_date?.slice(0, 16) ?? ""}
+              onChange={(e) => setEditForm({ ...editForm, event_date: e.target.value })}
             />
             <select
               className="w-full border rounded-xl px-3 py-2"
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              value={editForm.status}
+              onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
             >
               <option value="active">Active</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setForm(null)} className="px-4 py-2 text-gray-500">Batal</button>
-              <button onClick={handleSave} className="px-4 py-2 bg-primary text-white rounded-xl">Simpan</button>
+              <button onClick={() => setEditForm(null)} className="px-4 py-2 text-gray-500">Batal</button>
+              <button onClick={handleSaveEdit} className="px-4 py-2 bg-primary text-white rounded-xl">Simpan</button>
             </div>
           </div>
         </div>

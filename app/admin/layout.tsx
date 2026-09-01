@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, CalendarDays, Image as ImageIcon } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, Image as ImageIcon, Settings2 } from "lucide-react";
 
 const menu = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/player", label: "Player", icon: Users },
   { href: "/admin/circle", label: "Circle", icon: CalendarDays },
   { href: "/admin/appearance", label: "Tampilan", icon: ImageIcon },
+  { href: "/admin/settings", label: "Pengaturan", icon: Settings2 },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

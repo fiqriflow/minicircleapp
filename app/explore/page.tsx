@@ -7,7 +7,7 @@ import CircleCard, { Circle } from "@/components/CircleCard";
 import CreateCircleModal from "@/components/CreateCircleModal";
 import ChooseCircleTypeModal from "@/components/ChooseCircleTypeModal";
 import LocationInput from "@/components/LocationInput";
-import { getDefaultCircleCover } from "@/lib/appSettings";
+import { getDefaultCircleCover, getCirclePlusEnabled } from "@/lib/appSettings";
 
 const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Running"];
 
@@ -20,9 +20,11 @@ export default function ExplorePage() {
   const [showChooser, setShowChooser] = useState(false);
   const [createType, setCreateType] = useState<"regular" | "plus" | null>(null);
   const [defaultCoverUrl, setDefaultCoverUrl] = useState<string | null>(null);
+  const [circlePlusEnabled, setCirclePlusEnabled] = useState(true);
 
   useEffect(() => {
     getDefaultCircleCover(supabase).then(setDefaultCoverUrl);
+    getCirclePlusEnabled(supabase).then(setCirclePlusEnabled);
   }, []);
 
   const fetchCircles = useCallback(async () => {
@@ -94,6 +96,7 @@ export default function ExplorePage() {
 
       {showChooser && (
         <ChooseCircleTypeModal
+          circlePlusEnabled={circlePlusEnabled}
           onClose={() => setShowChooser(false)}
           onChoose={(type) => {
             setCreateType(type);
