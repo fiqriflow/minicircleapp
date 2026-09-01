@@ -72,6 +72,10 @@ export default function CreateCircleModal({
       setError("Lengkapi semua field wajib dulu ya.");
       return;
     }
+    if (new Date(form.event_date) < new Date()) {
+      setError("Tanggal & jam tidak boleh yang sudah lewat. Pilih waktu di masa depan.");
+      return;
+    }
     setSaving(true);
     setError("");
 
@@ -242,6 +246,7 @@ export default function CreateCircleModal({
           <label className="text-sm text-gray-500">Tanggal & Jam</label>
           <input
             type="datetime-local"
+            min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
             className="w-full border rounded-xl px-3 py-2"
             value={form.event_date}
             onChange={(e) => setForm({ ...form, event_date: e.target.value })}

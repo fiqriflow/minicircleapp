@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { MoreVertical, Link as LinkIcon } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { MoreVertical, Link as LinkIcon, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import MemberProfileModal from "@/components/MemberProfileModal";
 import JoinQuestionModal from "@/components/JoinQuestionModal";
 import { getDefaultCircleCover } from "@/lib/appSettings";
+import { getCircleDisplayStatus } from "@/lib/circleStatus";
 
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const supabase = createClient();
 
   const [circle, setCircle] = useState<any>(null);
@@ -155,6 +157,14 @@ export default function CircleDetailPage() {
     setShowHostMenu(false);
   };
 
+  const handleDeleteCircle = async () => {
+    if (!confirm("Yakin mau hapus circle ini? Semua data line up dan komentar akan ikut terhapus dan tidak bisa dikembalikan.")) {
+      return;
+    }
+    await supabase.from("circles").delete().eq("id", id);
+    router.push("/my-circle");
+  };
+
   if (!circle) return <p className="p-6 text-gray-400">Memuat...</p>;
 
   return (
@@ -210,11 +220,17 @@ export default function CircleDetailPage() {
                   {circle.invite_code && (
                     <button
                       onClick={handleCopyInvite}
-                      className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2"
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
                     >
                       <LinkIcon size={14} /> Salin Link Undangan
                     </button>
                   )}
+                  <button
+                    onClick={handleDeleteCircle}
+                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                  >
+                    <Trash2 size={14} /> Hapus Circle
+                  </button>
                 </div>
               )}
             </div>
@@ -246,21 +262,31 @@ export default function CircleDetailPage() {
       </div>
 
       {/* Join button */}
-      {!isHost && (
-        <button
-          onClick={handleJoinToggle}
-          disabled={myStatus === "pending"}
-          className={`w-full rounded-xl py-3 font-medium ${
-            myStatus === "joined"
-              ? "bg-red-50 text-red-600 border border-red-300"
-              : myStatus === "pending"
-              ? "bg-gray-100 text-gray-400"
-              : "bg-primary text-white"
-          }`}
-        >
-          {myStatus === "joined" ? "Batal Join" : myStatus === "pending" ? "Menunggu Persetujuan" : "Join Circle"}
-        </button>
-      )}
+      {!isHost && (() => {
+        const displayStatus = getCircleDisplayStatus(circle);
+        if (displayStatus !== "active") {
+          return (
+            <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+              {displayStatus === "completed" ? "Circle sudah selesai" : "Circle dibatalkan"}
+            </button>
+          );
+        }
+        return (
+          <button
+            onClick={handleJoinToggle}
+            disabled={myStatus === "pending"}
+            className={`w-full rounded-xl py-3 font-medium ${
+              myStatus === "joined"
+                ? "bg-red-50 text-red-600 border border-red-300"
+                : myStatus === "pending"
+                ? "bg-gray-100 text-gray-400"
+                : "bg-primary text-white"
+            }`}
+          >
+            {myStatus === "joined" ? "Batal Join" : myStatus === "pending" ? "Menunggu Persetujuan" : "Join Circle"}
+          </button>
+        );
+      })()}
 
       {showJoinQuestion && (
         <JoinQuestionModal
