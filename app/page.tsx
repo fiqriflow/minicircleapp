@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import CircleCard from "@/components/CircleCard";
+import { getDefaultCircleCover } from "@/lib/appSettings";
 
 export default async function BerandaPage() {
   const supabase = await createClient();
@@ -11,6 +12,8 @@ export default async function BerandaPage() {
     .eq("status", "active")
     .order("event_date", { ascending: true })
     .limit(6);
+
+  const defaultCoverUrl = await getDefaultCircleCover(supabase);
 
   return (
     <div className="px-4 md:px-8 py-6 space-y-8">
@@ -27,7 +30,7 @@ export default async function BerandaPage() {
         <h2 className="text-lg font-semibold">Circle Terdekat</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {circles?.length ? (
-            circles.map((c) => <CircleCard key={c.id} circle={c} />)
+            circles.map((c) => <CircleCard key={c.id} circle={c} defaultCoverUrl={defaultCoverUrl} />)
           ) : (
             <p className="text-gray-400 text-sm">Belum ada circle aktif di sekitarmu.</p>
           )}

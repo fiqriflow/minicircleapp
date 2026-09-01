@@ -59,6 +59,13 @@ create table if not exists circle_comments (
   created_at timestamptz default now()
 );
 
+-- ================= APP SETTINGS (default cover, dll) =================
+create table if not exists app_settings (
+  key text primary key,
+  value text
+);
+insert into app_settings (key, value) values ('default_circle_cover', null) on conflict (key) do nothing;
+
 -- ================= TRIGGER: auto create profile saat sign up =================
 create or replace function public.handle_new_user()
 returns trigger as $$
@@ -79,6 +86,7 @@ alter table profiles enable row level security;
 alter table circles enable row level security;
 alter table circle_members enable row level security;
 alter table circle_comments enable row level security;
+alter table app_settings enable row level security;
 
 -- profiles: semua bisa lihat, hanya pemilik bisa insert/update
 create policy "profiles_select_all" on profiles for select using (true);
@@ -115,4 +123,13 @@ create policy "comments_select_member" on circle_comments for select using (
 create policy "comments_insert_member" on circle_comments for insert with check (
   auth.uid() = user_id and
   exists (select 1 from circle_members m where m.circle_id = circle_comments.circle_id and m.user_id = auth.uid())
+);
+
+-- app_settings: semua bisa lihat, hanya super admin bisa ubah
+create policy "settings_select_all" on app_settings for select using (true);
+create policy "settings_upsert_admin" on app_settings for insert with check (
+  exists (select 1 from profiles p where p.id = auth.uid() and p.is_super_admin)
+);
+create policy "settings_update_admin" on app_settings for update using (
+  exists (select 1 from profiles p where p.id = auth.uid() and p.is_super_admin)
 );

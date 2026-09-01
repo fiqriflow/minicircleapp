@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/CircleCard";
+import { getDefaultCircleCover } from "@/lib/appSettings";
 
 export default function MyCirclePage() {
   const supabase = createClient();
@@ -10,6 +11,11 @@ export default function MyCirclePage() {
   const [completed, setCompleted] = useState<Circle[]>([]);
   const [tab, setTab] = useState<"active" | "completed">("active");
   const [loading, setLoading] = useState(true);
+  const [defaultCoverUrl, setDefaultCoverUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    getDefaultCircleCover(supabase).then(setDefaultCoverUrl);
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -54,7 +60,7 @@ export default function MyCirclePage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {list.length ? (
-            list.map((c) => <CircleCard key={c.id} circle={c} />)
+            list.map((c) => <CircleCard key={c.id} circle={c} defaultCoverUrl={defaultCoverUrl} />)
           ) : (
             <p className="text-gray-400 text-sm">
               {tab === "active" ? "Belum join circle apapun." : "Belum ada riwayat circle."}

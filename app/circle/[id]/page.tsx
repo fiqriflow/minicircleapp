@@ -6,6 +6,7 @@ import { MoreVertical, Link as LinkIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import MemberProfileModal from "@/components/MemberProfileModal";
 import JoinQuestionModal from "@/components/JoinQuestionModal";
+import { getDefaultCircleCover } from "@/lib/appSettings";
 
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -23,6 +24,7 @@ export default function CircleDetailPage() {
   const [showHostMenu, setShowHostMenu] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [showJoinQuestion, setShowJoinQuestion] = useState(false);
+  const [defaultCoverUrl, setDefaultCoverUrl] = useState<string | null>(null);
 
   const isJoined = myStatus === "joined";
   const isHost = !!(userId && circle && userId === circle.created_by);
@@ -64,6 +66,7 @@ export default function CircleDetailPage() {
 
   useEffect(() => {
     load();
+    getDefaultCircleCover(supabase).then(setDefaultCoverUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -139,8 +142,8 @@ export default function CircleDetailPage() {
       {/* Header */}
       <div className="space-y-2">
         <div className="h-40 bg-gray-200 rounded-2xl overflow-hidden">
-          {circle.cover_url && (
-            <img src={circle.cover_url} alt={circle.name} className="w-full h-full object-cover" />
+          {(circle.cover_url || defaultCoverUrl) && (
+            <img src={circle.cover_url || defaultCoverUrl} alt={circle.name} className="w-full h-full object-cover" />
           )}
         </div>
 

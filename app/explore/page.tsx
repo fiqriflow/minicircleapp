@@ -7,6 +7,7 @@ import CircleCard, { Circle } from "@/components/CircleCard";
 import CreateCircleModal from "@/components/CreateCircleModal";
 import ChooseCircleTypeModal from "@/components/ChooseCircleTypeModal";
 import LocationInput from "@/components/LocationInput";
+import { getDefaultCircleCover } from "@/lib/appSettings";
 
 const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Running"];
 
@@ -18,6 +19,11 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(true);
   const [showChooser, setShowChooser] = useState(false);
   const [createType, setCreateType] = useState<"regular" | "plus" | null>(null);
+  const [defaultCoverUrl, setDefaultCoverUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    getDefaultCircleCover(supabase).then(setDefaultCoverUrl);
+  }, []);
 
   const fetchCircles = useCallback(async () => {
     setLoading(true);
@@ -65,7 +71,7 @@ export default function ExplorePage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {circles.length ? (
-            circles.map((c) => <CircleCard key={c.id} circle={c} />)
+            circles.map((c) => <CircleCard key={c.id} circle={c} defaultCoverUrl={defaultCoverUrl} />)
           ) : (
             <p className="text-gray-400 text-sm">Tidak ada circle yang cocok.</p>
           )}

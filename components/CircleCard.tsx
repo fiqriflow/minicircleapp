@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MapPin, Calendar, Tag } from "lucide-react";
+import { getCircleDisplayStatus } from "@/lib/circleStatus";
 
 export type Circle = {
   id: string;
@@ -18,8 +19,16 @@ const STATUS_LABEL: Record<string, { label: string; className: string }> = {
   cancelled: { label: "Dibatalkan", className: "bg-red-100 text-red-600" },
 };
 
-export default function CircleCard({ circle }: { circle: Circle }) {
-  const statusInfo = STATUS_LABEL[circle.status] ?? STATUS_LABEL.active;
+export default function CircleCard({
+  circle,
+  defaultCoverUrl,
+}: {
+  circle: Circle;
+  defaultCoverUrl?: string | null;
+}) {
+  const displayStatus = getCircleDisplayStatus(circle);
+  const statusInfo = STATUS_LABEL[displayStatus];
+  const cover = circle.cover_url || defaultCoverUrl;
 
   return (
     <Link
@@ -27,9 +36,9 @@ export default function CircleCard({ circle }: { circle: Circle }) {
       className="block bg-white rounded-2xl border overflow-hidden hover:shadow-md transition"
     >
       <div className="h-32 bg-gray-200 relative">
-        {circle.cover_url && (
+        {cover && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={circle.cover_url} alt={circle.name} className="w-full h-full object-cover" />
+          <img src={cover} alt={circle.name} className="w-full h-full object-cover" />
         )}
         <span
           className={`absolute top-2 right-2 text-xs font-medium px-2 py-1 rounded-full ${statusInfo.className}`}
