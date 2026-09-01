@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/CircleCard";
 import CreateCircleModal from "@/components/CreateCircleModal";
+import ChooseCircleTypeModal from "@/components/ChooseCircleTypeModal";
 import LocationInput from "@/components/LocationInput";
 
 const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Running"];
@@ -15,11 +16,12 @@ export default function ExplorePage() {
   const [category, setCategory] = useState("Semua");
   const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(true);
-  const [showCreate, setShowCreate] = useState(false);
+  const [showChooser, setShowChooser] = useState(false);
+  const [createType, setCreateType] = useState<"regular" | "plus" | null>(null);
 
   const fetchCircles = useCallback(async () => {
     setLoading(true);
-    let query = supabase.from("circles").select("*").eq("status", "active");
+    let query = supabase.from("circles").select("*").eq("status", "active").eq("is_private", false);
 
     if (category !== "Semua") query = query.eq("category", category);
     if (location.trim()) query = query.ilike("location", `%${location.trim()}%`);
@@ -72,15 +74,29 @@ export default function ExplorePage() {
 
       {/* Floating button tambah circle */}
       <button
-        onClick={() => setShowCreate(true)}
+        onClick={() => setShowChooser(true)}
         className="fixed bottom-24 right-5 md:bottom-8 md:right-8 z-30 bg-primary text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-primary-dark"
         aria-label="Tambah Circle"
       >
         <Plus size={26} />
       </button>
 
-      {showCreate && (
-        <CreateCircleModal onClose={() => setShowCreate(false)} onCreated={fetchCircles} />
+      {showChooser && (
+        <ChooseCircleTypeModal
+          onClose={() => setShowChooser(false)}
+          onChoose={(type) => {
+            setCreateType(type);
+            setShowChooser(false);
+          }}
+        />
+      )}
+
+      {createType && (
+        <CreateCircleModal
+          circleType={createType}
+          onClose={() => setCreateType(null)}
+          onCreated={fetchCircles}
+        />
       )}
     </div>
   );

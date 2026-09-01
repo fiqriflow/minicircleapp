@@ -27,7 +27,11 @@ create table if not exists circles (
   lat double precision,
   lng double precision,
   event_date timestamptz not null,
-  max_participants int check (max_participants between 5 and 10) default 10,
+  max_participants int check (max_participants between 3 and 12) default 6,
+  is_circle_plus boolean default false,
+  is_private boolean default false,
+  invite_code text unique,
+  join_question text,
   requires_approval boolean default false,
   cover_url text,
   status text default 'active',           -- 'active' | 'completed' | 'cancelled'
@@ -41,6 +45,7 @@ create table if not exists circle_members (
   circle_id uuid references circles(id) on delete cascade,
   user_id uuid references profiles(id) on delete cascade,
   status text default 'joined',           -- 'joined' | 'left'
+  join_answer text,
   joined_at timestamptz default now(),
   unique(circle_id, user_id)
 );

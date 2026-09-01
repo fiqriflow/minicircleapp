@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Link as LinkIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import MemberProfileModal from "@/components/MemberProfileModal";
+import JoinQuestionModal from "@/components/JoinQuestionModal";
 
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +22,7 @@ export default function CircleDetailPage() {
   const [newComment, setNewComment] = useState("");
   const [showHostMenu, setShowHostMenu] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [showJoinQuestion, setShowJoinQuestion] = useState(false);
 
   const isJoined = myStatus === "joined";
   const isHost = !!(userId && circle && userId === circle.created_by);
@@ -65,18 +67,29 @@ export default function CircleDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  const doJoin = async (answer?: string) => {
+    if (!userId) return;
+    await supabase.from("circle_members").insert({
+      circle_id: id,
+      user_id: userId,
+      status: circle.requires_approval ? "pending" : "joined",
+      join_answer: answer ?? null,
+    });
+    load();
+  };
+
   const handleJoinToggle = async () => {
     if (!userId) return;
     if (myStatus) {
       await supabase.from("circle_members").delete().eq("circle_id", id).eq("user_id", userId);
-    } else {
-      await supabase.from("circle_members").insert({
-        circle_id: id,
-        user_id: userId,
-        status: circle.requires_approval ? "pending" : "joined",
-      });
+      load();
+      return;
     }
-    load();
+    if (circle.join_question) {
+      setShowJoinQuestion(true);
+      return;
+    }
+    doJoin();
   };
 
   const handleApprove = async (memberId: string) => {
@@ -112,6 +125,13 @@ export default function CircleDetailPage() {
     load();
   };
 
+  const handleCopyInvite = () => {
+    const url = `${location.origin}/join/${circle.invite_code}`;
+    navigator.clipboard.writeText(url);
+    alert("Link undangan disalin: " + url);
+    setShowHostMenu(false);
+  };
+
   if (!circle) return <p className="p-6 text-gray-400">Memuat...</p>;
 
   return (
@@ -126,7 +146,12 @@ export default function CircleDetailPage() {
 
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold">{circle.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">{circle.name}</h1>
+              {circle.is_circle_plus && (
+                <span className="text-xs bg-primary text-white px-2 py-1 rounded-full">Circle+</span>
+              )}
+            </div>
             {circle.group_name && <p className="text-sm text-gray-400">{circle.group_name}</p>}
           </div>
 
@@ -155,10 +180,18 @@ export default function CircleDetailPage() {
                   </button>
                   <button
                     onClick={handleToggleApproval}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50"
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b"
                   >
                     {circle.requires_approval ? "Matikan" : "Aktifkan"} Perlu Approval Join
                   </button>
+                  {circle.invite_code && (
+                    <button
+                      onClick={handleCopyInvite}
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2"
+                    >
+                      <LinkIcon size={14} /> Salin Link Undangan
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -183,7 +216,8 @@ export default function CircleDetailPage() {
           <p>🏷️ {circle.category}</p>
           <p>🗓️ {new Date(circle.event_date).toLocaleString("id-ID")}</p>
           {circle.max_participants && <p>👥 Maks {circle.max_participants} orang</p>}
-          {circle.requires_approval && <p>🔒 Perlu persetujuan host untuk join</p>}
+          {circle.is_private && <p>🔒 Private / Invite Only</p>}
+          {circle.requires_approval && <p>✅ Perlu persetujuan host untuk join</p>}
         </div>
       </div>
 
@@ -204,20 +238,36 @@ export default function CircleDetailPage() {
         </button>
       )}
 
+      {showJoinQuestion && (
+        <JoinQuestionModal
+          question={circle.join_question}
+          onCancel={() => setShowJoinQuestion(false)}
+          onSubmit={(answer) => {
+            setShowJoinQuestion(false);
+            doJoin(answer);
+          }}
+        />
+      )}
+
       {/* Approval requests untuk host */}
       {isHost && pendingMembers.length > 0 && (
         <div className="space-y-2">
           <h3 className="font-semibold text-sm text-gray-700">Menunggu Persetujuan ({pendingMembers.length})</h3>
           {pendingMembers.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 border rounded-xl p-3">
-              <img
-                src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
-                className="w-10 h-10 rounded-full object-cover"
-                alt=""
-              />
-              <p className="flex-1 font-medium">{m.profile?.nickname || m.profile?.full_name}</p>
-              <button onClick={() => handleApprove(m.id)} className="text-primary text-sm font-medium">Terima</button>
-              <button onClick={() => handleReject(m.id)} className="text-red-500 text-sm font-medium">Tolak</button>
+            <div key={m.id} className="border rounded-xl p-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <img
+                  src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
+                  className="w-10 h-10 rounded-full object-cover"
+                  alt=""
+                />
+                <p className="flex-1 font-medium">{m.profile?.nickname || m.profile?.full_name}</p>
+                <button onClick={() => handleApprove(m.id)} className="text-primary text-sm font-medium">Terima</button>
+                <button onClick={() => handleReject(m.id)} className="text-red-500 text-sm font-medium">Tolak</button>
+              </div>
+              {m.join_answer && (
+                <p className="text-sm text-gray-500 bg-gray-50 rounded-lg p-2">"{m.join_answer}"</p>
+              )}
             </div>
           ))}
         </div>
