@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { generateInviteCode } from "@/lib/inviteCode";
+import { toDateTimeLocalValue, fromDateTimeLocalValue } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/LocationInput";
 
 const CATEGORY_OPTIONS = ["Running", "Jalan Santai", "Gowes"];
@@ -246,10 +247,13 @@ export default function CreateCircleModal({
           <label className="text-sm text-gray-500">Tanggal & Jam</label>
           <input
             type="datetime-local"
-            min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+            min={toDateTimeLocalValue(new Date().toISOString())}
             className="w-full border rounded-xl px-3 py-2"
-            value={form.event_date}
-            onChange={(e) => setForm({ ...form, event_date: e.target.value })}
+            value={toDateTimeLocalValue(form.event_date)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setForm({ ...form, event_date: v ? fromDateTimeLocalValue(v) : "" });
+            }}
           />
         </div>
 

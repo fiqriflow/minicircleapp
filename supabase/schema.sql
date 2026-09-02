@@ -37,7 +37,7 @@ create table if not exists circles (
   requires_approval boolean default false,
   cover_url text,
   status text default 'active',           -- 'active' | 'completed' | 'cancelled'
-  created_by uuid references profiles(id),
+  created_by uuid references profiles(id) on delete set null,
   created_at timestamptz default now()
 );
 
@@ -95,6 +95,9 @@ alter table app_settings enable row level security;
 create policy "profiles_select_all" on profiles for select using (true);
 create policy "profiles_insert_own" on profiles for insert with check (auth.uid() = id);
 create policy "profiles_update_own" on profiles for update using (auth.uid() = id);
+create policy "profiles_delete_admin" on profiles for delete using (
+  exists (select 1 from profiles p where p.id = auth.uid() and p.is_super_admin)
+);
 
 -- circles: semua bisa lihat, hanya login bisa create, hanya admin/creator update/delete
 create policy "circles_select_all" on circles for select using (true);

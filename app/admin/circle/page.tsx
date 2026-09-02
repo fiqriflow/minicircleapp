@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { extractStoragePath } from "@/lib/storagePath";
 import { getCirclePlusEnabled } from "@/lib/appSettings";
+import { toDateTimeLocalValue, fromDateTimeLocalValue } from "@/lib/dateTimeLocal";
 import ChooseCircleTypeModal from "@/components/ChooseCircleTypeModal";
 import CreateCircleModal from "@/components/CreateCircleModal";
 
@@ -187,8 +188,12 @@ export default function AdminCirclePage() {
             <input
               type="datetime-local"
               className="w-full border rounded-xl px-3 py-2"
-              value={editForm.event_date?.slice(0, 16) ?? ""}
-              onChange={(e) => setEditForm({ ...editForm, event_date: e.target.value })}
+              value={toDateTimeLocalValue(editForm.event_date)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (!v) return;
+                setEditForm({ ...editForm, event_date: fromDateTimeLocalValue(v) });
+              }}
             />
             <select
               className="w-full border rounded-xl px-3 py-2"

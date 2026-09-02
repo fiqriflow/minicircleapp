@@ -7,6 +7,7 @@ export default function AdminPlayerPage() {
   const supabase = createClient();
   const [players, setPlayers] = useState<any[]>([]);
   const [editing, setEditing] = useState<any>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const load = async () => {
     const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
@@ -15,6 +16,7 @@ export default function AdminPlayerPage() {
 
   useEffect(() => {
     load();
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
   }, []);
 
   const handleSave = async () => {
@@ -23,9 +25,25 @@ export default function AdminPlayerPage() {
     load();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Hapus user ini?")) return;
-    await supabase.from("profiles").delete().eq("id", id);
+  const handleDelete = async (player: any) => {
+    if (player.id === currentUserId) {
+      alert("Kamu tidak bisa menghapus akunmu sendiri.");
+      return;
+    }
+    if (
+      !confirm(
+        `Hapus data player "${player.full_name || player.nickname || player.id}"?\n\n` +
+          "Profil, keikutsertaan di circle, dan komentarnya akan ikut terhapus. " +
+          "Circle yang pernah dia buat tetap ada (host-nya jadi kosong). " +
+          "Akun login (email/password) tidak ikut terhapus dari sistem autentikasi."
+      )
+    )
+      return;
+    const { error } = await supabase.from("profiles").delete().eq("id", player.id);
+    if (error) {
+      alert("Gagal hapus user: " + error.message);
+      return;
+    }
     load();
   };
 
@@ -57,7 +75,7 @@ export default function AdminPlayerPage() {
             </div>
             <div className="flex gap-4 pt-1 border-t text-sm">
               <button onClick={() => setEditing(p)} className="text-primary font-medium py-2">Edit</button>
-              <button onClick={() => handleDelete(p.id)} className="text-red-500 font-medium py-2">Hapus</button>
+              <button onClick={() => handleDelete(p)} className="text-red-500 font-medium py-2">Hapus</button>
             </div>
           </div>
         ))}
@@ -87,7 +105,7 @@ export default function AdminPlayerPage() {
                 <td className="p-3">{p.is_super_admin ? "✅" : "-"}</td>
                 <td className="p-3 space-x-2">
                   <button onClick={() => setEditing(p)} className="text-primary underline">Edit</button>
-                  <button onClick={() => handleDelete(p.id)} className="text-red-500 underline">Hapus</button>
+                  <button onClick={() => handleDelete(p)} className="text-red-500 underline">Hapus</button>
                 </td>
               </tr>
             ))}
