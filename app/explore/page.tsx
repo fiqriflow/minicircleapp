@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +12,12 @@ import { getCirclePlusEnabled, getDefaultCoverMap } from "@/lib/appSettings";
 import { getJoinedCounts } from "@/lib/circleMembers";
 
 const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Running"];
+const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+const DAYS_SHOWN = 14;
+
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
 
 function ExploreContent() {
   const supabase = createClient();
@@ -28,6 +34,11 @@ function ExploreContent() {
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [circlePlusEnabled, setCirclePlusEnabled] = useState(true);
   const [joinedCounts, setJoinedCounts] = useState<Record<string, number>>({});
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  });
 
   useEffect(() => {
     getDefaultCoverMap(supabase).then(setDefaultCoverMap);
@@ -58,6 +69,24 @@ function ExploreContent() {
     fetchCircles();
   }, [fetchCircles]);
 
+  const dateStrip = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return Array.from({ length: DAYS_SHOWN }).map((_, i) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      const hasEvent = circles.some((c) => isSameDay(new Date(c.event_date), d));
+      return { date: d, hasEvent };
+    });
+  }, [circles]);
+
+  const filteredCircles = useMemo(
+    () => circles.filter((c) => isSameDay(new Date(c.event_date), selectedDate)),
+    [circles, selectedDate]
+  );
+
+  const monthLabel = selectedDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+
   return (
     <div className="px-4 md:px-8 py-6 space-y-6 relative">
       <h1 className="text-xl font-bold">Explore Circle</h1>
@@ -82,17 +111,47 @@ function ExploreContent() {
         </select>
       </div>
 
+      {/* Date scroller */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-500">Pilih Tanggal</h2>
+          <span className="text-sm text-gray-400">{monthLabel}</span>
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {dateStrip.map(({ date, hasEvent }) => {
+            const active = isSameDay(date, selectedDate);
+            return (
+              <button
+                key={date.toISOString()}
+                onClick={() => setSelectedDate(date)}
+                className={`flex flex-col items-center justify-center shrink-0 w-14 h-16 rounded-xl border ${
+                  active ? "bg-primary text-white border-primary" : "bg-white text-gray-600 hover:border-primary"
+                }`}
+              >
+                <span className="text-[10px] opacity-80">{DAY_LABELS[date.getDay()]}</span>
+                <span className="text-lg font-semibold">{date.getDate()}</span>
+                <span
+                  className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                    hasEvent ? (active ? "bg-white" : "bg-primary") : "bg-transparent"
+                  }`}
+                />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Grid */}
       {loading ? (
         <p className="text-gray-400 text-sm">Memuat...</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {circles.length ? (
-            circles.map((c) => (
+          {filteredCircles.length ? (
+            filteredCircles.map((c) => (
               <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} />
             ))
           ) : (
-            <p className="text-gray-400 text-sm">Tidak ada circle yang cocok.</p>
+            <p className="text-gray-400 text-sm">Tidak ada circle di tanggal ini.</p>
           )}
         </div>
       )}
