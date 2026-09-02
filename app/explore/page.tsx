@@ -9,7 +9,6 @@ import CreateCircleModal from "@/components/CreateCircleModal";
 import ChooseCircleTypeModal from "@/components/ChooseCircleTypeModal";
 import LocationInput from "@/components/LocationInput";
 import { getCirclePlusEnabled, getDefaultCoverMap } from "@/lib/appSettings";
-import { getMemberCounts } from "@/lib/memberCounts";
 import { getJoinedCounts } from "@/lib/circleMembers";
 
 const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Running"];
