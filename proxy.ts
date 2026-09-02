@@ -28,18 +28,28 @@ export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const isAuthPage = path === "/login" || path.startsWith("/auth");
   const isAdminPage = path.startsWith("/admin");
+  const isOnboardingPage = path === "/onboarding";
 
   if (!user && !isAuthPage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (user && isAdminPage) {
+  if (user && !isAuthPage) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_super_admin")
+      .select("is_super_admin, onboarding_completed")
       .eq("id", user.id)
       .single();
-    if (!profile?.is_super_admin) {
+
+    if (!profile?.onboarding_completed && !isOnboardingPage) {
+      return NextResponse.redirect(new URL("/onboarding", request.url));
+    }
+
+    if (profile?.onboarding_completed && isOnboardingPage) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    if (isAdminPage && !profile?.is_super_admin) {
       return NextResponse.redirect(new URL("/", request.url));
     }
   }

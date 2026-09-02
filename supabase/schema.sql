@@ -13,6 +13,7 @@ create table if not exists profiles (
   birth_date date,
   avatar_url text,
   is_super_admin boolean default false,
+  onboarding_completed boolean default false,
   created_at timestamptz default now()
 );
 
