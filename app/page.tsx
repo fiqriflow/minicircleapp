@@ -19,14 +19,28 @@ export default async function BerandaPage() {
   const now = new Date();
   const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-  const { data: circles } = await supabase
-    .from("circles")
-    .select("*")
-    .eq("status", "active")
-    .eq("is_private", false)
-    .gte("event_date", now.toISOString())
-    .lte("event_date", in30Days.toISOString())
-    .order("event_date", { ascending: true });
+  let joinedCircleIds: string[] = [];
+  if (user?.id) {
+    const { data: myMemberships } = await supabase
+      .from("circle_members")
+      .select("circle_id")
+      .eq("user_id", user.id)
+      .eq("status", "joined");
+    joinedCircleIds = (myMemberships ?? []).map((m) => m.circle_id);
+  }
+
+  let circles: any[] = [];
+  if (joinedCircleIds.length) {
+    const { data } = await supabase
+      .from("circles")
+      .select("*")
+      .eq("status", "active")
+      .in("id", joinedCircleIds)
+      .gte("event_date", now.toISOString())
+      .lte("event_date", in30Days.toISOString())
+      .order("event_date", { ascending: true });
+    circles = data ?? [];
+  }
 
   const defaultCoverMap = await getDefaultCoverMap(supabase);
   const joinedCounts = await getJoinedCounts(supabase, (circles ?? []).map((c) => c.id));
