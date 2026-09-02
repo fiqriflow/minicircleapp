@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/CircleCard";
@@ -11,10 +12,14 @@ import { getDefaultCircleCover, getCirclePlusEnabled } from "@/lib/appSettings";
 
 const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Running"];
 
-export default function ExplorePage() {
+function ExploreContent() {
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const initialCategory = searchParams.get("category");
   const [circles, setCircles] = useState<Circle[]>([]);
-  const [category, setCategory] = useState("Semua");
+  const [category, setCategory] = useState(
+    CATEGORIES.includes(initialCategory ?? "") ? (initialCategory as string) : "Semua"
+  );
   const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(true);
   const [showChooser, setShowChooser] = useState(false);
@@ -113,5 +118,13 @@ export default function ExplorePage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ExplorePage() {
+  return (
+    <Suspense fallback={<p className="p-6 text-gray-400">Memuat...</p>}>
+      <ExploreContent />
+    </Suspense>
   );
 }
