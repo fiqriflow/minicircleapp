@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { Bike, Footprints, PersonStanding, Grid3x3 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getDefaultCircleCover } from "@/lib/appSettings";
+import { getDefaultCoverMap } from "@/lib/appSettings";
+import { getJoinedCounts } from "@/lib/circleMembers";
 import UpcomingCirclesSection from "@/components/UpcomingCirclesSection";
 
 const QUICK_ACCESS = [
@@ -27,7 +28,8 @@ export default async function BerandaPage() {
     .lte("event_date", in30Days.toISOString())
     .order("event_date", { ascending: true });
 
-  const defaultCoverUrl = await getDefaultCircleCover(supabase);
+  const defaultCoverMap = await getDefaultCoverMap(supabase);
+  const joinedCounts = await getJoinedCounts(supabase, (circles ?? []).map((c) => c.id));
 
   return (
     <div className="px-4 md:px-8 py-6 space-y-8">
@@ -59,7 +61,11 @@ export default async function BerandaPage() {
       </section>
 
       {/* Circle yang akan datang */}
-      <UpcomingCirclesSection circles={circles ?? []} defaultCoverUrl={defaultCoverUrl} />
+      <UpcomingCirclesSection
+        circles={circles ?? []}
+        defaultCoverMap={defaultCoverMap}
+        joinedCounts={joinedCounts}
+      />
     </div>
   );
 }

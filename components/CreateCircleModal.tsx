@@ -19,7 +19,7 @@ export default function CreateCircleModal({
   const supabase = createClient();
   const isPlus = circleType === "plus";
   const minP = 3;
-  const maxP = isPlus ? 12 : 6;
+  const maxP = isPlus ? 20 : 12;
 
   const [form, setForm] = useState({
     name: "",

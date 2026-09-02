@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/CircleCard";
-import { getDefaultCircleCover } from "@/lib/appSettings";
+import { getDefaultCoverMap } from "@/lib/appSettings";
 import { getCircleDisplayStatus } from "@/lib/circleStatus";
+import { getJoinedCounts } from "@/lib/circleMembers";
 
 export default function MyCirclePage() {
   const supabase = createClient();
@@ -12,10 +13,11 @@ export default function MyCirclePage() {
   const [completed, setCompleted] = useState<Circle[]>([]);
   const [tab, setTab] = useState<"active" | "completed">("active");
   const [loading, setLoading] = useState(true);
-  const [defaultCoverUrl, setDefaultCoverUrl] = useState<string | null>(null);
+  const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
+  const [joinedCounts, setJoinedCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    getDefaultCircleCover(supabase).then(setDefaultCoverUrl);
+    getDefaultCoverMap(supabase).then(setDefaultCoverMap);
   }, []);
 
   useEffect(() => {
@@ -28,9 +30,12 @@ export default function MyCirclePage() {
         .eq("status", "joined");
 
       const all = (memberships?.map((m: any) => m.circle).filter(Boolean) ?? []) as Circle[];
-      setActive(all.filter((c: any) => getCircleDisplayStatus(c) === "active"));
-      setCompleted(all.filter((c: any) => getCircleDisplayStatus(c) !== "active"));
+      setActive(all.filter((c: any) => ["open", "ongoing"].includes(getCircleDisplayStatus(c))));
+      setCompleted(all.filter((c: any) => ["completed", "cancelled"].includes(getCircleDisplayStatus(c))));
       setLoading(false);
+
+      const counts = await getJoinedCounts(supabase, all.map((c: any) => c.id));
+      setJoinedCounts(counts);
     };
     load();
   }, []);
@@ -61,7 +66,9 @@ export default function MyCirclePage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {list.length ? (
-            list.map((c) => <CircleCard key={c.id} circle={c} defaultCoverUrl={defaultCoverUrl} />)
+            list.map((c) => (
+              <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} />
+            ))
           ) : (
             <p className="text-gray-400 text-sm">
               {tab === "active" ? "Belum join circle apapun." : "Belum ada riwayat circle."}

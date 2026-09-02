@@ -6,9 +6,10 @@ import { MoreVertical, Link as LinkIcon, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import MemberProfileModal from "@/components/MemberProfileModal";
 import JoinQuestionModal from "@/components/JoinQuestionModal";
-import { getDefaultCircleCover } from "@/lib/appSettings";
-import { getCircleDisplayStatus } from "@/lib/circleStatus";
+import { getDefaultCoverMap, resolveCircleCover } from "@/lib/appSettings";
+import { getCircleDisplayStatus, STATUS_LABEL } from "@/lib/circleStatus";
 import { extractStoragePath } from "@/lib/storagePath";
+import { getJoinedCounts } from "@/lib/circleMembers";
 
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -27,8 +28,9 @@ export default function CircleDetailPage() {
   const [showHostMenu, setShowHostMenu] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [showJoinQuestion, setShowJoinQuestion] = useState(false);
-  const [defaultCoverUrl, setDefaultCoverUrl] = useState<string | null>(null);
+  const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [hasNewComment, setHasNewComment] = useState(false);
+  const [joinedCount, setJoinedCount] = useState(0);
 
   const isJoined = myStatus === "joined";
   const isHost = !!(userId && circle && userId === circle.created_by);
@@ -54,6 +56,7 @@ export default function CircleDetailPage() {
     const pending = (allMembers ?? []).filter((m) => m.status === "pending");
     setMembers(joined);
     setPendingMembers(pending);
+    setJoinedCount(joined.length);
 
     const mine = allMembers?.find((m) => m.user_id === user?.id);
     setMyStatus(mine ? (mine.status as "joined" | "pending") : null);
@@ -70,7 +73,7 @@ export default function CircleDetailPage() {
 
   useEffect(() => {
     load();
-    getDefaultCircleCover(supabase).then(setDefaultCoverUrl);
+    getDefaultCoverMap(supabase).then(setDefaultCoverMap);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -176,10 +179,20 @@ export default function CircleDetailPage() {
     <div className="px-4 md:px-8 py-6 max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div className="space-y-2">
-        <div className="h-40 bg-gray-200 rounded-2xl overflow-hidden">
-          {(circle.cover_url || defaultCoverUrl) && (
-            <img src={circle.cover_url || defaultCoverUrl} alt={circle.name} className="w-full h-full object-cover" />
-          )}
+        <div className="h-40 bg-gray-200 rounded-2xl overflow-hidden relative">
+          {(() => {
+            const cover = resolveCircleCover(defaultCoverMap, circle.category, circle.cover_url);
+            return cover && <img src={cover} alt={circle.name} className="w-full h-full object-cover" />;
+          })()}
+          {(() => {
+            const displayStatus = getCircleDisplayStatus(circle);
+            const info = STATUS_LABEL[displayStatus];
+            return (
+              <span className={`absolute top-2 right-2 text-xs font-medium px-2 py-1 rounded-full ${info.className}`}>
+                {info.label}
+              </span>
+            );
+          })()}
         </div>
 
         <div className="flex items-start justify-between">
@@ -264,12 +277,27 @@ export default function CircleDetailPage() {
           {circle.is_private && <p>🔒 Private / Invite Only</p>}
           {circle.requires_approval && <p>✅ Perlu persetujuan host untuk join</p>}
         </div>
+
+        {circle.max_participants && (
+          <div className="space-y-1">
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>Slot Terisi</span>
+              <span className="font-medium text-gray-600">{joinedCount}/{circle.max_participants}</span>
+            </div>
+            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary"
+                style={{ width: `${Math.min(100, Math.round((joinedCount / circle.max_participants) * 100))}%` }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Join button */}
       {!isHost && (() => {
         const displayStatus = getCircleDisplayStatus(circle);
-        if (displayStatus !== "active") {
+        if (displayStatus === "completed" || displayStatus === "cancelled") {
           return (
             <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
               {displayStatus === "completed" ? "Circle sudah selesai" : "Circle dibatalkan"}

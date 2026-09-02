@@ -29,7 +29,7 @@ create table if not exists circles (
   lat double precision,
   lng double precision,
   event_date timestamptz not null,
-  max_participants int check (max_participants between 3 and 12) default 6,
+  max_participants int check (max_participants between 3 and 20) default 6,
   is_circle_plus boolean default false,
   is_private boolean default false,
   invite_code text unique,

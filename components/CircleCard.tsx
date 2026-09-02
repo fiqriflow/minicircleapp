@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MapPin, Calendar, Tag } from "lucide-react";
-import { getCircleDisplayStatus } from "@/lib/circleStatus";
+import { getCircleDisplayStatus, STATUS_LABEL } from "@/lib/circleStatus";
+import { resolveCircleCover } from "@/lib/appSettings";
 
 export type Circle = {
   id: string;
@@ -11,24 +12,25 @@ export type Circle = {
   event_date: string;
   cover_url: string | null;
   status: string;
-};
-
-const STATUS_LABEL: Record<string, { label: string; className: string }> = {
-  active: { label: "Berlangsung", className: "bg-green-100 text-green-700" },
-  completed: { label: "Selesai", className: "bg-gray-200 text-gray-600" },
-  cancelled: { label: "Dibatalkan", className: "bg-red-100 text-red-600" },
+  max_participants?: number | null;
 };
 
 export default function CircleCard({
   circle,
-  defaultCoverUrl,
+  defaultCoverMap,
+  joinedCount,
 }: {
   circle: Circle;
-  defaultCoverUrl?: string | null;
+  defaultCoverMap?: Record<string, string>;
+  joinedCount?: number;
 }) {
   const displayStatus = getCircleDisplayStatus(circle);
   const statusInfo = STATUS_LABEL[displayStatus];
-  const cover = circle.cover_url || defaultCoverUrl;
+  const cover = resolveCircleCover(defaultCoverMap ?? {}, circle.category, circle.cover_url);
+
+  const max = circle.max_participants ?? null;
+  const joined = joinedCount ?? 0;
+  const pct = max ? Math.min(100, Math.round((joined / max) * 100)) : 0;
 
   return (
     <Link
@@ -57,6 +59,18 @@ export default function CircleCard({
         <div className="flex items-center gap-1 text-sm text-gray-500">
           <Calendar size={14} /> {new Date(circle.event_date).toLocaleString("id-ID")}
         </div>
+
+        {max && (
+          <div className="pt-1 space-y-1">
+            <div className="flex justify-between text-xs text-gray-400">
+              <span>Slot Terisi</span>
+              <span className="font-medium text-gray-600">{joined}/{max}</span>
+            </div>
+            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        )}
       </div>
     </Link>
   );

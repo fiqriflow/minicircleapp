@@ -12,10 +12,12 @@ function isSameDay(a: Date, b: Date) {
 
 export default function UpcomingCirclesSection({
   circles,
-  defaultCoverUrl,
+  defaultCoverMap = {},
+  joinedCounts = {},
 }: {
   circles: Circle[];
-  defaultCoverUrl: string | null;
+  defaultCoverMap?: Record<string, string>;
+  joinedCounts?: Record<string, number>;
 }) {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
 
@@ -71,7 +73,9 @@ export default function UpcomingCirclesSection({
       {/* Card event pada tanggal terpilih */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredCircles.length ? (
-          filteredCircles.map((c) => <CircleCard key={c.id} circle={c} defaultCoverUrl={defaultCoverUrl} />)
+          filteredCircles.map((c) => (
+            <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} />
+          ))
         ) : (
           <p className="text-gray-400 text-sm">Tidak ada circle di tanggal ini.</p>
         )}

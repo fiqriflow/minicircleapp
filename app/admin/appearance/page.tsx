@@ -3,81 +3,106 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
+const CATEGORIES = ["Gowes", "Jalan Santai", "Running"];
+
 export default function AdminAppearancePage() {
   const supabase = createClient();
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [covers, setCovers] = useState<Record<string, string>>({});
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.from("app_settings").select("value").eq("key", "default_circle_cover").maybeSingle();
-      setCoverUrl(data?.value ?? null);
+      const { data } = await supabase.from("app_settings").select("key,value").like("key", "default_circle_cover%");
+      const map: Record<string, string> = {};
+      data?.forEach((row: any) => {
+        if (row.value) map[row.key] = row.value;
+      });
+      setCovers(map);
     };
     load();
   }, []);
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
+    const settingKey = `default_circle_cover:${category}`;
+    setUploadingKey(settingKey);
 
     const ext = file.name.split(".").pop();
-    const path = `default-cover.${ext}`;
+    const path = `default-${category.replace(/\s+/g, "-").toLowerCase()}.${ext}`;
     const { error: uploadError } = await supabase.storage.from("circle-covers").upload(path, file, { upsert: true });
 
     if (uploadError) {
       alert("Gagal upload: " + uploadError.message);
-      setUploading(false);
+      setUploadingKey(null);
       return;
     }
 
     const { data } = supabase.storage.from("circle-covers").getPublicUrl(path);
     const url = `${data.publicUrl}?t=${Date.now()}`;
-    setCoverUrl(url);
-    setUploading(false);
 
-    setSaving(true);
-    await supabase.from("app_settings").upsert({ key: "default_circle_cover", value: url });
-    setSaving(false);
+    await supabase.from("app_settings").upsert({ key: settingKey, value: url });
+    setCovers((prev) => ({ ...prev, [settingKey]: url }));
+    setUploadingKey(null);
   };
 
-  const handleRemove = async () => {
-    setSaving(true);
-    await supabase.from("app_settings").upsert({ key: "default_circle_cover", value: null });
-    setCoverUrl(null);
-    setSaving(false);
+  const handleRemove = async (category: string) => {
+    const settingKey = `default_circle_cover:${category}`;
+    await supabase.from("app_settings").upsert({ key: settingKey, value: null });
+    setCovers((prev) => {
+      const next = { ...prev };
+      delete next[settingKey];
+      return next;
+    });
   };
 
   return (
-    <div className="space-y-6 max-w-md">
-      <h1 className="text-xl font-bold">Tampilan</h1>
-
-      <div className="bg-white rounded-2xl border p-4 space-y-3">
-        <p className="text-sm font-medium">Default Cover Circle</p>
-        <p className="text-xs text-gray-400">
-          Dipakai otomatis untuk circle yang belum punya cover sendiri.
+    <div className="space-y-6 max-w-2xl">
+      <div>
+        <h1 className="text-xl font-bold">Tampilan</h1>
+        <p className="text-sm text-gray-400">
+          Default cover per kategori — dipakai otomatis untuk circle di kategori tersebut yang belum punya cover sendiri.
         </p>
+      </div>
 
-        <div className="h-36 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
-          {coverUrl ? (
-            <img src={coverUrl} alt="default cover" className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-gray-400 text-sm">Belum ada default cover</span>
-          )}
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {CATEGORIES.map((category) => {
+          const settingKey = `default_circle_cover:${category}`;
+          const coverUrl = covers[settingKey];
+          const uploading = uploadingKey === settingKey;
 
-        <div className="flex gap-3">
-          <label className="text-sm text-primary font-medium cursor-pointer">
-            {uploading ? "Mengunggah..." : "Upload Cover Baru"}
-            <input type="file" accept="image/*" className="hidden" onChange={handleUpload} disabled={uploading} />
-          </label>
-          {coverUrl && (
-            <button onClick={handleRemove} disabled={saving} className="text-sm text-red-500 font-medium">
-              Hapus
-            </button>
-          )}
-        </div>
+          return (
+            <div key={category} className="bg-white rounded-2xl border p-4 space-y-3">
+              <p className="text-sm font-medium">{category}</p>
+
+              <div className="h-32 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
+                {coverUrl ? (
+                  <img src={coverUrl} alt={category} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-gray-400 text-sm">Belum ada cover</span>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <label className="text-sm text-primary font-medium cursor-pointer">
+                  {uploading ? "Mengunggah..." : "Upload"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => handleUpload(category, e)}
+                    disabled={uploading}
+                  />
+                </label>
+                {coverUrl && (
+                  <button onClick={() => handleRemove(category)} className="text-sm text-red-500 font-medium">
+                    Hapus
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -8,7 +8,9 @@ import CircleCard, { Circle } from "@/components/CircleCard";
 import CreateCircleModal from "@/components/CreateCircleModal";
 import ChooseCircleTypeModal from "@/components/ChooseCircleTypeModal";
 import LocationInput from "@/components/LocationInput";
-import { getDefaultCircleCover, getCirclePlusEnabled } from "@/lib/appSettings";
+import { getCirclePlusEnabled, getDefaultCoverMap } from "@/lib/appSettings";
+import { getMemberCounts } from "@/lib/memberCounts";
+import { getJoinedCounts } from "@/lib/circleMembers";
 
 const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Running"];
 
@@ -24,11 +26,12 @@ function ExploreContent() {
   const [loading, setLoading] = useState(true);
   const [showChooser, setShowChooser] = useState(false);
   const [createType, setCreateType] = useState<"regular" | "plus" | null>(null);
-  const [defaultCoverUrl, setDefaultCoverUrl] = useState<string | null>(null);
+  const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [circlePlusEnabled, setCirclePlusEnabled] = useState(true);
+  const [joinedCounts, setJoinedCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    getDefaultCircleCover(supabase).then(setDefaultCoverUrl);
+    getDefaultCoverMap(supabase).then(setDefaultCoverMap);
     getCirclePlusEnabled(supabase).then(setCirclePlusEnabled);
   }, []);
 
@@ -47,6 +50,9 @@ function ExploreContent() {
     const { data } = await query.order("event_date", { ascending: true });
     setCircles((data as Circle[]) ?? []);
     setLoading(false);
+
+    const counts = await getJoinedCounts(supabase, (data ?? []).map((c: any) => c.id));
+    setJoinedCounts(counts);
   }, [category, location]);
 
   useEffect(() => {
@@ -83,7 +89,9 @@ function ExploreContent() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {circles.length ? (
-            circles.map((c) => <CircleCard key={c.id} circle={c} defaultCoverUrl={defaultCoverUrl} />)
+            circles.map((c) => (
+              <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} />
+            ))
           ) : (
             <p className="text-gray-400 text-sm">Tidak ada circle yang cocok.</p>
           )}
