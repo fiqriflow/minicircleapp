@@ -23,7 +23,7 @@ export default function CircleDetailPage() {
   const [comments, setComments] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [myStatus, setMyStatus] = useState<"joined" | "pending" | null>(null);
-  const [tab, setTab] = useState<"lineup" | "chat">("lineup");
+  const [tab, setTab] = useState<"detail" | "lineup" | "chat">("detail");
   const [newComment, setNewComment] = useState("");
   const [showHostMenu, setShowHostMenu] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
@@ -255,42 +255,10 @@ export default function CircleDetailPage() {
           )}
         </div>
 
-        <p className="text-gray-500">{circle.description}</p>
-
-        {host && (
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <img
-              src={host.avatar_url || "https://ui-avatars.com/api/?name=" + (host.full_name || "U")}
-              className="w-6 h-6 rounded-full object-cover"
-              alt=""
-            />
-            <span>Dibuat oleh {host.nickname || host.full_name}</span>
-          </div>
-        )}
-
-        <div className="text-sm text-gray-500 space-y-1">
-          {circle.city && <p>🏙️ {circle.city}</p>}
-          <p>📍 {circle.location}</p>
-          <p>🏷️ {circle.category}</p>
-          <p>🗓️ {new Date(circle.event_date).toLocaleString("id-ID")}</p>
-          {circle.max_participants && <p>👥 Maks {circle.max_participants} orang</p>}
-          {circle.is_private && <p>🔒 Private / Invite Only</p>}
-          {circle.requires_approval && <p>✅ Perlu persetujuan host untuk join</p>}
-        </div>
-
-        {circle.max_participants && (
-          <div className="space-y-1">
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>Slot Terisi</span>
-              <span className="font-medium text-gray-600">{joinedCount}/{circle.max_participants}</span>
-            </div>
-            <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary"
-                style={{ width: `${Math.min(100, Math.round((joinedCount / circle.max_participants) * 100))}%` }}
-              />
-            </div>
-          </div>
+        {circle.category && (
+          <span className="inline-block text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+            🏷️ {circle.category}
+          </span>
         )}
       </div>
 
@@ -359,6 +327,12 @@ export default function CircleDetailPage() {
       {/* Tabs */}
       <div className="flex border-b">
         <button
+          onClick={() => setTab("detail")}
+          className={`flex-1 py-2 font-medium ${tab === "detail" ? "border-b-2 border-primary text-primary" : "text-gray-400"}`}
+        >
+          Detail
+        </button>
+        <button
           onClick={() => setTab("lineup")}
           className={`flex-1 py-2 font-medium ${tab === "lineup" ? "border-b-2 border-primary text-primary" : "text-gray-400"}`}
         >
@@ -377,6 +351,48 @@ export default function CircleDetailPage() {
           )}
         </button>
       </div>
+
+      {tab === "detail" && (
+        <div className="space-y-4">
+          <p className="text-gray-500">{circle.description}</p>
+
+          {host && (
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <img
+                src={host.avatar_url || "https://ui-avatars.com/api/?name=" + (host.full_name || "U")}
+                className="w-6 h-6 rounded-full object-cover"
+                alt=""
+              />
+              <span>Dibuat oleh {host.nickname || host.full_name}</span>
+            </div>
+          )}
+
+          <div className="text-sm text-gray-500 space-y-1">
+            {circle.city && <p>🏙️ {circle.city}</p>}
+            <p>📍 {circle.location}</p>
+            <p>🏷️ {circle.category}</p>
+            <p>🗓️ {new Date(circle.event_date).toLocaleString("id-ID")}</p>
+            {circle.max_participants && <p>👥 Maks {circle.max_participants} orang</p>}
+            {circle.is_private && <p>🔒 Private / Invite Only</p>}
+            {circle.requires_approval && <p>✅ Perlu persetujuan host untuk join</p>}
+          </div>
+
+          {circle.max_participants && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>Slot Terisi</span>
+                <span className="font-medium text-gray-600">{joinedCount}/{circle.max_participants}</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-primary"
+                  style={{ width: `${Math.min(100, Math.round((joinedCount / circle.max_participants) * 100))}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {tab === "lineup" && (
         <div className="space-y-3">
