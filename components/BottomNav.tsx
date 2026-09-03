@@ -14,7 +14,7 @@ const menu = [
   { href: "/profile", label: "Akun", icon: UserCircle },
 ];
 
-export default function BottomNav() {
+export default function BottomNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const supabase = createClient();
   const [profile, setProfile] = useState<{ full_name?: string; avatar_url?: string } | null>(null);
@@ -29,7 +29,10 @@ export default function BottomNav() {
     loadProfile();
   }, []);
 
-  if (pathname === "/login" || pathname === "/onboarding") return null;
+  // Halaman tanpa chrome (header/bottom nav) — tetap render children-nya
+  if (pathname === "/login" || pathname === "/onboarding") {
+    return <main className="flex-1 overflow-y-auto">{children}</main>;
+  }
 
   const isBeranda = pathname === "/";
   const firstName = profile?.full_name?.split(" ")[0] ?? "Sobat";
@@ -38,7 +41,7 @@ export default function BottomNav() {
     <>
       {/* Top bar: avatar + sapaan di kiri, notif di kanan — cuma tampil di beranda */}
       {isBeranda && (
-        <header className="flex items-center gap-3 px-4 py-3 bg-white border-b sticky top-0 z-40">
+        <header className="shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b">
           <Link href="/profile/data-user" className="shrink-0">
             <img
               src={profile?.avatar_url || "https://ui-avatars.com/api/?name=" + firstName}
@@ -54,8 +57,11 @@ export default function BottomNav() {
         </header>
       )}
 
-      {/* Bottom nav — fixed relatif ke frame (bukan viewport) karena parent frame punya transform-gpu */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex justify-around bg-white border-t py-2 max-w-[480px] mx-auto">
+      {/* Konten halaman — area scroll internal, header & nav di luar area ini jadi selalu terlihat */}
+      <main className="flex-1 overflow-y-auto">{children}</main>
+
+      {/* Bottom nav — flex item statis di dasar frame (bukan fixed), selalu nempel di bawah layar */}
+      <nav className="shrink-0 flex justify-around bg-white border-t py-2">
         {menu.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== "/" && pathname.startsWith(href));
           return (

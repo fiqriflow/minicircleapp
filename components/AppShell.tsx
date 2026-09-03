@@ -17,8 +17,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   if (isLogin) {
     return (
       <div className="min-h-screen bg-gray-200 flex justify-center">
-        <div className="relative w-full max-w-[480px] min-h-screen bg-white md:shadow-2xl transform-gpu">
-          <main className="min-h-screen">{children}</main>
+        <div className="relative w-full max-w-[480px] h-screen bg-white md:shadow-2xl transform-gpu overflow-y-auto">
+          {children}
         </div>
       </div>
     );
@@ -26,10 +26,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gray-200 flex justify-center">
-      {/* Mobile-frame: mobile layout dipakai di semua ukuran layar, dibungkus frame lebar HP di desktop (ala WhatsApp Web) */}
-      <div className="relative w-full max-w-[480px] min-h-screen bg-white md:shadow-2xl transform-gpu">
-        <BottomNav />
-        <main className="pb-20">{children}</main>
+      {/* Mobile-frame: frame setinggi layar (h-screen), header & bottom nav jadi flex item statis di luar area scroll,
+          jadi bottom nav selalu nempel di bawah LAYAR, bukan di bawah konten (fix bug "gak sticky" kalau konten panjang) */}
+      <div className="relative w-full max-w-[480px] h-screen bg-white md:shadow-2xl transform-gpu flex flex-col overflow-hidden">
+        <BottomNav>{children}</BottomNav>
       </div>
     </div>
   );
