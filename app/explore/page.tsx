@@ -34,7 +34,7 @@ function ExploreContent() {
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [circlePlusEnabled, setCirclePlusEnabled] = useState(true);
   const [joinedCounts, setJoinedCounts] = useState<Record<string, number>>({});
-  const [selectedDate, setSelectedDate] = useState(() => {
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
     return d;
@@ -81,11 +81,11 @@ function ExploreContent() {
   }, [circles]);
 
   const filteredCircles = useMemo(
-    () => circles.filter((c) => isSameDay(new Date(c.event_date), selectedDate)),
+    () => (selectedDate === null ? circles : circles.filter((c) => isSameDay(new Date(c.event_date), selectedDate))),
     [circles, selectedDate]
   );
 
-  const monthLabel = selectedDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+  const monthLabel = selectedDate ? selectedDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" }) : "";
 
   return (
     <div className="px-4 py-6 space-y-6 relative">
@@ -118,8 +118,16 @@ function ExploreContent() {
           <span className="text-sm text-gray-400">{monthLabel}</span>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          <button
+            onClick={() => setSelectedDate(null)}
+            className={`flex flex-col items-center justify-center shrink-0 w-14 h-16 rounded-xl border text-xs font-medium ${
+              selectedDate === null ? "bg-primary text-white border-primary" : "bg-white text-gray-600 hover:border-primary"
+            }`}
+          >
+            Semua
+          </button>
           {dateStrip.map(({ date, hasEvent }) => {
-            const active = isSameDay(date, selectedDate);
+            const active = selectedDate !== null && isSameDay(date, selectedDate);
             return (
               <button
                 key={date.toISOString()}
@@ -141,6 +149,11 @@ function ExploreContent() {
         </div>
       </div>
 
+      {/* Jumlah circle ditemukan */}
+      <p className="text-sm text-gray-500">
+        <span className="font-semibold text-gray-700">{filteredCircles.length}</span> circle ditemukan
+      </p>
+
       {/* Grid */}
       {loading ? (
         <p className="text-gray-400 text-sm">Memuat...</p>
@@ -151,7 +164,9 @@ function ExploreContent() {
               <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} />
             ))
           ) : (
-            <p className="text-gray-400 text-sm">Tidak ada circle di tanggal ini.</p>
+            <p className="text-gray-400 text-sm">
+              {selectedDate === null ? "Tidak ada circle yang cocok." : "Tidak ada circle di tanggal ini."}
+            </p>
           )}
         </div>
       )}

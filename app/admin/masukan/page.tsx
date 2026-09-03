@@ -37,13 +37,10 @@ export default function AdminMasukanPage() {
             <div key={item.id} className="bg-white rounded-2xl border p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  {item.is_anonymous ? (
+                  <span className="text-sm font-medium">{item.profile?.full_name || "User"}</span>
+                  {item.is_anonymous && (
                     <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
-                      Anonim
-                    </span>
-                  ) : (
-                    <span className="text-sm font-medium">
-                      {item.profile?.full_name || "User"}
+                      Anonim (ke user lain)
                     </span>
                   )}
                 </div>

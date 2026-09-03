@@ -28,6 +28,7 @@ export default function CircleDetailPage() {
   const [showHostMenu, setShowHostMenu] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [showJoinQuestion, setShowJoinQuestion] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<"join" | "leave" | null>(null);
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [hasNewComment, setHasNewComment] = useState(false);
   const [joinedCount, setJoinedCount] = useState(0);
@@ -107,18 +108,24 @@ export default function CircleDetailPage() {
     load();
   };
 
-  const handleJoinToggle = async () => {
+  const handleJoinToggle = () => {
     if (!userId) return;
-    if (myStatus) {
-      await supabase.from("circle_members").delete().eq("circle_id", id).eq("user_id", userId);
-      load();
-      return;
-    }
+    setConfirmAction(myStatus ? "leave" : "join");
+  };
+
+  const confirmJoin = () => {
+    setConfirmAction(null);
     if (circle.join_question) {
       setShowJoinQuestion(true);
       return;
     }
     doJoin();
+  };
+
+  const confirmLeave = async () => {
+    setConfirmAction(null);
+    await supabase.from("circle_members").delete().eq("circle_id", id).eq("user_id", userId);
+    load();
   };
 
   const handleApprove = async (memberId: string) => {
@@ -269,6 +276,22 @@ export default function CircleDetailPage() {
         )}
       </div>
 
+      {/* Slot indicator — di atas tombol join/batal join */}
+      {!isHost && circle.max_participants && (
+        <div className="space-y-1">
+          <div className="flex justify-between text-xs text-gray-400">
+            <span>Slot Terisi</span>
+            <span className="font-medium text-gray-600">{joinedCount}/{circle.max_participants}</span>
+          </div>
+          <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary"
+              style={{ width: `${Math.min(100, Math.round((joinedCount / circle.max_participants) * 100))}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Join button */}
       {!isHost && (() => {
         const displayStatus = getCircleDisplayStatus(circle);
@@ -295,6 +318,37 @@ export default function CircleDetailPage() {
           </button>
         );
       })()}
+
+      {confirmAction && (
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
+          <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4">
+            <h3 className="font-bold text-lg">
+              {confirmAction === "join" ? "Konfirmasi Join Circle" : "Konfirmasi Batal Join"}
+            </h3>
+            <p className="text-sm text-gray-600">
+              {confirmAction === "join"
+                ? `Dengan join circle "${circle.name}", saya berkomitmen untuk hadir dan berpartisipasi sesuai jadwal yang sudah ditentukan. Kalau berhalangan, saya akan membatalkan join lebih awal supaya slot bisa diisi orang lain.`
+                : `Kamu yakin mau batal join circle "${circle.name}"? Slot kamu akan dilepas dan bisa diisi peserta lain.`}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmAction(null)}
+                className="flex-1 border rounded-xl py-3 font-medium text-gray-500"
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmAction === "join" ? confirmJoin : confirmLeave}
+                className={`flex-1 rounded-xl py-3 font-medium text-white ${
+                  confirmAction === "join" ? "bg-primary hover:bg-primary-dark" : "bg-red-500 hover:bg-red-600"
+                }`}
+              >
+                {confirmAction === "join" ? "Ya, Saya Berkomitmen" : "Ya, Batal Join"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showJoinQuestion && (
         <JoinQuestionModal
@@ -383,21 +437,6 @@ export default function CircleDetailPage() {
             {circle.is_private && <p>🔒 Private / Invite Only</p>}
             {circle.requires_approval && <p>✅ Perlu persetujuan host untuk join</p>}
           </div>
-
-          {circle.max_participants && (
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs text-gray-400">
-                <span>Slot Terisi</span>
-                <span className="font-medium text-gray-600">{joinedCount}/{circle.max_participants}</span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary"
-                  style={{ width: `${Math.min(100, Math.round((joinedCount / circle.max_participants) * 100))}%` }}
-                />
-              </div>
-            </div>
-          )}
         </div>
       )}
 
