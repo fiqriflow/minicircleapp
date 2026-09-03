@@ -18,7 +18,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-6">
       <div className="w-full max-w-sm text-center space-y-8">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-primary">Mabar Circle</h1>
+          <h1 className="text-3xl font-bold text-primary">Mincle</h1>
           <p className="text-gray-500">Cari dan gabung circle olahraga favoritmu.</p>
         </div>
 

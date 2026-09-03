@@ -35,7 +35,7 @@ export default function ChooseCircleTypeModal({
           <Users className="text-primary shrink-0 mt-1" size={22} />
           <div>
             <p className="font-semibold">Circle</p>
-            <p className="text-sm text-gray-500">3-6 orang, tampil publik di Explore.</p>
+            <p className="text-sm text-gray-500">3-12 orang, tampil publik di Explore.</p>
           </div>
         </button>
 

@@ -10,32 +10,52 @@ const CATEGORY_OPTIONS = ["Running", "Jalan Santai", "Gowes"];
 
 export default function CreateCircleModal({
   circleType,
+  editCircle,
   onClose,
   onCreated,
 }: {
-  circleType: "regular" | "plus";
+  circleType?: "regular" | "plus";
+  editCircle?: any;
   onClose: () => void;
   onCreated: () => void;
 }) {
   const supabase = createClient();
-  const isPlus = circleType === "plus";
+  const isEdit = !!editCircle;
+  const isPlus = isEdit ? !!editCircle.is_circle_plus : circleType === "plus";
   const minP = 3;
   const maxP = isPlus ? 20 : 12;
 
-  const [form, setForm] = useState({
-    name: "",
-    group_name: "",
-    max_participants: isPlus ? 8 : 5,
-    category: "Running",
-    city: "",
-    location: "",
-    event_date: "",
-    description: "",
-    cover_url: "",
-    is_private: false,
-    invite_code: "",
-    join_question: "",
-  });
+  const [form, setForm] = useState(() =>
+    isEdit
+      ? {
+          name: editCircle.name ?? "",
+          group_name: editCircle.group_name ?? "",
+          max_participants: editCircle.max_participants ?? (isPlus ? 8 : 5),
+          category: editCircle.category ?? "Running",
+          city: editCircle.city ?? "",
+          location: editCircle.location ?? "",
+          event_date: editCircle.event_date ?? "",
+          description: editCircle.description ?? "",
+          cover_url: editCircle.cover_url ?? "",
+          is_private: editCircle.is_private ?? false,
+          invite_code: editCircle.invite_code ?? "",
+          join_question: editCircle.join_question ?? "",
+        }
+      : {
+          name: "",
+          group_name: "",
+          max_participants: isPlus ? 8 : 5,
+          category: "Running",
+          city: "",
+          location: "",
+          event_date: "",
+          description: "",
+          cover_url: "",
+          is_private: false,
+          invite_code: "",
+          join_question: "",
+        }
+  );
   const [saving, setSaving] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [error, setError] = useState("");
@@ -73,14 +93,12 @@ export default function CreateCircleModal({
       setError("Lengkapi semua field wajib dulu ya.");
       return;
     }
-    if (new Date(form.event_date) < new Date()) {
+    if (!isEdit && new Date(form.event_date) < new Date()) {
       setError("Tanggal & jam tidak boleh yang sudah lewat. Pilih waktu di masa depan.");
       return;
     }
     setSaving(true);
     setError("");
-
-    const { data: { user } } = await supabase.auth.getUser();
 
     const payload: any = {
       name: form.name,
@@ -91,9 +109,6 @@ export default function CreateCircleModal({
       location: form.location,
       event_date: form.event_date,
       description: form.description,
-      status: "active",
-      created_by: user?.id,
-      is_circle_plus: isPlus,
     };
 
     if (isPlus) {
@@ -102,6 +117,27 @@ export default function CreateCircleModal({
       payload.invite_code = (form.invite_code.trim() || generateInviteCode()).toUpperCase();
       payload.join_question = form.join_question.trim() || null;
     }
+
+    if (isEdit) {
+      const { error: updateError } = await supabase.from("circles").update(payload).eq("id", editCircle.id);
+      setSaving(false);
+      if (updateError) {
+        setError(
+          updateError.message.includes("duplicate")
+            ? "Kode undangan sudah dipakai, coba kode lain."
+            : updateError.message
+        );
+        return;
+      }
+      onCreated();
+      onClose();
+      return;
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+    payload.status = "active";
+    payload.created_by = user?.id;
+    payload.is_circle_plus = isPlus;
 
     const { data: newCircle, error: insertError } = await supabase
       .from("circles")
@@ -137,10 +173,10 @@ export default function CreateCircleModal({
     <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
       <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-3 max-h-[90vh] overflow-y-auto">
         <h2 className="font-bold text-lg">
-          Buat {isPlus ? "Circle+" : "Circle"} Baru
+          {isEdit ? "Edit Circle" : `Buat ${isPlus ? "Circle+" : "Circle"} Baru`}
         </h2>
 
-        {host && (
+        {host && !isEdit && (
           <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
             <img
               src={host.avatar_url || "https://ui-avatars.com/api/?name=" + (host.full_name || "U")}
@@ -316,7 +352,7 @@ export default function CreateCircleModal({
             disabled={saving}
             className="flex-1 bg-primary text-white rounded-xl py-3 font-medium"
           >
-            {saving ? "Menyimpan..." : "Save"}
+            {saving ? "Menyimpan..." : isEdit ? "Simpan" : "Save"}
           </button>
         </div>
       </div>

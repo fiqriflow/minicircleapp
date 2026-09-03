@@ -10,6 +10,7 @@ import { getDefaultCoverMap, resolveCircleCover } from "@/lib/appSettings";
 import { getCircleDisplayStatus, STATUS_LABEL } from "@/lib/circleStatus";
 import { extractStoragePath } from "@/lib/storagePath";
 import { getJoinedCounts } from "@/lib/circleMembers";
+import CreateCircleModal from "@/components/CreateCircleModal";
 
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,6 +30,7 @@ export default function CircleDetailPage() {
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [showJoinQuestion, setShowJoinQuestion] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"join" | "leave" | null>(null);
+  const [showEditCircle, setShowEditCircle] = useState(false);
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [hasNewComment, setHasNewComment] = useState(false);
   const [joinedCount, setJoinedCount] = useState(0);
@@ -232,6 +234,15 @@ export default function CircleDetailPage() {
               {showHostMenu && (
                 <div className="absolute right-0 mt-2 w-56 bg-white border rounded-xl shadow-lg overflow-hidden z-50">
                   <button
+                    onClick={() => {
+                      setShowEditCircle(true);
+                      setShowHostMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b"
+                  >
+                    Edit Circle
+                  </button>
+                  <button
                     onClick={() => handleSetStatus("completed")}
                     className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b"
                   >
@@ -243,12 +254,14 @@ export default function CircleDetailPage() {
                   >
                     Batalkan Circle
                   </button>
-                  <button
-                    onClick={handleToggleApproval}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b"
-                  >
-                    {circle.requires_approval ? "Matikan" : "Aktifkan"} Perlu Approval Join
-                  </button>
+                  {circle.is_circle_plus && (
+                    <button
+                      onClick={handleToggleApproval}
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 border-b"
+                    >
+                      {circle.requires_approval ? "Matikan" : "Aktifkan"} Perlu Approval Join
+                    </button>
+                  )}
                   {circle.invite_code && (
                     <button
                       onClick={handleCopyInvite}
@@ -318,6 +331,14 @@ export default function CircleDetailPage() {
           </button>
         );
       })()}
+
+      {showEditCircle && (
+        <CreateCircleModal
+          editCircle={circle}
+          onClose={() => setShowEditCircle(false)}
+          onCreated={load}
+        />
+      )}
 
       {confirmAction && (
         <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">

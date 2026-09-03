@@ -2,7 +2,7 @@ import "./globals.css";
 import AppShell from "@/components/AppShell";
 
 export const metadata = {
-  title: "Mabar Circle",
+  title: "Mincle",
   description: "Cari dan gabung circle olahraga favoritmu",
 };
 

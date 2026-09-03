@@ -17,7 +17,7 @@ export function getCircleDisplayStatus(circle: { status: string; event_date: str
 
 export const STATUS_LABEL: Record<CircleDisplayStatus, { label: string; className: string }> = {
   open: { label: "Dibuka", className: "bg-blue-100 text-blue-700" },
-  ongoing: { label: "Berlangsung", className: "bg-green-100 text-green-700" },
-  completed: { label: "Selesai", className: "bg-gray-200 text-gray-600" },
+  ongoing: { label: "Berlangsung", className: "bg-yellow-100 text-yellow-700" },
+  completed: { label: "Selesai", className: "bg-green-100 text-green-700" },
   cancelled: { label: "Dibatalkan", className: "bg-red-100 text-red-600" },
 };

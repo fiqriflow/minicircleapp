@@ -17,7 +17,7 @@ export default function TentangKamiPage() {
 
       <div className="bg-white rounded-2xl border p-4 space-y-3 text-sm text-gray-600">
         <p>
-          Mabar Circle dibuat untuk memudahkan siapa saja mencari teman olahraga dan bergabung dengan komunitas
+          Mincle dibuat untuk memudahkan siapa saja mencari teman olahraga dan bergabung dengan komunitas
           circle di sekitarnya — mulai dari badminton, lari, gowes, hingga jalan santai.
         </p>
         <p>Punya masukan atau pertanyaan? Hubungi kami lewat kanal bantuan di aplikasi.</p>

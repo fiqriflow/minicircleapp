@@ -5,8 +5,8 @@ import { ArrowLeft } from "lucide-react";
 
 const FAQS = [
   {
-    q: "Apa itu Mabar Circle?",
-    a: "Mabar Circle adalah aplikasi untuk mencari dan bergabung dengan circle/komunitas olahraga (badminton, gowes, lari, jalan santai) di sekitarmu.",
+    q: "Apa itu Mincle?",
+    a: "Mincle adalah aplikasi untuk mencari dan bergabung dengan circle/komunitas olahraga (badminton, gowes, lari, jalan santai) di sekitarmu.",
   },
   {
     q: "Bagaimana cara join circle?",

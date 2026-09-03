@@ -16,11 +16,15 @@ function groupCount(rows: any[], key: string) {
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
   const { data: profiles } = await supabase.from("profiles").select("*");
+  const { data: circles } = await supabase.from("circles").select("status");
 
   const total = profiles?.length ?? 0;
   const byCategory = groupCount(profiles ?? [], "categories");
   const byGender = groupCount(profiles ?? [], "gender");
   const byLocation = groupCount(profiles ?? [], "location");
+
+  const totalCircleActive = (circles ?? []).filter((c) => c.status === "active").length;
+  const totalCircleCompleted = (circles ?? []).filter((c) => c.status === "completed").length;
 
   const Stat = ({ title, data }: { title: string; data: Record<string, number> }) => (
     <div className="bg-white rounded-2xl border p-4 space-y-2">
@@ -39,9 +43,19 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-bold">Dashboard</h1>
-      <div className="bg-primary text-white rounded-2xl p-6 w-fit">
-        <p className="text-sm opacity-80">Total User</p>
-        <p className="text-3xl font-bold">{total}</p>
+      <div className="flex flex-wrap gap-4">
+        <div className="bg-primary text-white rounded-2xl p-6 w-fit">
+          <p className="text-sm opacity-80">Total User</p>
+          <p className="text-3xl font-bold">{total}</p>
+        </div>
+        <div className="bg-green-600 text-white rounded-2xl p-6 w-fit">
+          <p className="text-sm opacity-80">Total Circle Aktif</p>
+          <p className="text-3xl font-bold">{totalCircleActive}</p>
+        </div>
+        <div className="bg-gray-600 text-white rounded-2xl p-6 w-fit">
+          <p className="text-sm opacity-80">Total Circle Selesai</p>
+          <p className="text-3xl font-bold">{totalCircleCompleted}</p>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Stat title="Per Kategori" data={byCategory} />

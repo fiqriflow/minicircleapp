@@ -100,6 +100,9 @@ export default function AdminAppearancePage() {
         <p className="text-sm text-gray-400">
           Default cover per kategori — dipakai otomatis untuk circle di kategori tersebut yang belum punya cover sendiri.
         </p>
+        <p className="text-xs text-gray-400 mt-1">
+          Ukuran ideal cover: <span className="font-medium text-gray-500">800 x 450 px</span> (rasio 16:9), format JPG/PNG, maks 1MB.
+        </p>
       </div>
 
       {/* Banner Beranda */}
@@ -107,6 +110,9 @@ export default function AdminAppearancePage() {
         <div>
           <p className="text-sm font-medium">Banner Beranda</p>
           <p className="text-xs text-gray-400">Gambar hero yang tampil di paling atas halaman beranda user.</p>
+          <p className="text-xs text-gray-400 mt-1">
+            Ukuran ideal: <span className="font-medium text-gray-500">1200 x 400 px</span> (rasio 3:1), format JPG/PNG, maks 1MB.
+          </p>
         </div>
 
         <div className="h-32 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">

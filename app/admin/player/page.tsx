@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import LocationInput from "@/components/LocationInput";
+
+const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Running"];
 
 export default function AdminPlayerPage() {
   const supabase = createClient();
@@ -115,27 +118,97 @@ export default function AdminPlayerPage() {
 
       {editing && (
         <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
-          <div className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-3 max-h-[90vh] overflow-y-auto">
-            <h2 className="font-bold">Edit Player</h2>
-            <input
-              className="w-full border rounded-xl px-3 py-2"
-              value={editing.full_name ?? ""}
-              onChange={(e) => setEditing({ ...editing, full_name: e.target.value })}
-              placeholder="Nama Lengkap"
-            />
-            <input
-              className="w-full border rounded-xl px-3 py-2"
-              value={editing.nickname ?? ""}
-              onChange={(e) => setEditing({ ...editing, nickname: e.target.value })}
-              placeholder="Nama Panggilan"
-            />
-            <input
-              className="w-full border rounded-xl px-3 py-2"
-              value={editing.location ?? ""}
-              onChange={(e) => setEditing({ ...editing, location: e.target.value })}
-              placeholder="Lokasi"
-            />
-            <label className="flex items-center gap-2 text-sm">
+          <div className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="font-bold text-lg">Edit Player</h2>
+
+            <div>
+              <label className="text-sm text-gray-500">Nama Lengkap</label>
+              <input
+                className="w-full border rounded-xl px-4 py-2"
+                value={editing.full_name ?? ""}
+                onChange={(e) => setEditing({ ...editing, full_name: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-500">Nama Panggilan</label>
+              <input
+                className="w-full border rounded-xl px-4 py-2"
+                value={editing.nickname ?? ""}
+                onChange={(e) => setEditing({ ...editing, nickname: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-500">Tanggal Lahir</label>
+              <input
+                type="date"
+                className="w-full border rounded-xl px-4 py-2"
+                value={editing.birth_date ?? ""}
+                onChange={(e) => setEditing({ ...editing, birth_date: e.target.value })}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-500">Kategori Disukai</label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {CATEGORY_OPTIONS.map((cat) => {
+                  const active = editing.categories?.includes(cat);
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() =>
+                        setEditing((p: any) => {
+                          const current: string[] = p.categories ?? [];
+                          const next = current.includes(cat) ? current.filter((c) => c !== cat) : [...current, cat];
+                          return { ...p, categories: next };
+                        })
+                      }
+                      className={`px-3 py-1 rounded-full text-sm border ${
+                        active ? "bg-primary text-white border-primary" : "text-gray-600"
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-500">Lokasi / Domisili</label>
+              <LocationInput
+                id="admin-player-city-list"
+                value={editing.location ?? ""}
+                onChange={(v) => setEditing({ ...editing, location: v })}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-500">Gender</label>
+              <select
+                className="w-full border rounded-xl px-4 py-2"
+                value={editing.gender ?? ""}
+                onChange={(e) => setEditing({ ...editing, gender: e.target.value })}
+              >
+                <option value="">Pilih</option>
+                <option value="male">Laki-laki</option>
+                <option value="female">Perempuan</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-500">Instagram</label>
+              <input
+                className="w-full border rounded-xl px-4 py-2"
+                placeholder="@username"
+                value={editing.instagram ?? ""}
+                onChange={(e) => setEditing({ ...editing, instagram: e.target.value })}
+              />
+            </div>
+
+            <label className="flex items-center gap-2 text-sm border-t pt-3">
               <input
                 type="checkbox"
                 checked={!!editing.is_super_admin}
@@ -143,9 +216,14 @@ export default function AdminPlayerPage() {
               />
               Jadikan Super Admin
             </label>
-            <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setEditing(null)} className="px-4 py-2 text-gray-500">Batal</button>
-              <button onClick={handleSave} className="px-4 py-2 bg-primary text-white rounded-xl">Simpan</button>
+
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setEditing(null)} className="flex-1 border rounded-xl py-3 font-medium text-gray-500">
+                Batal
+              </button>
+              <button onClick={handleSave} className="flex-1 bg-primary text-white rounded-xl py-3 font-medium">
+                Simpan
+              </button>
             </div>
           </div>
         </div>
