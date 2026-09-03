@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { MoreVertical, Link as LinkIcon, Trash2 } from "lucide-react";
+import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import MemberProfileModal from "@/components/MemberProfileModal";
 import JoinQuestionModal from "@/components/JoinQuestionModal";
@@ -184,6 +184,13 @@ export default function CircleDetailPage() {
             const cover = resolveCircleCover(defaultCoverMap, circle.category, circle.cover_url);
             return cover && <img src={cover} alt={circle.name} className="w-full h-full object-cover" />;
           })()}
+          <button
+            onClick={() => router.back()}
+            className="absolute top-2 left-2 w-9 h-9 flex items-center justify-center rounded-full bg-black/40 text-white hover:bg-black/60"
+            aria-label="Kembali"
+          >
+            <ArrowLeft size={18} />
+          </button>
           {(() => {
             const displayStatus = getCircleDisplayStatus(circle);
             const info = STATUS_LABEL[displayStatus];
