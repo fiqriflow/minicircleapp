@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Bike, Footprints, PersonStanding, Grid3x3 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getDefaultCoverMap } from "@/lib/appSettings";
+import { getDefaultCoverMap, getHomeBanner } from "@/lib/appSettings";
 import { getJoinedCounts } from "@/lib/circleMembers";
 import UpcomingCirclesSection from "@/components/UpcomingCirclesSection";
 
@@ -43,16 +43,20 @@ export default async function BerandaPage() {
   }
 
   const defaultCoverMap = await getDefaultCoverMap(supabase);
+  const homeBanner = await getHomeBanner(supabase);
   const joinedCounts = await getJoinedCounts(supabase, (circles ?? []).map((c) => c.id));
 
   return (
     <div className="px-4 py-6 space-y-8">
-      {/* Hero */}
-      <section className="bg-primary text-white rounded-2xl p-8 space-y-2">
-        <h1 className="text-2xl font-bold">
-          Halo, {user?.user_metadata?.full_name?.split(" ")[0] ?? "Sobat"} 👋
-        </h1>
-        <p className="text-white/90">Yuk cari circle mabar terdekat & gabung sekarang!</p>
+      {/* Banner / Hero — gambar diatur dari halaman admin appearance */}
+      <section className="rounded-2xl overflow-hidden bg-gray-100 h-40">
+        {homeBanner ? (
+          <img src={homeBanner} alt="Banner" className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
+            Banner belum diatur
+          </div>
+        )}
       </section>
 
       {/* Quick Access */}

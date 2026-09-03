@@ -14,6 +14,12 @@ export async function getDefaultCoverMap(supabase: any): Promise<Record<string, 
   return map;
 }
 
+// Banner/hero beranda — diatur dari halaman admin appearance
+export async function getHomeBanner(supabase: any): Promise<string | null> {
+  const { data } = await supabase.from("app_settings").select("value").eq("key", "home_banner").maybeSingle();
+  return data?.value || null;
+}
+
 export function resolveCircleCover(
   map: Record<string, string>,
   category: string | undefined,
