@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 import LocationInput from "@/components/LocationInput";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Running"];
@@ -30,6 +31,7 @@ export default function AdminPlayerPage() {
       return;
     }
     setEditing(null);
+    toast.success("Perubahan player berhasil disimpan!");
     load();
   };
 
@@ -52,6 +54,7 @@ export default function AdminPlayerPage() {
       alert("Gagal hapus user: " + error.message);
       return;
     }
+    toast.success("Player berhasil dihapus.");
     load();
   };
 

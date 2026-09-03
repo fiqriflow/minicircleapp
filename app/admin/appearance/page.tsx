@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 const CATEGORIES = ["Gowes", "Jalan Santai", "Running"];
 
@@ -52,11 +53,13 @@ export default function AdminAppearancePage() {
     await supabase.from("app_settings").upsert({ key: "home_banner", value: url });
     setBanner(url);
     setBannerUploading(false);
+    toast.success("Banner beranda berhasil diperbarui!");
   };
 
   const handleBannerRemove = async () => {
     await supabase.from("app_settings").upsert({ key: "home_banner", value: null });
     setBanner("");
+    toast.success("Banner beranda berhasil dihapus.");
   };
 
   const handleUpload = async (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,6 +84,7 @@ export default function AdminAppearancePage() {
     await supabase.from("app_settings").upsert({ key: settingKey, value: url });
     setCovers((prev) => ({ ...prev, [settingKey]: url }));
     setUploadingKey(null);
+    toast.success(`Cover kategori ${category} berhasil diperbarui!`);
   };
 
   const handleRemove = async (category: string) => {
@@ -91,6 +95,7 @@ export default function AdminAppearancePage() {
       delete next[settingKey];
       return next;
     });
+    toast.success(`Cover kategori ${category} berhasil dihapus.`);
   };
 
   return (

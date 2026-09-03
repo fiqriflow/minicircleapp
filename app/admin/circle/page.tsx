@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 import { extractStoragePath } from "@/lib/storagePath";
 import { getCirclePlusEnabled } from "@/lib/appSettings";
 import ChooseCircleTypeModal from "@/components/ChooseCircleTypeModal";
@@ -37,6 +38,7 @@ export default function AdminCirclePage() {
     if (coverPath) {
       await supabase.storage.from("circle-covers").remove([coverPath]);
     }
+    toast.success("Circle berhasil dihapus.");
     load();
   };
 
