@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 import { generateInviteCode } from "@/lib/inviteCode";
 import { toDateTimeLocalValue, fromDateTimeLocalValue } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/LocationInput";
@@ -165,6 +166,7 @@ export default function CreateCircleModal({
     }
 
     setSaving(false);
+    toast.success(`${isPlus ? "Circle+" : "Circle"} berhasil dibuat!`);
     onCreated();
     onClose();
   };
