@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, HelpCircle, Info, ShieldCheck, LogOut, ChevronRight } from "lucide-react";
+import { User, HelpCircle, Info, ShieldCheck, LogOut, ChevronRight, BarChart3, MessageSquarePlus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AccountMenuPage() {
@@ -35,10 +35,15 @@ export default function AccountMenuPage() {
       {/* Profil */}
       <div className="space-y-2">
         <h2 className="text-xs font-semibold text-gray-400 uppercase px-1">Profil</h2>
-        <div className="bg-white rounded-2xl border overflow-hidden">
+        <div className="bg-white rounded-2xl border divide-y overflow-hidden">
           <Link href="/profile/data-user" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
             <User size={18} className="text-gray-400" />
             <span className="flex-1 text-sm font-medium">Data User</span>
+            <ChevronRight size={16} className="text-gray-300" />
+          </Link>
+          <Link href="/profile/statistik" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+            <BarChart3 size={18} className="text-gray-400" />
+            <span className="flex-1 text-sm font-medium">Statistik</span>
             <ChevronRight size={16} className="text-gray-300" />
           </Link>
         </div>
@@ -56,6 +61,11 @@ export default function AccountMenuPage() {
           <Link href="/profile/tentang-kami" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
             <Info size={18} className="text-gray-400" />
             <span className="flex-1 text-sm font-medium">Tentang Kami</span>
+            <ChevronRight size={16} className="text-gray-300" />
+          </Link>
+          <Link href="/profile/masukan" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+            <MessageSquarePlus size={18} className="text-gray-400" />
+            <span className="flex-1 text-sm font-medium">Masukan</span>
             <ChevronRight size={16} className="text-gray-300" />
           </Link>
         </div>
