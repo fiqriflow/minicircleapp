@@ -5,9 +5,16 @@ import BottomNav from "./BottomNav";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isBareLayout = pathname === "/login";
+  const isAdmin = pathname.startsWith("/admin");
+  const isLogin = pathname === "/login";
 
-  if (isBareLayout) {
+  // Admin: full-width, desktop-view asli — tidak ikut mobile-frame
+  if (isAdmin) {
+    return <main className="min-h-screen">{children}</main>;
+  }
+
+  // Login: bare, tetap dalam frame (tanpa BottomNav)
+  if (isLogin) {
     return (
       <div className="min-h-screen bg-gray-200 flex justify-center">
         <div className="relative w-full max-w-[480px] min-h-screen bg-white md:shadow-2xl transform-gpu">

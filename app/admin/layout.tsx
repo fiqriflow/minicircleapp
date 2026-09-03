@@ -16,47 +16,48 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen">
+    <div className="min-h-screen flex flex-col md:flex-row">
       {/* Mobile: tab bar horizontal di atas */}
-      <nav className="flex md:hidden overflow-x-auto bg-gray-900 text-white sticky top-0 z-30">
-        {menu.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href;
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap ${
-                active ? "border-b-2 border-primary text-primary" : "text-gray-300"
-              }`}
-            >
-              <Icon size={16} /> {label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Desktop: sidebar */}
-      <aside className="w-56 bg-gray-900 text-white p-4 space-y-6 hidden md:block shrink-0">
-        <h2 className="font-bold text-lg">Super Admin</h2>
-        <nav className="space-y-1">
+      <header className="bg-gray-900 text-white sticky top-0 z-30 md:hidden">
+        <h2 className="font-bold text-lg px-4 pt-3">Super Admin</h2>
+        <nav className="flex overflow-x-auto px-2">
           {menu.map(({ href, label, icon: Icon }) => {
             const active = pathname === href;
             return (
               <Link
                 key={href}
                 href={href}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm ${
-                  active ? "bg-gray-800 text-primary" : "hover:bg-gray-800"
+                className={`flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap ${
+                  active ? "border-b-2 border-primary text-primary" : "text-gray-300"
                 }`}
               >
-                <Icon size={18} /> {label}
+                <Icon size={16} /> {label}
               </Link>
             );
           })}
         </nav>
+      </header>
+
+      {/* Desktop: sidebar samping */}
+      <aside className="hidden md:flex md:flex-col w-60 bg-gray-900 text-white p-4 space-y-1 shrink-0 min-h-screen sticky top-0">
+        <h2 className="font-bold text-lg mb-6 px-2">Super Admin</h2>
+        {menu.map(({ href, label, icon: Icon }) => {
+          const active = pathname === href;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
+                active ? "bg-primary text-white" : "text-gray-300 hover:bg-gray-800"
+              }`}
+            >
+              <Icon size={18} /> {label}
+            </Link>
+          );
+        })}
       </aside>
 
-      <main className="flex-1 bg-gray-50 p-4 md:p-6">{children}</main>
+      <main className="flex-1 bg-gray-50 p-4 md:p-8">{children}</main>
     </div>
   );
 }
