@@ -24,12 +24,12 @@ export default function CircleCard({
   defaultCoverMap?: Record<string, string>;
   joinedCount?: number;
 }) {
-  const displayStatus = getCircleDisplayStatus(circle);
+  const max = circle.max_participants ?? null;
+  const joined = joinedCount ?? 0;
+  const displayStatus = getCircleDisplayStatus(circle, { joined, max });
   const statusInfo = STATUS_LABEL[displayStatus];
   const cover = resolveCircleCover(defaultCoverMap ?? {}, circle.category, circle.cover_url);
 
-  const max = circle.max_participants ?? null;
-  const joined = joinedCount ?? 0;
   const pct = max ? Math.min(100, Math.round((joined / max) * 100)) : 0;
 
   return (

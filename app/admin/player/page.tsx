@@ -23,7 +23,12 @@ export default function AdminPlayerPage() {
   }, []);
 
   const handleSave = async () => {
-    await supabase.from("profiles").update(editing).eq("id", editing.id);
+    const { id, created_at, ...fields } = editing;
+    const { error } = await supabase.from("profiles").update(fields).eq("id", id);
+    if (error) {
+      alert("Gagal simpan perubahan: " + error.message);
+      return;
+    }
     setEditing(null);
     load();
   };

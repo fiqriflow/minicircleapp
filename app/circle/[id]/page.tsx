@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import MemberProfileModal from "@/components/MemberProfileModal";
 import JoinQuestionModal from "@/components/JoinQuestionModal";
 import { getDefaultCoverMap, resolveCircleCover } from "@/lib/appSettings";
-import { getCircleDisplayStatus, STATUS_LABEL } from "@/lib/circleStatus";
+import { getCircleDisplayStatus, STATUS_LABEL, isCircleFull } from "@/lib/circleStatus";
 import { extractStoragePath } from "@/lib/storagePath";
 import { getJoinedCounts } from "@/lib/circleMembers";
 import CreateCircleModal from "@/components/CreateCircleModal";
@@ -101,6 +101,17 @@ export default function CircleDetailPage() {
 
   const doJoin = async (answer?: string) => {
     if (!userId) return;
+    // re-check slot langsung sebelum insert (hindari race condition/slot penuh)
+    const { count } = await supabase
+      .from("circle_members")
+      .select("id", { count: "exact", head: true })
+      .eq("circle_id", id)
+      .eq("status", "joined");
+    if (isCircleFull(count ?? 0, circle.max_participants)) {
+      alert("Slot circle ini sudah penuh.");
+      load();
+      return;
+    }
     await supabase.from("circle_members").insert({
       circle_id: id,
       user_id: userId,
@@ -112,6 +123,10 @@ export default function CircleDetailPage() {
 
   const handleJoinToggle = () => {
     if (!userId) return;
+    if (!myStatus && isCircleFull(joinedCount, circle.max_participants)) {
+      alert("Slot circle ini sudah penuh.");
+      return;
+    }
     setConfirmAction(myStatus ? "leave" : "join");
   };
 
@@ -201,7 +216,7 @@ export default function CircleDetailPage() {
             <ArrowLeft size={18} />
           </button>
           {(() => {
-            const displayStatus = getCircleDisplayStatus(circle);
+            const displayStatus = getCircleDisplayStatus(circle, { joined: joinedCount, max: circle.max_participants });
             const info = STATUS_LABEL[displayStatus];
             return (
               <span className={`absolute top-2 right-2 text-xs font-medium px-2 py-1 rounded-full ${info.className}`}>
@@ -307,11 +322,18 @@ export default function CircleDetailPage() {
 
       {/* Join button */}
       {!isHost && (() => {
-        const displayStatus = getCircleDisplayStatus(circle);
+        const displayStatus = getCircleDisplayStatus(circle, { joined: joinedCount, max: circle.max_participants });
         if (displayStatus === "completed" || displayStatus === "cancelled") {
           return (
             <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
               {displayStatus === "completed" ? "Circle sudah selesai" : "Circle dibatalkan"}
+            </button>
+          );
+        }
+        if (displayStatus === "full" && !myStatus) {
+          return (
+            <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+              Slot Penuh
             </button>
           );
         }

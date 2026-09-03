@@ -30,7 +30,7 @@ export default function MyCirclePage() {
         .eq("status", "joined");
 
       const all = (memberships?.map((m: any) => m.circle).filter(Boolean) ?? []) as Circle[];
-      setActive(all.filter((c: any) => ["open", "ongoing"].includes(getCircleDisplayStatus(c))));
+      setActive(all.filter((c: any) => ["open", "full", "ongoing"].includes(getCircleDisplayStatus(c))));
       setCompleted(all.filter((c: any) => ["completed", "cancelled"].includes(getCircleDisplayStatus(c))));
       setLoading(false);
 
