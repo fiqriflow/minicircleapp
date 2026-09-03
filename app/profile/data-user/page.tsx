@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Pencil, MapPin, Instagram as InstagramIcon, Cake } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 import LocationInput from "@/components/LocationInput";
 import AvatarCropModal from "@/components/AvatarCropModal";
 
@@ -65,6 +66,7 @@ export default function DataUserPage() {
     await supabase.from("profiles").upsert(profile);
     setSaving(false);
     setEditMode(false);
+    toast.success("Profil berhasil disimpan!");
   };
 
   if (!profile) return <p className="p-6 text-gray-400">Memuat...</p>;

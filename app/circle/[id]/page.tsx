@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 import MemberProfileModal from "@/components/MemberProfileModal";
 import JoinQuestionModal from "@/components/JoinQuestionModal";
 import { getDefaultCoverMap, resolveCircleCover } from "@/lib/appSettings";
@@ -118,6 +119,7 @@ export default function CircleDetailPage() {
       status: circle.requires_approval ? "pending" : "joined",
       join_answer: answer ?? null,
     });
+    toast.success(circle.requires_approval ? "Permintaan join terkirim, menunggu persetujuan host." : "Berhasil join circle!");
     load();
   };
 
@@ -142,6 +144,7 @@ export default function CircleDetailPage() {
   const confirmLeave = async () => {
     setConfirmAction(null);
     await supabase.from("circle_members").delete().eq("circle_id", id).eq("user_id", userId);
+    toast.success("Berhasil batal join circle.");
     load();
   };
 
@@ -194,6 +197,7 @@ export default function CircleDetailPage() {
     if (coverPath) {
       await supabase.storage.from("circle-covers").remove([coverPath]);
     }
+    toast.success("Circle berhasil dihapus.");
     router.push("/my-circle");
   };
 

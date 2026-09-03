@@ -130,6 +130,7 @@ export default function CreateCircleModal({
         );
         return;
       }
+      toast.success("Perubahan circle berhasil disimpan!");
       onCreated();
       onClose();
       return;
