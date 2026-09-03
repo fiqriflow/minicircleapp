@@ -88,7 +88,7 @@ function ExploreContent() {
   const monthLabel = selectedDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
 
   return (
-    <div className="px-4 md:px-8 py-6 space-y-6 relative">
+    <div className="px-4 py-6 space-y-6 relative">
       <h1 className="text-xl font-bold">Explore Circle</h1>
 
       {/* Filters */}
@@ -145,7 +145,7 @@ function ExploreContent() {
       {loading ? (
         <p className="text-gray-400 text-sm">Memuat...</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {filteredCircles.length ? (
             filteredCircles.map((c) => (
               <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} />
@@ -159,7 +159,7 @@ function ExploreContent() {
       {/* Floating button tambah circle */}
       <button
         onClick={() => setShowChooser(true)}
-        className="fixed bottom-24 right-5 md:bottom-8 md:right-8 z-30 bg-primary text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-primary-dark"
+        className="fixed bottom-24 right-5 z-30 bg-primary text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-primary-dark"
         aria-label="Tambah Circle"
       >
         <Plus size={26} />

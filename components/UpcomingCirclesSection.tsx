@@ -71,7 +71,7 @@ export default function UpcomingCirclesSection({
       </div>
 
       {/* Card event pada tanggal terpilih */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {filteredCircles.length ? (
           filteredCircles.map((c) => (
             <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} />

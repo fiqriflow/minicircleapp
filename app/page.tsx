@@ -46,10 +46,10 @@ export default async function BerandaPage() {
   const joinedCounts = await getJoinedCounts(supabase, (circles ?? []).map((c) => c.id));
 
   return (
-    <div className="px-4 md:px-8 py-6 space-y-8">
+    <div className="px-4 py-6 space-y-8">
       {/* Hero */}
       <section className="bg-primary text-white rounded-2xl p-8 space-y-2">
-        <h1 className="text-2xl md:text-3xl font-bold">
+        <h1 className="text-2xl font-bold">
           Halo, {user?.user_metadata?.full_name?.split(" ")[0] ?? "Sobat"} 👋
         </h1>
         <p className="text-white/90">Yuk cari circle mabar terdekat & gabung sekarang!</p>

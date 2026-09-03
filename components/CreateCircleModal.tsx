@@ -134,8 +134,8 @@ export default function CreateCircleModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
-      <div className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-3 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
+      <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-3 max-h-[90vh] overflow-y-auto">
         <h2 className="font-bold text-lg">
           Buat {isPlus ? "Circle+" : "Circle"} Baru
         </h2>

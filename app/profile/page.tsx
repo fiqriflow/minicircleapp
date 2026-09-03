@@ -87,7 +87,7 @@ export default function ProfilePage() {
   if (!profile) return <p className="p-6 text-gray-400">Memuat...</p>;
 
   return (
-    <div className="px-4 md:px-8 py-6 max-w-lg mx-auto space-y-6">
+    <div className="px-4 py-6 space-y-6">
       {/* Header + settings */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Profil</h1>

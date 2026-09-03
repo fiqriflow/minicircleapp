@@ -24,8 +24,8 @@ export default function ChooseCircleTypeModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-4">
+    <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
+      <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4">
         <h2 className="font-bold text-lg text-center">Pilih Jenis Circle</h2>
 
         <button

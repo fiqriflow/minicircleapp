@@ -19,14 +19,14 @@ export default function BottomNav() {
 
   return (
     <>
-      {/* Mobile top bar: logo + notif */}
-      <header className="flex md:hidden items-center justify-between px-4 py-3 bg-white border-b sticky top-0 z-40">
+      {/* Top bar: logo + notif — selalu tampil, mobile-frame dipakai di semua ukuran layar */}
+      <header className="flex items-center justify-between px-4 py-3 bg-white border-b sticky top-0 z-40">
         <span className="font-bold text-primary text-lg">Mabar Circle</span>
         <NotificationProfile />
       </header>
 
-      {/* Mobile bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex md:hidden justify-around bg-white border-t py-2">
+      {/* Bottom nav — fixed relatif ke frame (bukan viewport) karena parent frame punya transform-gpu */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex justify-around bg-white border-t py-2 max-w-[480px] mx-auto">
         {menu.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== "/" && pathname.startsWith(href));
           return (
@@ -42,28 +42,6 @@ export default function BottomNav() {
             </Link>
           );
         })}
-      </nav>
-
-      {/* Desktop top nav */}
-      <nav className="hidden md:flex items-center justify-between px-8 py-4 bg-white border-b sticky top-0 z-40">
-        <div className="flex items-center gap-8">
-          <span className="font-bold text-primary text-lg">Mabar Circle</span>
-          <div className="flex gap-6">
-            {menu.map(({ href, label }) => {
-              const active = pathname === href || (href !== "/" && pathname.startsWith(href));
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={active ? "text-primary font-semibold" : "text-gray-500 hover:text-gray-800"}
-                >
-                  {label}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-        <NotificationProfile />
       </nav>
     </>
   );

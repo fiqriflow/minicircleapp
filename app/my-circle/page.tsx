@@ -43,7 +43,7 @@ export default function MyCirclePage() {
   const list = tab === "active" ? active : completed;
 
   return (
-    <div className="px-4 md:px-8 py-6 space-y-6">
+    <div className="px-4 py-6 space-y-6">
       <h1 className="text-xl font-bold">My Circle</h1>
 
       <div className="flex border-b">
@@ -64,7 +64,7 @@ export default function MyCirclePage() {
       {loading ? (
         <p className="text-gray-400 text-sm">Memuat...</p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {list.length ? (
             list.map((c) => (
               <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} />

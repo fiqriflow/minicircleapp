@@ -77,7 +77,7 @@ export default function JoinByInvitePage() {
   if (!circle) return <p className="p-6 text-gray-400">Memuat...</p>;
 
   return (
-    <div className="px-4 md:px-8 py-10 max-w-md mx-auto space-y-4 text-center">
+    <div className="px-4 py-10 space-y-4 text-center">
       <div className="h-40 bg-gray-200 rounded-2xl overflow-hidden">
         {circle.cover_url && (
           <img src={circle.cover_url} alt={circle.name} className="w-full h-full object-cover" />

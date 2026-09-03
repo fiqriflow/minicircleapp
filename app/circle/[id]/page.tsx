@@ -176,7 +176,7 @@ export default function CircleDetailPage() {
   if (!circle) return <p className="p-6 text-gray-400">Memuat...</p>;
 
   return (
-    <div className="px-4 md:px-8 py-6 max-w-2xl mx-auto space-y-6">
+    <div className="px-4 py-6 space-y-6">
       {/* Header */}
       <div className="space-y-2">
         <div className="h-40 bg-gray-200 rounded-2xl overflow-hidden relative">
