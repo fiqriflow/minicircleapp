@@ -59,6 +59,7 @@ export default function CreateCircleModal({
   );
   const [saving, setSaving] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [coverError, setCoverError] = useState(false);
   const [error, setError] = useState("");
   const [host, setHost] = useState<any>(null);
 
@@ -86,6 +87,7 @@ export default function CreateCircleModal({
     }
     const { data } = supabase.storage.from("circle-covers").getPublicUrl(path);
     setForm((f) => ({ ...f, cover_url: data.publicUrl }));
+    setCoverError(false);
     setUploadingCover(false);
   };
 
@@ -197,8 +199,13 @@ export default function CreateCircleModal({
           <div className="space-y-1">
             <label className="text-sm text-gray-500">Custom Cover</label>
             <div className="h-32 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
-              {form.cover_url ? (
-                <img src={form.cover_url} alt="cover" className="w-full h-full object-cover" />
+              {form.cover_url && !coverError ? (
+                <img
+                  src={form.cover_url}
+                  alt="cover"
+                  className="w-full h-full object-cover"
+                  onError={() => setCoverError(true)}
+                />
               ) : (
                 <span className="text-gray-400 text-sm">Cover belum diatur</span>
               )}

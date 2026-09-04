@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getDefaultCoverMap, getHomeBanner } from "@/lib/appSettings";
 import { getJoinedCounts } from "@/lib/circleMembers";
 import UpcomingCirclesSection from "@/components/UpcomingCirclesSection";
+import BannerImage from "@/components/BannerImage";
 
 const QUICK_ACCESS = [
   { label: "Circle Lari", category: "Running", icon: Footprints },
@@ -50,13 +51,7 @@ export default async function BerandaPage() {
     <div className="px-4 py-6 space-y-8">
       {/* Banner / Hero — gambar diatur dari halaman admin appearance */}
       <section className="rounded-2xl overflow-hidden bg-gray-100 h-40">
-        {homeBanner ? (
-          <img src={homeBanner} alt="Banner" className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-            Banner belum diatur
-          </div>
-        )}
+        <BannerImage src={homeBanner} alt="Banner" />
       </section>
 
       {/* Quick Access */}

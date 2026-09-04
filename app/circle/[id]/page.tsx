@@ -19,6 +19,7 @@ export default function CircleDetailPage() {
   const supabase = createClient();
 
   const [circle, setCircle] = useState<any>(null);
+  const [coverError, setCoverError] = useState(false);
   const [host, setHost] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [pendingMembers, setPendingMembers] = useState<any[]>([]);
@@ -210,7 +211,18 @@ export default function CircleDetailPage() {
         <div className="h-40 bg-gray-200 rounded-2xl overflow-hidden relative">
           {(() => {
             const cover = resolveCircleCover(defaultCoverMap, circle.category, circle.cover_url);
-            return cover && <img src={cover} alt={circle.name} className="w-full h-full object-cover" />;
+            return cover && !coverError ? (
+              <img
+                src={cover}
+                alt={circle.name}
+                className="w-full h-full object-cover"
+                onError={() => setCoverError(true)}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <span className="text-gray-400 text-sm font-medium">Cover belum diatur</span>
+              </div>
+            );
           })()}
           <button
             onClick={() => router.back()}

@@ -12,6 +12,7 @@ export default function AdminAppearancePage() {
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
   const [banner, setBanner] = useState<string>("");
   const [bannerUploading, setBannerUploading] = useState(false);
+  const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const load = async () => {
@@ -52,6 +53,7 @@ export default function AdminAppearancePage() {
 
     await supabase.from("app_settings").upsert({ key: "home_banner", value: url });
     setBanner(url);
+    setImgErrors((prev) => ({ ...prev, home_banner: false }));
     setBannerUploading(false);
     toast.success("Banner beranda berhasil diperbarui!");
   };
@@ -83,6 +85,7 @@ export default function AdminAppearancePage() {
 
     await supabase.from("app_settings").upsert({ key: settingKey, value: url });
     setCovers((prev) => ({ ...prev, [settingKey]: url }));
+    setImgErrors((prev) => ({ ...prev, [settingKey]: false }));
     setUploadingKey(null);
     toast.success(`Cover kategori ${category} berhasil diperbarui!`);
   };
@@ -121,8 +124,13 @@ export default function AdminAppearancePage() {
         </div>
 
         <div className="h-32 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
-          {banner ? (
-            <img src={banner} alt="Banner beranda" className="w-full h-full object-cover" />
+          {banner && !imgErrors.home_banner ? (
+            <img
+              src={banner}
+              alt="Banner beranda"
+              className="w-full h-full object-cover"
+              onError={() => setImgErrors((prev) => ({ ...prev, home_banner: true }))}
+            />
           ) : (
             <span className="text-gray-400 text-sm">Belum ada banner</span>
           )}
@@ -158,8 +166,13 @@ export default function AdminAppearancePage() {
               <p className="text-sm font-medium">{category}</p>
 
               <div className="h-32 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
-                {coverUrl ? (
-                  <img src={coverUrl} alt={category} className="w-full h-full object-cover" />
+                {coverUrl && !imgErrors[settingKey] ? (
+                  <img
+                    src={coverUrl}
+                    alt={category}
+                    className="w-full h-full object-cover"
+                    onError={() => setImgErrors((prev) => ({ ...prev, [settingKey]: true }))}
+                  />
                 ) : (
                   <span className="text-gray-400 text-sm">Cover belum diatur</span>
                 )}
