@@ -11,6 +11,7 @@ import { getDefaultCoverMap, resolveCircleCover } from "@/lib/appSettings";
 import { getCircleDisplayStatus, STATUS_LABEL, isCircleFull } from "@/lib/circleStatus";
 import { extractStoragePath } from "@/lib/storagePath";
 import { getJoinedCounts } from "@/lib/circleMembers";
+import { markCommentNotifRead } from "@/lib/notifications";
 import CreateCircleModal from "@/components/CreateCircleModal";
 
 export default function CircleDetailPage() {
@@ -462,6 +463,7 @@ export default function CircleDetailPage() {
           onClick={() => {
             setTab("chat");
             setHasNewComment(false);
+            if (isHost && userId) markCommentNotifRead(supabase, userId, id);
           }}
           className={`relative flex-1 py-2 font-medium ${tab === "chat" ? "border-b-2 border-primary text-primary" : "text-gray-400"}`}
         >
