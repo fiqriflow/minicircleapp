@@ -99,6 +99,7 @@ function ExploreContent() {
           onChange={setLocation}
           placeholder="Cari lokasi terdekat..."
           className="border rounded-xl px-4 py-2 flex-1"
+          strict={false}
         />
         <select
           value={category}
