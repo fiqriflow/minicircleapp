@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil, MapPin, Instagram as InstagramIcon, Cake } from "lucide-react";
+import { ArrowLeft, Pencil, MapPin, Instagram as InstagramIcon, Cake, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import LocationInput from "@/components/LocationInput";
 import AvatarCropModal from "@/components/AvatarCropModal";
+import DeleteAccountModal from "@/components/DeleteAccountModal";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Running"];
 
@@ -18,6 +19,7 @@ export default function DataUserPage() {
   const [uploading, setUploading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -67,6 +69,33 @@ export default function DataUserPage() {
     setSaving(false);
     setEditMode(false);
     toast.success("Profil berhasil disimpan!");
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      // Hapus file avatar dulu (tidak ikut kehapus otomatis)
+      const { data: files } = await supabase.storage.from("avatars").list(profile.id);
+      if (files && files.length > 0) {
+        const paths = files.map((f) => `${profile.id}/${f.name}`);
+        await supabase.storage.from("avatars").remove(paths);
+      }
+
+      // Hapus baris profiles -> cascade otomatis hapus circle_members & circle_comments
+      // Circle yang dia host tidak ikut terhapus, created_by hanya diset null.
+      const { error } = await supabase.from("profiles").delete().eq("id", profile.id);
+      if (error) {
+        toast.error("Gagal menghapus akun: " + error.message);
+        setShowDeleteModal(false);
+        return;
+      }
+
+      await supabase.auth.signOut();
+      toast.success("Akun berhasil dihapus.");
+      router.push("/login");
+    } catch {
+      toast.error("Gagal menghapus akun. Coba lagi.");
+      setShowDeleteModal(false);
+    }
   };
 
   if (!profile) return <p className="p-6 text-gray-400">Memuat...</p>;
@@ -270,6 +299,26 @@ export default function DataUserPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Section: Hapus Akun */}
+      {!editMode && (
+        <div className="pt-2">
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="w-full flex items-center justify-center gap-2 border border-red-200 text-red-600 rounded-xl py-3 font-medium hover:bg-red-50"
+          >
+            <Trash2 size={18} />
+            Hapus Akun
+          </button>
+        </div>
+      )}
+
+      {showDeleteModal && (
+        <DeleteAccountModal
+          onCancel={() => setShowDeleteModal(false)}
+          onConfirm={handleDeleteAccount}
+        />
       )}
     </div>
   );
