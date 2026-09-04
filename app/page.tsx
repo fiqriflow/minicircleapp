@@ -15,10 +15,20 @@ const QUICK_ACCESS = [
 
 export default async function BerandaPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
 
   const now = new Date();
   const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  // Ambil user + setting-setting yang tidak saling bergantung secara paralel
+  const [
+    { data: { user } },
+    defaultCoverMap,
+    homeBanner,
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    getDefaultCoverMap(supabase),
+    getHomeBanner(supabase),
+  ]);
 
   let joinedCircleIds: string[] = [];
   if (user?.id) {
@@ -43,8 +53,6 @@ export default async function BerandaPage() {
     circles = data ?? [];
   }
 
-  const defaultCoverMap = await getDefaultCoverMap(supabase);
-  const homeBanner = await getHomeBanner(supabase);
   const joinedCounts = await getJoinedCounts(supabase, (circles ?? []).map((c) => c.id));
 
   return (
