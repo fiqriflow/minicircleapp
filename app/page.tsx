@@ -1,10 +1,8 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Bike, Footprints, PersonStanding, Grid3x3 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import { getDefaultCoverMap, getHomeBanner } from "@/lib/appSettings";
-import { getJoinedCounts } from "@/lib/circleMembers";
-import UpcomingCirclesSection from "@/components/UpcomingCirclesSection";
-import BannerImage from "@/components/BannerImage";
+import HomeBannerSection from "@/components/HomeBannerSection";
+import HomeUpcomingCircles from "@/components/HomeUpcomingCircles";
 
 const QUICK_ACCESS = [
   { label: "Circle Lari", category: "Running", icon: Footprints },
@@ -13,56 +11,15 @@ const QUICK_ACCESS = [
   { label: "Lainnya", category: null, icon: Grid3x3 },
 ];
 
-export default async function BerandaPage() {
-  const supabase = await createClient();
-
-  const now = new Date();
-  const in30Days = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-  // Ambil user + setting-setting yang tidak saling bergantung secara paralel
-  const [
-    { data: { user } },
-    defaultCoverMap,
-    homeBanner,
-  ] = await Promise.all([
-    supabase.auth.getUser(),
-    getDefaultCoverMap(supabase),
-    getHomeBanner(supabase),
-  ]);
-
-  let joinedCircleIds: string[] = [];
-  if (user?.id) {
-    const { data: myMemberships } = await supabase
-      .from("circle_members")
-      .select("circle_id")
-      .eq("user_id", user.id)
-      .eq("status", "joined");
-    joinedCircleIds = (myMemberships ?? []).map((m) => m.circle_id);
-  }
-
-  let circles: any[] = [];
-  if (joinedCircleIds.length) {
-    const { data } = await supabase
-      .from("circles")
-      .select("*")
-      .eq("status", "active")
-      .in("id", joinedCircleIds)
-      .gte("event_date", now.toISOString())
-      .lte("event_date", in30Days.toISOString())
-      .order("event_date", { ascending: true });
-    circles = data ?? [];
-  }
-
-  const joinedCounts = await getJoinedCounts(supabase, (circles ?? []).map((c) => c.id));
-
+export default function BerandaPage() {
   return (
     <div className="px-4 py-6 space-y-8">
       {/* Banner / Hero — gambar diatur dari halaman admin appearance */}
-      <section className="rounded-2xl overflow-hidden bg-gray-100 h-40">
-        <BannerImage src={homeBanner} alt="Banner" />
-      </section>
+      <Suspense fallback={<div className="rounded-2xl bg-gray-100 h-40 animate-pulse" />}>
+        <HomeBannerSection />
+      </Suspense>
 
-      {/* Quick Access */}
+      {/* Quick Access — statis, render instan tanpa nunggu data */}
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Quick Access</h2>
         <div className="grid grid-cols-4 gap-3">
@@ -82,11 +39,16 @@ export default async function BerandaPage() {
       </section>
 
       {/* Circle yang akan datang */}
-      <UpcomingCirclesSection
-        circles={circles ?? []}
-        defaultCoverMap={defaultCoverMap}
-        joinedCounts={joinedCounts}
-      />
+      <Suspense
+        fallback={
+          <div className="space-y-3">
+            <div className="h-5 w-40 bg-gray-100 rounded animate-pulse" />
+            <div className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+          </div>
+        }
+      >
+        <HomeUpcomingCircles />
+      </Suspense>
     </div>
   );
 }
