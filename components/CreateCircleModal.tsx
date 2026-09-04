@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { generateInviteCode } from "@/lib/inviteCode";
+import { extractStoragePath } from "@/lib/storagePath";
 import { toDateTimeLocalValue, fromDateTimeLocalValue } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/LocationInput";
 
@@ -86,9 +87,13 @@ export default function CreateCircleModal({
       return;
     }
     const { data } = supabase.storage.from("circle-covers").getPublicUrl(path);
+    const oldPath = extractStoragePath(form.cover_url, "circle-covers");
     setForm((f) => ({ ...f, cover_url: data.publicUrl }));
     setCoverError(false);
     setUploadingCover(false);
+    if (oldPath && oldPath !== path) {
+      await supabase.storage.from("circle-covers").remove([oldPath]);
+    }
   };
 
   const handleSave = async () => {
@@ -171,6 +176,17 @@ export default function CreateCircleModal({
     setSaving(false);
     toast.success(`${isPlus ? "Circle+" : "Circle"} berhasil dibuat!`);
     onCreated();
+    onClose();
+  };
+
+  const handleCancel = async () => {
+    const originalCoverUrl = editCircle?.cover_url ?? "";
+    if (form.cover_url && form.cover_url !== originalCoverUrl) {
+      const path = extractStoragePath(form.cover_url, "circle-covers");
+      if (path) {
+        await supabase.storage.from("circle-covers").remove([path]);
+      }
+    }
     onClose();
   };
 
@@ -354,7 +370,7 @@ export default function CreateCircleModal({
         {error && <p className="text-sm text-red-500">{error}</p>}
 
         <div className="flex gap-2 pt-2">
-          <button onClick={onClose} className="flex-1 py-3 text-gray-500">
+          <button onClick={handleCancel} className="flex-1 py-3 text-gray-500">
             Batal
           </button>
           <button

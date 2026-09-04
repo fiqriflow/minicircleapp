@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { extractStoragePath } from "@/lib/storagePath";
 
 const CATEGORIES = ["Gowes", "Jalan Santai", "Running"];
 
@@ -50,18 +51,35 @@ export default function AdminAppearancePage() {
 
     const { data } = supabase.storage.from("circle-covers").getPublicUrl(path);
     const url = `${data.publicUrl}?t=${Date.now()}`;
+    const oldPath = extractStoragePath(banner, "circle-covers");
 
-    await supabase.from("app_settings").upsert({ key: "home_banner", value: url });
+    const { error: settingError } = await supabase.from("app_settings").upsert({ key: "home_banner", value: url });
+    if (settingError) {
+      alert("Gagal simpan setting banner: " + settingError.message);
+      setBannerUploading(false);
+      return;
+    }
     setBanner(url);
     setImgErrors((prev) => ({ ...prev, home_banner: false }));
     setBannerUploading(false);
     toast.success("Banner beranda berhasil diperbarui!");
+    if (oldPath && oldPath !== path) {
+      await supabase.storage.from("circle-covers").remove([oldPath]);
+    }
   };
 
   const handleBannerRemove = async () => {
-    await supabase.from("app_settings").upsert({ key: "home_banner", value: null });
+    const { error } = await supabase.from("app_settings").upsert({ key: "home_banner", value: null });
+    if (error) {
+      toast.error("Gagal hapus banner: " + error.message);
+      return;
+    }
+    const oldPath = extractStoragePath(banner, "circle-covers");
     setBanner("");
     toast.success("Banner beranda berhasil dihapus.");
+    if (oldPath) {
+      await supabase.storage.from("circle-covers").remove([oldPath]);
+    }
   };
 
   const handleUpload = async (category: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,23 +100,40 @@ export default function AdminAppearancePage() {
 
     const { data } = supabase.storage.from("circle-covers").getPublicUrl(path);
     const url = `${data.publicUrl}?t=${Date.now()}`;
+    const oldPath = extractStoragePath(covers[settingKey], "circle-covers");
 
-    await supabase.from("app_settings").upsert({ key: settingKey, value: url });
+    const { error: settingError } = await supabase.from("app_settings").upsert({ key: settingKey, value: url });
+    if (settingError) {
+      alert("Gagal simpan setting cover: " + settingError.message);
+      setUploadingKey(null);
+      return;
+    }
     setCovers((prev) => ({ ...prev, [settingKey]: url }));
     setImgErrors((prev) => ({ ...prev, [settingKey]: false }));
     setUploadingKey(null);
     toast.success(`Cover kategori ${category} berhasil diperbarui!`);
+    if (oldPath && oldPath !== path) {
+      await supabase.storage.from("circle-covers").remove([oldPath]);
+    }
   };
 
   const handleRemove = async (category: string) => {
     const settingKey = `default_circle_cover:${category}`;
-    await supabase.from("app_settings").upsert({ key: settingKey, value: null });
+    const { error } = await supabase.from("app_settings").upsert({ key: settingKey, value: null });
+    if (error) {
+      toast.error("Gagal hapus cover: " + error.message);
+      return;
+    }
+    const oldPath = extractStoragePath(covers[settingKey], "circle-covers");
     setCovers((prev) => {
       const next = { ...prev };
       delete next[settingKey];
       return next;
     });
     toast.success(`Cover kategori ${category} berhasil dihapus.`);
+    if (oldPath) {
+      await supabase.storage.from("circle-covers").remove([oldPath]);
+    }
   };
 
   return (
