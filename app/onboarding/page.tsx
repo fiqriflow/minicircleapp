@@ -72,6 +72,11 @@ export default function OnboardingPage() {
     if (step > 0) setStep(step - 1);
   };
 
+  const handleBackToLogin = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
   const handleFinish = async () => {
     setSaving(true);
     await supabase.from("profiles").upsert({ ...profile, onboarding_completed: true });
@@ -85,6 +90,13 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 py-10">
       <div className="w-full max-w-md space-y-6">
+        <button
+          onClick={handleBackToLogin}
+          className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1"
+        >
+          ← Kembali ke Login/Daftar
+        </button>
+
         {/* Progress bar */}
         <div className="flex gap-2">
           {Array.from({ length: TOTAL_STEPS }).map((_, i) => (

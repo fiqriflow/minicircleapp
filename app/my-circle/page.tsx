@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/CircleCard";
 import { getDefaultCoverMap } from "@/lib/appSettings";
@@ -8,19 +9,25 @@ import { getCircleDisplayStatus } from "@/lib/circleStatus";
 import { getJoinedCounts } from "@/lib/circleMembers";
 
 type Tab = "host" | "active" | "completed";
+const VALID_TABS: Tab[] = ["host", "active", "completed"];
 
-export default function MyCirclePage() {
+function MyCircleContent() {
   const supabase = createClient();
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab");
   const [hosted, setHosted] = useState<Circle[]>([]);
   const [active, setActive] = useState<Circle[]>([]);
   const [completed, setCompleted] = useState<Circle[]>([]);
-  const [tab, setTab] = useState<Tab>("host");
+  const [tab, setTab] = useState<Tab>(
+    VALID_TABS.includes(initialTab as Tab) ? (initialTab as Tab) : "host"
+  );
   const [loading, setLoading] = useState(true);
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [joinedCounts, setJoinedCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
     getDefaultCoverMap(supabase).then(setDefaultCoverMap);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -66,6 +73,7 @@ export default function MyCirclePage() {
       setJoinedCounts(counts);
     };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const list = tab === "host" ? hosted : tab === "active" ? active : completed;
@@ -115,5 +123,13 @@ export default function MyCirclePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function MyCirclePage() {
+  return (
+    <Suspense fallback={<p className="p-6 text-gray-400">Memuat...</p>}>
+      <MyCircleContent />
+    </Suspense>
   );
 }

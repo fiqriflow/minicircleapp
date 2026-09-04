@@ -40,6 +40,8 @@ export default function CircleDetailPage() {
 
   const isJoined = myStatus === "joined";
   const isHost = !!(userId && circle && userId === circle.created_by);
+  const displayStatus = circle ? getCircleDisplayStatus(circle, { joined: joinedCount, max: circle.max_participants }) : null;
+  const isCommentLocked = displayStatus === "completed" || displayStatus === "cancelled";
 
   const load = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -161,7 +163,7 @@ export default function CircleDetailPage() {
   };
 
   const handleSendComment = async () => {
-    if (!newComment.trim() || !userId) return;
+    if (!newComment.trim() || !userId || isCommentLocked) return;
     await supabase.from("circle_comments").insert({
       circle_id: id,
       user_id: userId,
@@ -548,18 +550,26 @@ export default function CircleDetailPage() {
                 })}
                 {!comments.length && <p className="text-gray-400 text-sm">Belum ada komentar.</p>}
               </div>
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 border rounded-xl px-4 py-2"
-                  placeholder="Tulis komentar..."
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleSendComment()}
-                />
-                <button onClick={handleSendComment} className="bg-primary text-white px-4 rounded-xl">
-                  Kirim
-                </button>
-              </div>
+              {isCommentLocked ? (
+                <p className="text-center text-sm text-gray-400 border rounded-xl py-3">
+                  {displayStatus === "completed"
+                    ? "Circle sudah selesai, komentar ditutup."
+                    : "Circle dibatalkan, komentar ditutup."}
+                </p>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    className="flex-1 border rounded-xl px-4 py-2"
+                    placeholder="Tulis komentar..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSendComment()}
+                  />
+                  <button onClick={handleSendComment} className="bg-primary text-white px-4 rounded-xl">
+                    Kirim
+                  </button>
+                </div>
+              )}
             </>
           ) : (
             <p className="text-gray-400 text-sm">Join circle ini dulu untuk ikut chat.</p>
