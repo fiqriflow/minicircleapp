@@ -2,12 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Bug, Lightbulb, MoreHorizontal } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+
+type Category = "bug" | "feature" | "other";
+
+const CATEGORIES: { value: Category; label: string; icon: any }[] = [
+  { value: "bug", label: "Bug/Error", icon: Bug },
+  { value: "feature", label: "Fitur yang Diinginkan", icon: Lightbulb },
+  { value: "other", label: "Lainnya", icon: MoreHorizontal },
+];
 
 export default function MasukanPage() {
   const supabase = createClient();
   const router = useRouter();
+  const [category, setCategory] = useState<Category>("bug");
   const [message, setMessage] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [sending, setSending] = useState(false);
@@ -27,6 +36,8 @@ export default function MasukanPage() {
       user_id: user.id,
       message: message.trim(),
       is_anonymous: isAnonymous,
+      category,
+      source: "masukan",
     });
 
     setSending(false);
@@ -59,6 +70,25 @@ export default function MasukanPage() {
         </div>
       ) : (
         <div className="space-y-4">
+          <div>
+            <label className="text-sm text-gray-500">Kategori</label>
+            <div className="grid grid-cols-3 gap-2 mt-1">
+              {CATEGORIES.map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setCategory(value)}
+                  className={`flex flex-col items-center gap-1 border rounded-xl py-3 px-1 text-center ${
+                    category === value ? "border-primary bg-primary/5 text-primary" : "text-gray-500"
+                  }`}
+                >
+                  <Icon size={18} />
+                  <span className="text-xs font-medium leading-tight">{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label className="text-sm text-gray-500">Masukan / Saran / Kendala</label>
             <textarea
