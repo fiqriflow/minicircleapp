@@ -13,6 +13,7 @@ export default function AvatarCropModal({
 }) {
   const [offsetX, setOffsetX] = useState(50); // persen 0-100
   const [offsetY, setOffsetY] = useState(50);
+  const [zoom, setZoom] = useState(1); // 1 = tanpa zoom, makin besar makin zoom in
   const imgRef = useRef<HTMLImageElement>(null);
   const imageUrl = useState(() => URL.createObjectURL(file))[0];
 
@@ -20,7 +21,8 @@ export default function AvatarCropModal({
     const img = imgRef.current;
     if (!img) return;
 
-    const size = Math.min(img.naturalWidth, img.naturalHeight);
+    const baseSize = Math.min(img.naturalWidth, img.naturalHeight);
+    const size = baseSize / zoom;
     const maxX = img.naturalWidth - size;
     const maxY = img.naturalHeight - size;
     const sx = (offsetX / 100) * maxX;
@@ -49,11 +51,45 @@ export default function AvatarCropModal({
             src={imageUrl}
             alt="preview"
             className="absolute w-full h-full object-cover"
-            style={{ objectPosition: `${offsetX}% ${offsetY}%` }}
+            style={{
+              objectPosition: `${offsetX}% ${offsetY}%`,
+              transform: `scale(${zoom})`,
+              transformOrigin: `${offsetX}% ${offsetY}%`,
+            }}
           />
         </div>
 
         <div className="space-y-2">
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-gray-500">Zoom</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setZoom((z) => Math.max(1, Math.round((z - 0.1) * 10) / 10))}
+                  className="w-6 h-6 flex items-center justify-center rounded-full border text-gray-500 leading-none"
+                >
+                  −
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setZoom((z) => Math.min(3, Math.round((z + 0.1) * 10) / 10))}
+                  className="w-6 h-6 flex items-center justify-center rounded-full border text-gray-500 leading-none"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={3}
+              step={0.1}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="w-full"
+            />
+          </div>
           <div>
             <label className="text-xs text-gray-500">Geser Horizontal</label>
             <input

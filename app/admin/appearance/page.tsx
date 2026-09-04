@@ -161,7 +161,7 @@ export default function AdminAppearancePage() {
                 {coverUrl ? (
                   <img src={coverUrl} alt={category} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-gray-400 text-sm">Belum ada cover</span>
+                  <span className="text-gray-400 text-sm">Cover belum diatur</span>
                 )}
               </div>
 

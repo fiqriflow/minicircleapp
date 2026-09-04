@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import JoinQuestionModal from "@/components/JoinQuestionModal";
+import { getDefaultCoverMap, resolveCircleCover } from "@/lib/appSettings";
 
 export default function JoinByInvitePage() {
   const { code } = useParams<{ code: string }>();
@@ -15,11 +16,13 @@ export default function JoinByInvitePage() {
   const [alreadyMember, setAlreadyMember] = useState(false);
   const [showJoinQuestion, setShowJoinQuestion] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUserId(user?.id ?? null);
+      getDefaultCoverMap(supabase).then(setDefaultCoverMap);
 
       const { data: c } = await supabase
         .from("circles")
@@ -78,10 +81,15 @@ export default function JoinByInvitePage() {
 
   return (
     <div className="px-4 py-10 space-y-4 text-center">
-      <div className="h-40 bg-gray-200 rounded-2xl overflow-hidden">
-        {circle.cover_url && (
-          <img src={circle.cover_url} alt={circle.name} className="w-full h-full object-cover" />
-        )}
+      <div className="h-40 bg-gray-200 rounded-2xl overflow-hidden flex items-center justify-center">
+        {(() => {
+          const cover = resolveCircleCover(defaultCoverMap, circle.category, circle.cover_url);
+          return cover ? (
+            <img src={cover} alt={circle.name} className="w-full h-full object-cover" />
+          ) : (
+            <span className="text-gray-400 text-sm font-medium">Cover belum diatur</span>
+          );
+        })()}
       </div>
       <h1 className="text-xl font-bold">{circle.name}</h1>
       <p className="text-gray-500">{circle.group_name}</p>

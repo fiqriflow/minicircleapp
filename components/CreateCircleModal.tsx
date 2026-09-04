@@ -200,7 +200,7 @@ export default function CreateCircleModal({
               {form.cover_url ? (
                 <img src={form.cover_url} alt="cover" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-gray-400 text-sm">Belum ada cover</span>
+                <span className="text-gray-400 text-sm">Cover belum diatur</span>
               )}
             </div>
             <label className="text-sm text-primary font-medium cursor-pointer inline-block">
