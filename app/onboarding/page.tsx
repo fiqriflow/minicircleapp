@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import LocationInput from "@/components/LocationInput";
 import AvatarCropModal from "@/components/AvatarCropModal";
 
-const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Running"];
+const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging"];
 const TOTAL_STEPS = 4;
 
 export default function OnboardingPage() {
@@ -140,7 +140,7 @@ export default function OnboardingPage() {
                 <p className="text-sm text-gray-500">Biar circle yang muncul makin relevan.</p>
               </div>
               <div>
-                <label className="text-sm text-gray-500">Kategori Disukai</label>
+                <label className="text-sm text-gray-500">Aktivitas Disukai</label>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {CATEGORY_OPTIONS.map((cat) => {
                     const active = profile.categories?.includes(cat);

@@ -4,7 +4,7 @@ import { Toaster } from "sonner";
 
 export const metadata = {
   title: "Mincle",
-  description: "Cari dan gabung circle olahraga favoritmu",
+  description: "Buat dan temukan circlemu",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -8,7 +8,7 @@ import { extractStoragePath } from "@/lib/storagePath";
 import { toDateTimeLocalValue, fromDateTimeLocalValue } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/LocationInput";
 
-const CATEGORY_OPTIONS = ["Running", "Jalan Santai", "Gowes"];
+const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes"];
 
 export default function CreateCircleModal({
   circleType,
@@ -33,7 +33,7 @@ export default function CreateCircleModal({
           name: editCircle.name ?? "",
           group_name: editCircle.group_name ?? "",
           max_participants: editCircle.max_participants ?? (isPlus ? 8 : 5),
-          category: editCircle.category ?? "Running",
+          category: editCircle.category ?? "",
           city: editCircle.city ?? "",
           location: editCircle.location ?? "",
           event_date: editCircle.event_date ?? "",
@@ -47,7 +47,7 @@ export default function CreateCircleModal({
           name: "",
           group_name: "",
           max_participants: isPlus ? 8 : 5,
-          category: "Running",
+          category: "",
           city: "",
           location: "",
           event_date: "",
@@ -97,8 +97,12 @@ export default function CreateCircleModal({
   };
 
   const handleSave = async () => {
-    if (!form.name || !form.group_name || !form.city || !form.location || !form.event_date) {
+    if (!form.name || !form.city || !form.location || !form.event_date) {
       setError("Lengkapi semua field wajib dulu ya.");
+      return;
+    }
+    if (!form.category) {
+      setError("Pilih aktivitas circle dulu ya.");
       return;
     }
     if (!isEdit && new Date(form.event_date) < new Date()) {
@@ -110,7 +114,7 @@ export default function CreateCircleModal({
 
     const payload: any = {
       name: form.name,
-      group_name: form.group_name,
+      group_name: form.group_name.trim() || null,
       max_participants: form.max_participants,
       category: form.category,
       city: form.city,
@@ -244,7 +248,7 @@ export default function CreateCircleModal({
         </div>
 
         <div>
-          <label className="text-sm text-gray-500">Nama Grup</label>
+          <label className="text-sm text-gray-500">Nama Grup <span className="text-gray-400">(opsional)</span></label>
           <input
             className="w-full border rounded-xl px-3 py-2"
             placeholder="Mis. Circle Sepeda Santai"
@@ -273,12 +277,13 @@ export default function CreateCircleModal({
         </div>
 
         <div>
-          <label className="text-sm text-gray-500">Kategori Circle</label>
+          <label className="text-sm text-gray-500">Aktivitas Circle</label>
           <select
             className="w-full border rounded-xl px-3 py-2"
             value={form.category}
             onChange={(e) => setForm({ ...form, category: e.target.value })}
           >
+            <option value="" disabled>Pilih Aktivitas</option>
             {CATEGORY_OPTIONS.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}

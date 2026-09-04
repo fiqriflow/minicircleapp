@@ -9,7 +9,7 @@ import LocationInput from "@/components/LocationInput";
 import AvatarCropModal from "@/components/AvatarCropModal";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
 
-const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Running"];
+const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging"];
 
 export default function DataUserPage() {
   const supabase = createClient();
@@ -172,7 +172,7 @@ export default function DataUserPage() {
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-400">Kategori Disukai</p>
+            <p className="text-xs text-gray-400">Aktivitas Disukai</p>
             <div className="flex flex-wrap gap-2 mt-1">
               {profile.categories?.length ? (
                 profile.categories.map((c: string) => (
@@ -231,7 +231,7 @@ export default function DataUserPage() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-500">Kategori Disukai</label>
+            <label className="text-sm text-gray-500">Aktivitas Disukai</label>
             <div className="flex flex-wrap gap-2 mt-1">
               {CATEGORY_OPTIONS.map((cat) => {
                 const active = profile.categories?.includes(cat);

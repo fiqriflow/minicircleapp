@@ -11,7 +11,7 @@ import LocationInput from "@/components/LocationInput";
 import { getCirclePlusEnabled, getDefaultCoverMap } from "@/lib/appSettings";
 import { getJoinedCounts } from "@/lib/circleMembers";
 
-const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Running"];
+const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Jogging"];
 const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const DAYS_SHOWN = 14;
 
@@ -107,7 +107,7 @@ function ExploreContent() {
           className="border rounded-xl px-4 py-2"
         >
           {CATEGORIES.map((c) => (
-            <option key={c} value={c}>{c}</option>
+            <option key={c} value={c}>{c === "Semua" ? "Semua Aktivitas" : c}</option>
           ))}
         </select>
       </div>

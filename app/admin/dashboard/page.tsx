@@ -58,7 +58,7 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Stat title="Per Kategori" data={byCategory} />
+        <Stat title="Per Aktivitas" data={byCategory} />
         <Stat title="Per Gender" data={byGender} />
         <Stat title="Per Lokasi" data={byLocation} />
       </div>

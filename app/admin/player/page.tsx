@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import LocationInput from "@/components/LocationInput";
 
-const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Running"];
+const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging"];
 
 export default function AdminPlayerPage() {
   const supabase = createClient();
@@ -158,7 +158,7 @@ export default function AdminPlayerPage() {
             </div>
 
             <div>
-              <label className="text-sm text-gray-500">Kategori Disukai</label>
+              <label className="text-sm text-gray-500">Aktivitas Disukai</label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {CATEGORY_OPTIONS.map((cat) => {
                   const active = editing.categories?.includes(cat);

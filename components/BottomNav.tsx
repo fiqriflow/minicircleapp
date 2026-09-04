@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Home, Compass, Users, UserCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import NotificationProfile from "./NotificationProfile";
+import IconBeranda from "./icons/IconBeranda";
+import IconExplore from "./icons/IconExplore";
+import IconMyCircle from "./icons/IconMyCircle";
+import IconAkun from "./icons/IconAkun";
 
 const menu = [
-  { href: "/", label: "Beranda", icon: Home },
-  { href: "/explore", label: "Explore", icon: Compass },
-  { href: "/my-circle", label: "My Circle", icon: Users },
-  { href: "/profile", label: "Akun", icon: UserCircle },
+  { href: "/", label: "Beranda", icon: IconBeranda },
+  { href: "/explore", label: "Explore", icon: IconExplore },
+  { href: "/my-circle", label: "My Circle", icon: IconMyCircle },
+  { href: "/profile", label: "Akun", icon: IconAkun },
 ];
 
 export default function BottomNav({ children }: { children: React.ReactNode }) {
@@ -72,7 +75,7 @@ export default function BottomNav({ children }: { children: React.ReactNode }) {
                 active ? "text-primary font-semibold" : "text-gray-400"
               }`}
             >
-              <Icon size={22} />
+              <Icon size={22} active={active} />
               {label}
             </Link>
           );

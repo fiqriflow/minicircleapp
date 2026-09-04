@@ -10,7 +10,7 @@ import CreateCircleModal from "./CreateCircleModal";
 import CircleCreatedDialog from "./CircleCreatedDialog";
 
 const CATEGORY_BUTTONS = [
-  { label: "Circle Lari", category: "Running", icon: Footprints },
+  { label: "Circle Lari", category: "Jogging", icon: Footprints },
   { label: "Circle Gowes", category: "Gowes", icon: Bike },
   { label: "Circle Jalan Santai", category: "Jalan Santai", icon: PersonStanding },
 ];

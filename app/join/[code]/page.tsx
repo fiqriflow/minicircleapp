@@ -98,7 +98,7 @@ export default function JoinByInvitePage() {
         })()}
       </div>
       <h1 className="text-xl font-bold">{circle.name}</h1>
-      <p className="text-gray-500">{circle.group_name}</p>
+      {circle.group_name && <p className="text-gray-500">{circle.group_name}</p>}
       <div className="text-sm text-gray-500 space-y-1">
         <p>📍 {circle.location}</p>
         <p>🗓️ {new Date(circle.event_date).toLocaleString("id-ID")}</p>

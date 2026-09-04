@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getCircleDisplayStatus } from "@/lib/circleStatus";
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Running: "#f97316", // orange
+  Jogging: "#f97316", // orange
   Gowes: "#3b82f6", // blue
   "Jalan Santai": "#22c55e", // green
 };
@@ -109,7 +109,7 @@ export default function StatistikPage() {
 
       {/* Pie chart kategori */}
       <div className="bg-white rounded-2xl border p-4 space-y-4">
-        <p className="text-sm font-semibold">Kategori Circle yang Diikuti</p>
+        <p className="text-sm font-semibold">Aktivitas Circle yang Diikuti</p>
 
         {totalCategory === 0 ? (
           <p className="text-sm text-gray-400">Belum ada data.</p>

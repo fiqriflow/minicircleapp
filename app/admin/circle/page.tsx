@@ -56,7 +56,7 @@ export default function AdminCirclePage() {
           <thead className="bg-gray-100 text-left">
             <tr>
               <th className="p-3">Nama</th>
-              <th className="p-3">Kategori</th>
+              <th className="p-3">Aktivitas</th>
               <th className="p-3">Lokasi</th>
               <th className="p-3">Tanggal</th>
               <th className="p-3">Status</th>
