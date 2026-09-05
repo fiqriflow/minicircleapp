@@ -47,8 +47,6 @@ export default async function AdminDashboardPage() {
   const { data: joinedMembers } = await supabase.from("circle_members").select("user_id").eq("status", "joined");
 
   const totalUser = profiles?.length ?? 0;
-  const byCategory = groupCount(profiles ?? [], "categories");
-  const byLocation = groupCount(profiles ?? [], "location");
 
   const genderData = Object.entries(groupCount(profiles ?? [], "gender")).map(([k, v]) => ({
     name: GENDER_LABEL[k] || k,
@@ -74,20 +72,6 @@ export default async function AdminDashboardPage() {
     { label: "Circle Selesai", value: totalCircleSelesai, icon: CheckCircle2, className: "bg-gray-200 text-gray-700" },
   ];
 
-  const Stat = ({ title, data }: { title: string; data: Record<string, number> }) => (
-    <div className="bg-white rounded-2xl border p-4 space-y-2">
-      <h3 className="font-semibold text-gray-700">{title}</h3>
-      <ul className="text-sm text-gray-500 space-y-1">
-        {Object.entries(data).map(([k, v]) => (
-          <li key={k} className="flex justify-between">
-            <span>{k}</span>
-            <span className="font-medium text-gray-800">{v}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-
   return (
     <div className="space-y-6">
       <h1 className="text-xl font-bold">Dashboard</h1>
@@ -111,11 +95,6 @@ export default async function AdminDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <UserGrowthChart data={growthData} />
         <GenderPieChart data={genderData} />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Stat title="Per Aktivitas" data={byCategory} />
-        <Stat title="Per Lokasi" data={byLocation} />
       </div>
     </div>
   );
