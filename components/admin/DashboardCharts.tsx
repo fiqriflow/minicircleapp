@@ -120,3 +120,40 @@ export function UserByLocationBarChart({ data }: { data: { name: string; value: 
     </div>
   );
 }
+
+export function EngagedUsersChart({ data }: { data: { day: string; dau: number; wau: number; mau: number }[] }) {
+  return (
+    <div className="bg-white rounded-2xl border p-4">
+      <h3 className="font-semibold text-gray-700 mb-4">Engaged Users</h3>
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis dataKey="day" tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+          <Tooltip />
+          <Legend />
+          <Line type="monotone" dataKey="dau" name="DAU" stroke="#f97316" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="wau" name="WAU" stroke="#3b82f6" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="mau" name="MAU" stroke="#22c55e" strokeWidth={2} dot={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function ActivityByWeekdayChart({ data }: { data: { name: string; value: number }[] }) {
+  return (
+    <div className="bg-white rounded-2xl border p-4">
+      <h3 className="font-semibold text-gray-700 mb-4">Aktivitas Berdasarkan Waktu</h3>
+      <ResponsiveContainer width="100%" height={280}>
+        <LineChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+          <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+          <Tooltip />
+          <Line type="monotone" dataKey="value" name="Jumlah Aktivitas" stroke="#a855f7" strokeWidth={2.5} dot={{ r: 3 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
