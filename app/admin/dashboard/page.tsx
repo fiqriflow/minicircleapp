@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Users, UserCheck, CalendarPlus, CheckCircle2 } from "lucide-react";
-import { UserGrowthChart, GenderPieChart } from "@/components/admin/DashboardCharts";
+import { UserGrowthChart, GenderPieChart, CircleStatusDonutChart } from "@/components/admin/DashboardCharts";
+import { getCircleDisplayStatus, STATUS_LABEL } from "@/lib/circleStatus";
 
 const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
 
@@ -43,7 +44,7 @@ function buildGrowthData(profiles: any[]) {
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
   const { data: profiles } = await supabase.from("profiles").select("*");
-  const { data: circles } = await supabase.from("circles").select("status, created_by");
+  const { data: circles } = await supabase.from("circles").select("status, created_by, event_date");
   const { data: joinedMembers } = await supabase.from("circle_members").select("user_id").eq("status", "joined");
 
   const totalUser = profiles?.length ?? 0;
@@ -54,6 +55,18 @@ export default async function AdminDashboardPage() {
   }));
 
   const growthData = buildGrowthData(profiles ?? []);
+
+  const circleStatusCounts: Record<string, number> = { open: 0, ongoing: 0, completed: 0, cancelled: 0 };
+  (circles ?? []).forEach((c) => {
+    const s = getCircleDisplayStatus(c as any);
+    circleStatusCounts[s] = (circleStatusCounts[s] ?? 0) + 1;
+  });
+  const circleStatusData = [
+    { name: STATUS_LABEL.open.label, value: circleStatusCounts.open },
+    { name: STATUS_LABEL.ongoing.label, value: circleStatusCounts.ongoing },
+    { name: STATUS_LABEL.completed.label, value: circleStatusCounts.completed },
+    { name: "Batal", value: circleStatusCounts.cancelled },
+  ];
 
   // User Aktif = pernah join circle ATAU pernah bikin circle (unik per user)
   const activeUserIds = new Set<string>([
@@ -91,10 +104,11 @@ export default async function AdminDashboardPage() {
         ))}
       </div>
 
-      {/* Pertumbuhan User (line chart) + Gender (pie chart) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Pertumbuhan User (line chart) + Gender (pie chart) + Status Circle (donut) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <UserGrowthChart data={growthData} />
         <GenderPieChart data={genderData} />
+        <CircleStatusDonutChart data={circleStatusData} />
       </div>
     </div>
   );
