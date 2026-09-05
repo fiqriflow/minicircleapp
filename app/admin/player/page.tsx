@@ -7,14 +7,24 @@ import LocationInput from "@/components/LocationInput";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam", "Motoran"];
 
+const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
+
 export default function AdminPlayerPage() {
   const supabase = createClient();
   const [players, setPlayers] = useState<any[]>([]);
   const [editing, setEditing] = useState<any>(null);
+  const [viewing, setViewing] = useState<any>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("admin_player_view")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast.error("Gagal memuat data player: " + error.message);
+      return;
+    }
     setPlayers(data ?? []);
   };
 
@@ -24,7 +34,7 @@ export default function AdminPlayerPage() {
   }, []);
 
   const handleSave = async () => {
-    const { id, created_at, ...fields } = editing;
+    const { id, created_at, email, ...fields } = editing;
     const { error } = await supabase.from("profiles").update(fields).eq("id", id);
     if (error) {
       alert("Gagal simpan perubahan: " + error.message);
@@ -74,7 +84,7 @@ export default function AdminPlayerPage() {
               />
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate">{p.full_name || "-"}</p>
-                <p className="text-sm text-gray-500 truncate">{p.nickname || "-"}</p>
+                <p className="text-sm text-gray-500 truncate">{p.email || "-"}</p>
               </div>
               {p.is_super_admin && (
                 <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full shrink-0">Admin</span>
@@ -82,9 +92,10 @@ export default function AdminPlayerPage() {
             </div>
             <div className="text-sm text-gray-500 grid grid-cols-2 gap-1">
               <span>📍 {p.location || "-"}</span>
-              <span>⚧ {p.gender || "-"}</span>
+              <span>⚧ {GENDER_LABEL[p.gender] || "-"}</span>
             </div>
             <div className="flex gap-4 pt-1 border-t text-sm">
+              <button onClick={() => setViewing(p)} className="text-gray-600 font-medium py-2">Detail</button>
               <button onClick={() => setEditing(p)} className="text-primary font-medium py-2">Edit</button>
               <button onClick={() => handleDelete(p)} className="text-red-500 font-medium py-2">Hapus</button>
             </div>
@@ -100,6 +111,7 @@ export default function AdminPlayerPage() {
             <tr>
               <th className="p-3">Nama</th>
               <th className="p-3">Panggilan</th>
+              <th className="p-3">Email</th>
               <th className="p-3">Lokasi</th>
               <th className="p-3">Gender</th>
               <th className="p-3">Admin</th>
@@ -111,10 +123,12 @@ export default function AdminPlayerPage() {
               <tr key={p.id} className="border-t">
                 <td className="p-3">{p.full_name}</td>
                 <td className="p-3">{p.nickname}</td>
+                <td className="p-3">{p.email}</td>
                 <td className="p-3">{p.location}</td>
-                <td className="p-3">{p.gender}</td>
+                <td className="p-3">{GENDER_LABEL[p.gender] || "-"}</td>
                 <td className="p-3">{p.is_super_admin ? "✅" : "-"}</td>
-                <td className="p-3 space-x-2">
+                <td className="p-3 space-x-2 whitespace-nowrap">
+                  <button onClick={() => setViewing(p)} className="text-gray-600 underline">Detail</button>
                   <button onClick={() => setEditing(p)} className="text-primary underline">Edit</button>
                   <button onClick={() => handleDelete(p)} className="text-red-500 underline">Hapus</button>
                 </td>
@@ -123,6 +137,56 @@ export default function AdminPlayerPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Modal: View Detail (read-only, bentuk list) */}
+      {viewing && (
+        <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center gap-3">
+              <img
+                src={viewing.avatar_url || "https://ui-avatars.com/api/?name=" + (viewing.full_name || "U")}
+                alt=""
+                className="w-14 h-14 rounded-full object-cover border"
+              />
+              <div>
+                <h2 className="font-bold text-lg">{viewing.full_name || "-"}</h2>
+                <p className="text-sm text-gray-500">{viewing.nickname || "-"}</p>
+              </div>
+            </div>
+
+            <div className="divide-y border rounded-xl overflow-hidden">
+              {[
+                ["Email", viewing.email || "-"],
+                ["Tanggal Lahir", viewing.birth_date || "-"],
+                ["Gender", GENDER_LABEL[viewing.gender] || "-"],
+                ["Lokasi / Domisili", viewing.location || "-"],
+                ["Instagram", viewing.instagram || "-"],
+                ["Aktivitas Disukai", viewing.categories?.length ? viewing.categories.join(", ") : "-"],
+                ["Super Admin", viewing.is_super_admin ? "Ya" : "Tidak"],
+                [
+                  "Terdaftar",
+                  viewing.created_at
+                    ? new Date(viewing.created_at).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })
+                    : "-",
+                ],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+                  <span className="text-gray-500">{label}</span>
+                  <span className="font-medium text-right">{value}</span>
+                </div>
+              ))}
+            </div>
+
+            <button onClick={() => setViewing(null)} className="w-full border rounded-xl py-3 font-medium text-gray-500">
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
 
       {editing && (
         <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
@@ -201,8 +265,8 @@ export default function AdminPlayerPage() {
                 onChange={(e) => setEditing({ ...editing, gender: e.target.value })}
               >
                 <option value="">Pilih</option>
-                <option value="male">Laki-laki</option>
-                <option value="female">Perempuan</option>
+                <option value="male">Pria</option>
+                <option value="female">Wanita</option>
               </select>
             </div>
 
@@ -214,6 +278,9 @@ export default function AdminPlayerPage() {
                 value={editing.instagram ?? ""}
                 onChange={(e) => setEditing({ ...editing, instagram: e.target.value })}
               />
+              {editing.instagram && !editing.instagram.startsWith("@") && (
+                <p className="text-xs text-red-500 mt-1">Harus diawali dengan @, contoh: @username</p>
+              )}
             </div>
 
             <label className="flex items-center gap-2 text-sm border-t pt-3">
@@ -229,7 +296,11 @@ export default function AdminPlayerPage() {
               <button onClick={() => setEditing(null)} className="flex-1 border rounded-xl py-3 font-medium text-gray-500">
                 Batal
               </button>
-              <button onClick={handleSave} className="flex-1 bg-primary text-white rounded-xl py-3 font-medium">
+              <button
+                onClick={handleSave}
+                disabled={editing.instagram && !editing.instagram.startsWith("@")}
+                className="flex-1 bg-primary text-white rounded-xl py-3 font-medium disabled:opacity-40"
+              >
                 Simpan
               </button>
             </div>
