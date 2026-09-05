@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil, MapPin, Instagram as InstagramIcon, Cake, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import LocationInput from "@/components/LocationInput";
@@ -158,29 +158,46 @@ export default function DataUserPage() {
 
       {/* Section: Detail Info User */}
       {!editMode ? (
-        <div className="bg-white rounded-2xl border p-4 space-y-3">
-          <div>
-            <p className="text-xs text-gray-400">Nama Lengkap</p>
-            <p className="font-medium">{profile.full_name || "-"}</p>
+        <>
+          <div className="bg-white rounded-2xl border p-4 space-y-4">
+            <div>
+              <p className="text-sm text-gray-400">Nama Lengkap</p>
+              <p className="font-semibold text-lg">{profile.full_name || "-"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">Nama Panggilan</p>
+              <p className="font-semibold text-lg">{profile.nickname || "-"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">Tanggal Lahir</p>
+              <p className="font-semibold text-lg">
+                {profile.birth_date
+                  ? new Date(profile.birth_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
+                  : "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">Kota/Domisili</p>
+              <p className="font-semibold text-lg">{profile.location || "-"}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">Gender</p>
+              <p className="font-semibold text-lg">
+                {profile.gender === "male" ? "Pria" : profile.gender === "female" ? "Wanita" : "-"}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-400">Akun Instagram</p>
+              <p className="font-semibold text-lg">{profile.instagram || "-"}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-xs text-gray-400">Nama Panggilan</p>
-            <p className="font-medium">{profile.nickname || "-"}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Cake size={16} className="text-gray-400" />
-            <p className="text-sm">
-              {profile.birth_date
-                ? new Date(profile.birth_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })
-                : "-"}
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Aktivitas Disukai</p>
-            <div className="flex flex-wrap gap-2 mt-1">
+
+          <div className="bg-white rounded-2xl border p-4">
+            <p className="text-sm text-gray-400 mb-2">Aktivitas Disukai</p>
+            <div className="flex flex-wrap gap-2">
               {profile.categories?.length ? (
                 profile.categories.map((c: string) => (
-                  <span key={c} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                  <span key={c} className="text-sm bg-primary/10 text-primary px-3 py-1.5 rounded-full font-medium">
                     {c}
                   </span>
                 ))
@@ -189,21 +206,7 @@ export default function DataUserPage() {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <MapPin size={16} className="text-gray-400" />
-            <p className="text-sm">{profile.location || "-"}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400">Gender</p>
-            <p className="font-medium">
-              {profile.gender === "male" ? "Pria" : profile.gender === "female" ? "Wanita" : "-"}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <InstagramIcon size={16} className="text-gray-400" />
-            <p className="text-sm">{profile.instagram || "-"}</p>
-          </div>
-        </div>
+        </>
       ) : (
         <div className="space-y-4">
           <div>

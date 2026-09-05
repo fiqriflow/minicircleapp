@@ -12,6 +12,7 @@ export default function AdminCirclePage() {
   const supabase = createClient();
   const [circles, setCircles] = useState<any[]>([]);
   const [editingCircle, setEditingCircle] = useState<any>(null); // circle yang lagi diedit
+  const [viewing, setViewing] = useState<any>(null); // circle yang lagi dilihat detailnya
   const [showChooser, setShowChooser] = useState(false);
   const [createType, setCreateType] = useState<"regular" | "plus" | null>(null);
   const [circlePlusEnabled, setCirclePlusEnabled] = useState(true);
@@ -29,6 +30,25 @@ export default function AdminCirclePage() {
   const handleStatusChange = async (circleId: string, status: string) => {
     await supabase.from("circles").update({ status }).eq("id", circleId);
     load();
+  };
+
+  const openDetail = async (circle: any) => {
+    setViewing({ ...circle, loadingExtra: true });
+    const [{ data: host }, { count }] = await Promise.all([
+      supabase.from("admin_player_view").select("full_name, nickname, email").eq("id", circle.created_by).maybeSingle(),
+      supabase
+        .from("circle_members")
+        .select("id", { count: "exact", head: true })
+        .eq("circle_id", circle.id)
+        .eq("status", "joined"),
+    ]);
+    setViewing({
+      ...circle,
+      loadingExtra: false,
+      hostName: host?.nickname || host?.full_name || "-",
+      hostEmail: host?.email || "-",
+      joinedCount: count ?? 0,
+    });
   };
 
   const handleDelete = async (circle: any) => {
@@ -81,7 +101,8 @@ export default function AdminCirclePage() {
                     <option value="cancelled">Cancelled</option>
                   </select>
                 </td>
-                <td className="p-3 space-x-2">
+                <td className="p-3 space-x-2 whitespace-nowrap">
+                  <button onClick={() => openDetail(c)} className="text-gray-600 underline">Detail</button>
                   <button onClick={() => setEditingCircle(c)} className="text-primary underline">Edit</button>
                   <button onClick={() => handleDelete(c)} className="text-red-500 underline">Hapus</button>
                 </td>
@@ -90,6 +111,61 @@ export default function AdminCirclePage() {
           </tbody>
         </table>
       </div>
+
+      {/* Detail circle - read only, bentuk list */}
+      {viewing && (
+        <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
+          <div className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="font-bold text-lg">{viewing.name}</h2>
+
+            <div className="divide-y border rounded-xl overflow-hidden">
+              {[
+                ["Kategori", viewing.category || "-"],
+                ["Kota", viewing.city || "-"],
+                ["Titik Kumpul", viewing.location || "-"],
+                [
+                  "Tanggal & Jam",
+                  viewing.event_date
+                    ? new Date(viewing.event_date).toLocaleDateString("id-ID", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      }) +
+                      " • " +
+                      new Date(viewing.event_date).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
+                    : "-",
+                ],
+                ["Status", viewing.status],
+                [
+                  "Slot Terisi",
+                  viewing.loadingExtra
+                    ? "Memuat..."
+                    : `${viewing.joinedCount}/${viewing.max_participants ?? "-"}`,
+                ],
+                ["Dibuat oleh", viewing.loadingExtra ? "Memuat..." : viewing.hostName],
+                ["Email Pembuat", viewing.loadingExtra ? "Memuat..." : viewing.hostEmail],
+                ["Grup", viewing.group_name || "-"],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between gap-4 px-4 py-3 text-sm">
+                  <span className="text-gray-500">{label}</span>
+                  <span className="font-medium text-right">{value}</span>
+                </div>
+              ))}
+            </div>
+
+            {viewing.description && (
+              <div>
+                <p className="font-semibold mb-1 text-sm">Deskripsi</p>
+                <p className="text-gray-500 text-sm">{viewing.description}</p>
+              </div>
+            )}
+
+            <button onClick={() => setViewing(null)} className="w-full border rounded-xl py-3 font-medium text-gray-500">
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Alur tambah circle - sama seperti user */}
       {showChooser && (
