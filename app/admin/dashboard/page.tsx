@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Users, UserCheck, CalendarPlus, CheckCircle2 } from "lucide-react";
-import { UserGrowthChart, GenderPieChart, CircleStatusDonutChart, CircleByCategoryBarChart, TopActivityBarChart } from "@/components/admin/DashboardCharts";
+import { UserGrowthChart, GenderPieChart, CircleStatusDonutChart, CircleByCategoryBarChart, TopActivityBarChart, UserByLocationBarChart } from "@/components/admin/DashboardCharts";
 import { getCircleDisplayStatus, STATUS_LABEL } from "@/lib/circleStatus";
 
 const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
@@ -41,7 +41,7 @@ function buildGrowthData(profiles: any[]) {
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
   const [{ data: profiles }, { data: circles }, { data: joinedMembers }] = await Promise.all([
-    supabase.from("profiles").select("id, gender, categories, created_at"),
+    supabase.from("profiles").select("id, gender, categories, location, created_at"),
     supabase.from("circles").select("status, created_by, event_date, category"),
     supabase.from("circle_members").select("user_id").eq("status", "joined"),
   ]);
@@ -72,6 +72,10 @@ export default async function AdminDashboardPage() {
     .sort((a, b) => b.value - a.value);
 
   const topActivityData = Object.entries(groupCount(profiles ?? [], "categories"))
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const userByLocationData = Object.entries(groupCount(profiles ?? [], "location"))
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
 
@@ -118,10 +122,11 @@ export default async function AdminDashboardPage() {
         <CircleStatusDonutChart data={circleStatusData} />
       </div>
 
-      {/* Circle per Aktivitas (bar) + Top Aktivitas Disukai (horizontal bar) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Circle per Aktivitas (bar) + Top Aktivitas Disukai (horizontal bar) + User per Domisili (horizontal bar) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <CircleByCategoryBarChart data={circleByCategoryData} />
         <TopActivityBarChart data={topActivityData} />
+        <UserByLocationBarChart data={userByLocationData} />
       </div>
     </div>
   );

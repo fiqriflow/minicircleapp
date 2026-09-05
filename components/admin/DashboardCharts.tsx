@@ -103,3 +103,20 @@ export function TopActivityBarChart({ data }: { data: { name: string; value: num
     </div>
   );
 }
+
+export function UserByLocationBarChart({ data }: { data: { name: string; value: number }[] }) {
+  return (
+    <div className="bg-white rounded-2xl border p-4">
+      <h3 className="font-semibold text-gray-700 mb-4">User Berdasarkan Domisili</h3>
+      <ResponsiveContainer width="100%" height={280}>
+        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={90} />
+          <Tooltip />
+          <Bar dataKey="value" name="Jumlah User" fill="#22c55e" radius={[0, 6, 6, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
