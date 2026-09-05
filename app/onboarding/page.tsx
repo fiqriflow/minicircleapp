@@ -62,7 +62,7 @@ export default function OnboardingPage() {
     if (step === 0) return !!profile?.full_name && !!profile?.nickname;
     if (step === 1) return (profile?.categories?.length ?? 0) > 0 && !!profile?.location;
     if (step === 2) return !!profile?.birth_date && !!profile?.gender;
-    if (step === 3) return !!profile?.avatar_url;
+    if (step === 3) return !!profile?.avatar_url && (!profile.instagram || profile.instagram.startsWith("@"));
     return true;
   };
 
@@ -239,6 +239,9 @@ export default function OnboardingPage() {
                   value={profile.instagram ?? ""}
                   onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
                 />
+                {profile.instagram && !profile.instagram.startsWith("@") && (
+                  <p className="text-xs text-red-500 mt-1">Harus diawali dengan @, contoh: @username</p>
+                )}
               </div>
             </>
           )}

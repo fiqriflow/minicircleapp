@@ -45,6 +45,17 @@ function ExploreContent() {
     getCirclePlusEnabled(supabase).then(setCirclePlusEnabled);
   }, []);
 
+  useEffect(() => {
+    const loadUserLocation = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("location").eq("id", user.id).single();
+      if (data?.location) setLocation((prev) => prev || data.location);
+    };
+    loadUserLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const fetchCircles = useCallback(async () => {
     setLoading(true);
     let query = supabase

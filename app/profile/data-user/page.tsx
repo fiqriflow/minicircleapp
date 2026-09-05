@@ -64,6 +64,10 @@ export default function DataUserPage() {
   };
 
   const handleSave = async () => {
+    if (profile.instagram && !profile.instagram.startsWith("@")) {
+      toast.error("Akun Instagram harus diawali dengan @, contoh: @username");
+      return;
+    }
     setSaving(true);
     await supabase.from("profiles").upsert(profile);
     setSaving(false);
@@ -281,6 +285,9 @@ export default function DataUserPage() {
               value={profile.instagram ?? ""}
               onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
             />
+            {profile.instagram && !profile.instagram.startsWith("@") && (
+              <p className="text-xs text-red-500 mt-1">Harus diawali dengan @, contoh: @username</p>
+            )}
           </div>
 
           <div className="flex gap-2">
