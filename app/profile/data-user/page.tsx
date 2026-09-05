@@ -192,7 +192,7 @@ export default function DataUserPage() {
           <div>
             <p className="text-xs text-gray-400">Gender</p>
             <p className="font-medium">
-              {profile.gender === "male" ? "Laki-laki" : profile.gender === "female" ? "Perempuan" : "-"}
+              {profile.gender === "male" ? "Pria" : profile.gender === "female" ? "Wanita" : "-"}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -268,8 +268,8 @@ export default function DataUserPage() {
               onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
             >
               <option value="">Pilih</option>
-              <option value="male">Laki-laki</option>
-              <option value="female">Perempuan</option>
+              <option value="male">Pria</option>
+              <option value="female">Wanita</option>
             </select>
           </div>
 

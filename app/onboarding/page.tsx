@@ -61,7 +61,9 @@ export default function OnboardingPage() {
   const canProceed = () => {
     if (step === 0) return !!profile?.full_name && !!profile?.nickname;
     if (step === 1) return (profile?.categories?.length ?? 0) > 0 && !!profile?.location;
-    return true; // step 2 & 3 opsional
+    if (step === 2) return !!profile?.birth_date && !!profile?.gender;
+    if (step === 3) return !!profile?.avatar_url;
+    return true;
   };
 
   const handleNext = () => {
@@ -174,7 +176,7 @@ export default function OnboardingPage() {
             <>
               <div>
                 <h2 className="text-lg font-bold">Detail Tambahan</h2>
-                <p className="text-sm text-gray-500">Opsional, tapi biar profil kamu makin lengkap.</p>
+                <p className="text-sm text-gray-500">Lengkapi tanggal lahir dan gender kamu.</p>
               </div>
               <div>
                 <label className="text-sm text-gray-500">Tanggal Lahir</label>
@@ -193,8 +195,8 @@ export default function OnboardingPage() {
                   onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
                 >
                   <option value="">Pilih</option>
-                  <option value="male">Laki-laki</option>
-                  <option value="female">Perempuan</option>
+                  <option value="male">Pria</option>
+                  <option value="female">Wanita</option>
                 </select>
               </div>
             </>
@@ -204,7 +206,7 @@ export default function OnboardingPage() {
             <>
               <div>
                 <h2 className="text-lg font-bold">Terakhir nih ✨</h2>
-                <p className="text-sm text-gray-500">Foto profil & Instagram (opsional).</p>
+                <p className="text-sm text-gray-500">Foto profil wajib, Instagram opsional.</p>
               </div>
 
               <div className="flex flex-col items-center gap-2">
@@ -259,8 +261,8 @@ export default function OnboardingPage() {
           ) : (
             <button
               onClick={handleFinish}
-              disabled={saving}
-              className="flex-1 bg-primary text-white rounded-xl py-3 font-medium"
+              disabled={saving || !canProceed()}
+              className="flex-1 bg-primary text-white rounded-xl py-3 font-medium disabled:opacity-40"
             >
               {saving ? "Menyimpan..." : "Selesai"}
             </button>
