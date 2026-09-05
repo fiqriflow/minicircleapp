@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import HomeBannerSection from "@/components/HomeBannerSection";
 import HomeUpcomingCircles from "@/components/HomeUpcomingCircles";
 import QuickAccessSection from "@/components/QuickAccessSection";
+import CreateCircleBanner from "@/components/CreateCircleBanner";
 
 export default function BerandaPage() {
   return (
@@ -11,7 +12,10 @@ export default function BerandaPage() {
         <HomeBannerSection />
       </Suspense>
 
-      {/* Quick Access — 3 kategori (link ke Explore) + 1 tombol Buat Circle */}
+      {/* Ajakan buat circle */}
+      <CreateCircleBanner />
+
+      {/* Circle yang tersedia — 3 kategori + Lihat Semua (link ke Explore) */}
       <QuickAccessSection />
 
       {/* Circle yang akan datang */}
