@@ -11,7 +11,7 @@ import LocationInput from "@/components/LocationInput";
 import { getCirclePlusEnabled, getDefaultCoverMap } from "@/lib/appSettings";
 import { getJoinedCounts } from "@/lib/circleMembers";
 
-const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Jogging"];
+const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam", "Motoran"];
 const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const DAYS_SHOWN = 14;
 

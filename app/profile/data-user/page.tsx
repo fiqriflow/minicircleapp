@@ -9,7 +9,7 @@ import LocationInput from "@/components/LocationInput";
 import AvatarCropModal from "@/components/AvatarCropModal";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
 
-const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging"];
+const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam", "Motoran"];
 
 export default function DataUserPage() {
   const supabase = createClient();

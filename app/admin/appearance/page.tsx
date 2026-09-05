@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { extractStoragePath } from "@/lib/storagePath";
 
-const CATEGORIES = ["Gowes", "Jalan Santai", "Jogging"];
+const CATEGORIES = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam", "Motoran"];
 
 export default function AdminAppearancePage() {
   const supabase = createClient();

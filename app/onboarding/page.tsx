@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import LocationInput from "@/components/LocationInput";
 import AvatarCropModal from "@/components/AvatarCropModal";
 
-const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging"];
+const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam", "Motoran"];
 const TOTAL_STEPS = 4;
 
 export default function OnboardingPage() {
