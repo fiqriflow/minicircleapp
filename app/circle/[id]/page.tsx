@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users } from "lucide-react";
+import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Mars, Venus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import MemberProfileModal from "@/components/MemberProfileModal";
@@ -562,17 +562,29 @@ export default function CircleDetailPage() {
             <button
               key={m.id}
               onClick={() => isJoined && setSelectedMember(m.profile)}
-              className="w-full flex items-center gap-3 border rounded-xl p-3 text-left hover:bg-gray-50"
+              className="w-full flex items-center justify-between gap-3 border rounded-xl p-3 text-left hover:bg-gray-50"
             >
-              <img
-                src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
-                className="w-10 h-10 rounded-full object-cover"
-                alt=""
-              />
-              <div>
-                <p className="font-medium">{m.profile?.nickname || m.profile?.full_name}</p>
-                {isJoined && <p className="text-xs text-gray-400">Lihat profil</p>}
+              <div className="flex items-center gap-3">
+                <img
+                  src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
+                  className="w-10 h-10 rounded-full object-cover"
+                  alt=""
+                />
+                <div>
+                  <p className="font-medium">{m.profile?.nickname || m.profile?.full_name}</p>
+                  {isJoined && <p className="text-xs text-gray-400">Lihat profil</p>}
+                </div>
               </div>
+              {m.profile?.gender === "male" && (
+                <span className="shrink-0 w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center">
+                  <Mars size={16} />
+                </span>
+              )}
+              {m.profile?.gender === "female" && (
+                <span className="shrink-0 w-7 h-7 rounded-lg bg-pink-500 text-white flex items-center justify-center">
+                  <Venus size={16} />
+                </span>
+              )}
             </button>
           ))}
           {!members.length && <p className="text-gray-400 text-sm">Belum ada yang join.</p>}
