@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Mars, Venus } from "lucide-react";
+import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import MemberProfileModal from "@/components/MemberProfileModal";
@@ -576,13 +576,13 @@ export default function CircleDetailPage() {
                 </div>
               </div>
               {m.profile?.gender === "male" && (
-                <span className="shrink-0 w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center">
-                  <Mars size={16} />
+                <span className="shrink-0 w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
+                  ♂
                 </span>
               )}
               {m.profile?.gender === "female" && (
-                <span className="shrink-0 w-7 h-7 rounded-lg bg-pink-500 text-white flex items-center justify-center">
-                  <Venus size={16} />
+                <span className="shrink-0 w-7 h-7 rounded-lg bg-pink-500 text-white flex items-center justify-center font-bold text-sm">
+                  ♀
                 </span>
               )}
             </button>
