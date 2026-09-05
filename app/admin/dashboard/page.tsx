@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { Users, UserCheck, CalendarPlus, CheckCircle2 } from "lucide-react";
+import { UserGrowthChart, GenderPieChart } from "@/components/admin/DashboardCharts";
+
+const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
 
 function groupCount(rows: any[], key: string) {
   const map: Record<string, number> = {};
@@ -14,6 +17,29 @@ function groupCount(rows: any[], key: string) {
   return map;
 }
 
+// Kumpulkan jumlah user baru per bulan dari created_at, lalu jadikan kumulatif
+function buildGrowthData(profiles: any[]) {
+  const perMonth: Record<string, number> = {};
+  profiles.forEach((p) => {
+    if (!p.created_at) return;
+    const d = new Date(p.created_at);
+    const key = d.toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
+    perMonth[key] = (perMonth[key] || 0) + 1;
+  });
+
+  const sortedKeys = Object.keys(perMonth).sort((a, b) => {
+    const da = new Date(profiles.find((p) => new Date(p.created_at).toLocaleDateString("id-ID", { month: "short", year: "2-digit" }) === a)?.created_at ?? 0);
+    const db = new Date(profiles.find((p) => new Date(p.created_at).toLocaleDateString("id-ID", { month: "short", year: "2-digit" }) === b)?.created_at ?? 0);
+    return da.getTime() - db.getTime();
+  });
+
+  let cumulative = 0;
+  return sortedKeys.map((key) => {
+    cumulative += perMonth[key];
+    return { month: key, total: cumulative };
+  });
+}
+
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
   const { data: profiles } = await supabase.from("profiles").select("*");
@@ -22,8 +48,14 @@ export default async function AdminDashboardPage() {
 
   const totalUser = profiles?.length ?? 0;
   const byCategory = groupCount(profiles ?? [], "categories");
-  const byGender = groupCount(profiles ?? [], "gender");
   const byLocation = groupCount(profiles ?? [], "location");
+
+  const genderData = Object.entries(groupCount(profiles ?? [], "gender")).map(([k, v]) => ({
+    name: GENDER_LABEL[k] || k,
+    value: v,
+  }));
+
+  const growthData = buildGrowthData(profiles ?? []);
 
   // User Aktif = pernah join circle ATAU pernah bikin circle (unik per user)
   const activeUserIds = new Set<string>([
@@ -75,9 +107,14 @@ export default async function AdminDashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Pertumbuhan User (line chart) + Gender (pie chart) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <UserGrowthChart data={growthData} />
+        <GenderPieChart data={genderData} />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Stat title="Per Aktivitas" data={byCategory} />
-        <Stat title="Per Gender" data={byGender} />
         <Stat title="Per Lokasi" data={byLocation} />
       </div>
     </div>
