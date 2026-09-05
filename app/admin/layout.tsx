@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, CalendarDays, Image as ImageIcon, Settings2, ArrowLeftCircle, MessageSquare } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, Image as ImageIcon, Settings2, ArrowLeftCircle, MessageSquare, History } from "lucide-react";
 
 const menu = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -10,6 +10,7 @@ const menu = [
   { href: "/admin/circle", label: "Circle", icon: CalendarDays },
   { href: "/admin/appearance", label: "Tampilan", icon: ImageIcon },
   { href: "/admin/masukan", label: "Masukan", icon: MessageSquare },
+  { href: "/admin/log", label: "Log History", icon: History },
   { href: "/admin/settings", label: "Pengaturan", icon: Settings2 },
 ];
 
