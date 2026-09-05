@@ -20,32 +20,31 @@ function groupCount(rows: any[], key: string) {
 
 // Kumpulkan jumlah user baru per bulan dari created_at, lalu jadikan kumulatif
 function buildGrowthData(profiles: any[]) {
-  const perMonth: Record<string, number> = {};
+  const perMonth: Record<string, { count: number; sortDate: number }> = {};
   profiles.forEach((p) => {
     if (!p.created_at) return;
     const d = new Date(p.created_at);
     const key = d.toLocaleDateString("id-ID", { month: "short", year: "2-digit" });
-    perMonth[key] = (perMonth[key] || 0) + 1;
+    if (!perMonth[key]) perMonth[key] = { count: 0, sortDate: d.getTime() };
+    perMonth[key].count += 1;
   });
 
-  const sortedKeys = Object.keys(perMonth).sort((a, b) => {
-    const da = new Date(profiles.find((p) => new Date(p.created_at).toLocaleDateString("id-ID", { month: "short", year: "2-digit" }) === a)?.created_at ?? 0);
-    const db = new Date(profiles.find((p) => new Date(p.created_at).toLocaleDateString("id-ID", { month: "short", year: "2-digit" }) === b)?.created_at ?? 0);
-    return da.getTime() - db.getTime();
-  });
+  const sortedKeys = Object.keys(perMonth).sort((a, b) => perMonth[a].sortDate - perMonth[b].sortDate);
 
   let cumulative = 0;
   return sortedKeys.map((key) => {
-    cumulative += perMonth[key];
+    cumulative += perMonth[key].count;
     return { month: key, total: cumulative };
   });
 }
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
-  const { data: profiles } = await supabase.from("profiles").select("*");
-  const { data: circles } = await supabase.from("circles").select("status, created_by, event_date, category");
-  const { data: joinedMembers } = await supabase.from("circle_members").select("user_id").eq("status", "joined");
+  const [{ data: profiles }, { data: circles }, { data: joinedMembers }] = await Promise.all([
+    supabase.from("profiles").select("id, gender, categories, created_at"),
+    supabase.from("circles").select("status, created_by, event_date, category"),
+    supabase.from("circle_members").select("user_id").eq("status", "joined"),
+  ]);
 
   const totalUser = profiles?.length ?? 0;
 
