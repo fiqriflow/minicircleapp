@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft } from "lucide-react";
+import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import MemberProfileModal from "@/components/MemberProfileModal";
@@ -209,7 +209,7 @@ export default function CircleDetailPage() {
   if (!circle) return <p className="p-6 text-gray-400">Memuat...</p>;
 
   return (
-    <div className="px-4 py-6 space-y-6">
+    <div className="px-4 py-6 space-y-6 pb-28">
       {/* Header */}
       <div className="space-y-2">
         <div className="h-40 bg-gray-200 rounded-2xl overflow-hidden relative">
@@ -323,10 +323,20 @@ export default function CircleDetailPage() {
           )}
         </div>
 
-        {circle.category && (
-          <span className="inline-block text-xs font-medium bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-            🏷️ {circle.category}
-          </span>
+        {(circle.category || circle.city) && (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            {circle.category && (
+              <span className="flex items-center gap-1">
+                <Tag size={14} /> {circle.category}
+              </span>
+            )}
+            {circle.category && circle.city && <span>•</span>}
+            {circle.city && (
+              <span className="flex items-center gap-1">
+                <MapPin size={14} /> {circle.city}
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -346,39 +356,7 @@ export default function CircleDetailPage() {
         </div>
       )}
 
-      {/* Join button */}
-      {!isHost && (() => {
-        const displayStatus = getCircleDisplayStatus(circle, { joined: joinedCount, max: circle.max_participants });
-        if (displayStatus === "completed" || displayStatus === "cancelled") {
-          return (
-            <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
-              {displayStatus === "completed" ? "Circle sudah selesai" : "Circle dibatalkan"}
-            </button>
-          );
-        }
-        if (displayStatus === "full" && !myStatus) {
-          return (
-            <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
-              Slot Penuh
-            </button>
-          );
-        }
-        return (
-          <button
-            onClick={handleJoinToggle}
-            disabled={myStatus === "pending"}
-            className={`w-full rounded-xl py-3 font-medium ${
-              myStatus === "joined"
-                ? "bg-red-50 text-red-600 border border-red-300"
-                : myStatus === "pending"
-                ? "bg-gray-100 text-gray-400"
-                : "bg-primary text-white"
-            }`}
-          >
-            {myStatus === "joined" ? "Batal Join" : myStatus === "pending" ? "Menunggu Persetujuan" : "Join Circle"}
-          </button>
-        );
-      })()}
+      {/* Join button dipindah ke footer sticky bawah, lihat akhir file */}
 
       {showEditCircle && (
         <CreateCircleModal
@@ -519,29 +497,62 @@ export default function CircleDetailPage() {
       </div>
 
       {tab === "detail" && (
-        <div className="space-y-4">
-          <p className="text-gray-500">{circle.description}</p>
+        <div className="space-y-3">
+          <div className="flex items-start gap-3 border rounded-xl p-4">
+            <Crosshair size={20} className="text-gray-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">Titik Kumpul</p>
+              <p className="text-sm text-gray-500">{circle.location}</p>
+            </div>
+          </div>
 
-          {host && (
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <img
-                src={host.avatar_url || "https://ui-avatars.com/api/?name=" + (host.full_name || "U")}
-                className="w-6 h-6 rounded-full object-cover"
-                alt=""
-              />
-              <span>Dibuat oleh {host.nickname || host.full_name}</span>
+          <div className="flex items-start gap-3 border rounded-xl p-4">
+            <CalendarDays size={20} className="text-gray-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">Tanggal & Jam</p>
+              <p className="text-sm text-gray-500">
+                {new Date(circle.event_date).toLocaleDateString("id-ID", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}
+                {" • "}
+                {new Date(circle.event_date).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {host && (
+              <div className="flex items-center gap-3 border rounded-xl p-4">
+                <img
+                  src={host.avatar_url || "https://ui-avatars.com/api/?name=" + (host.full_name || "U")}
+                  className="w-9 h-9 rounded-full object-cover shrink-0"
+                  alt=""
+                />
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm">Dibuat oleh</p>
+                  <p className="text-sm text-gray-500 truncate">{host.nickname || host.full_name}</p>
+                </div>
+              </div>
+            )}
+            {circle.group_name && (
+              <div className="flex items-center gap-3 border rounded-xl p-4">
+                <Users size={20} className="text-gray-400 shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-sm">Grup</p>
+                  <p className="text-sm text-gray-500 truncate">{circle.group_name}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {circle.description && (
+            <div>
+              <p className="font-semibold mb-1">Deskripsi</p>
+              <p className="text-gray-500 text-sm">{circle.description}</p>
             </div>
           )}
-
-          <div className="text-sm text-gray-500 space-y-1">
-            {circle.city && <p>🏙️ {circle.city}</p>}
-            <p>📍 {circle.location}</p>
-            <p>🏷️ {circle.category}</p>
-            <p>🗓️ {new Date(circle.event_date).toLocaleString("id-ID")}</p>
-            {circle.max_participants && <p>👥 Maks {circle.max_participants} orang</p>}
-            {circle.is_private && <p>🔒 Private / Invite Only</p>}
-            {circle.requires_approval && <p>✅ Perlu persetujuan host untuk join</p>}
-          </div>
         </div>
       )}
 
@@ -622,6 +633,46 @@ export default function CircleDetailPage() {
       {selectedMember && (
         <MemberProfileModal profile={selectedMember} onClose={() => setSelectedMember(null)} />
       )}
+
+      {/* Join button — sticky di bawah, hanya tampil di tab Detail */}
+      {tab === "detail" && !isHost && (() => {
+        const displayStatus = getCircleDisplayStatus(circle, { joined: joinedCount, max: circle.max_participants });
+        let content: React.ReactNode;
+        if (displayStatus === "completed" || displayStatus === "cancelled") {
+          content = (
+            <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+              {displayStatus === "completed" ? "Circle sudah selesai" : "Circle dibatalkan"}
+            </button>
+          );
+        } else if (displayStatus === "full" && !myStatus) {
+          content = (
+            <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+              Slot Penuh
+            </button>
+          );
+        } else {
+          content = (
+            <button
+              onClick={handleJoinToggle}
+              disabled={myStatus === "pending"}
+              className={`w-full rounded-xl py-3 font-medium ${
+                myStatus === "joined"
+                  ? "bg-red-50 text-red-600 border border-red-300"
+                  : myStatus === "pending"
+                  ? "bg-gray-100 text-gray-400"
+                  : "bg-primary text-white"
+              }`}
+            >
+              {myStatus === "joined" ? "Batal Join" : myStatus === "pending" ? "Menunggu Persetujuan" : "Join Circle"}
+            </button>
+          );
+        }
+        return (
+          <div className="fixed bottom-0 inset-x-0 flex justify-center z-40 pointer-events-none">
+            <div className="w-full max-w-[480px] bg-white border-t p-4 pointer-events-auto">{content}</div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -33,7 +33,7 @@ export default function BottomNav({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Halaman tanpa chrome (header/bottom nav) — tetap render children-nya
-  if (pathname === "/login" || pathname === "/onboarding") {
+  if (pathname === "/login" || pathname === "/onboarding" || pathname.startsWith("/circle/")) {
     return <main className="flex-1 overflow-y-auto">{children}</main>;
   }
 
