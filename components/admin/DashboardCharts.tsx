@@ -1,6 +1,6 @@
 "use client";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, BarChart, Bar } from "recharts";
 
 const GENDER_COLORS: Record<string, string> = {
   Pria: "#3b82f6",
@@ -65,6 +65,40 @@ export function CircleStatusDonutChart({ data }: { data: { name: string; value: 
           <Tooltip />
           <Legend />
         </PieChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function CircleByCategoryBarChart({ data }: { data: { name: string; value: number }[] }) {
+  return (
+    <div className="bg-white rounded-2xl border p-4">
+      <h3 className="font-semibold text-gray-700 mb-4">Circle per Aktivitas</h3>
+      <ResponsiveContainer width="100%" height={280}>
+        <BarChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis dataKey="name" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 12 }} allowDecimals={false} />
+          <Tooltip />
+          <Bar dataKey="value" name="Jumlah Circle" fill="#f97316" radius={[6, 6, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function TopActivityBarChart({ data }: { data: { name: string; value: number }[] }) {
+  return (
+    <div className="bg-white rounded-2xl border p-4">
+      <h3 className="font-semibold text-gray-700 mb-4">Top Aktivitas Disukai</h3>
+      <ResponsiveContainer width="100%" height={280}>
+        <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis type="number" tick={{ fontSize: 12 }} allowDecimals={false} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={90} />
+          <Tooltip />
+          <Bar dataKey="value" name="Jumlah User" fill="#3b82f6" radius={[0, 6, 6, 0]} />
+        </BarChart>
       </ResponsiveContainer>
     </div>
   );

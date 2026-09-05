@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Users, UserCheck, CalendarPlus, CheckCircle2 } from "lucide-react";
-import { UserGrowthChart, GenderPieChart, CircleStatusDonutChart } from "@/components/admin/DashboardCharts";
+import { UserGrowthChart, GenderPieChart, CircleStatusDonutChart, CircleByCategoryBarChart, TopActivityBarChart } from "@/components/admin/DashboardCharts";
 import { getCircleDisplayStatus, STATUS_LABEL } from "@/lib/circleStatus";
 
 const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
@@ -44,7 +44,7 @@ function buildGrowthData(profiles: any[]) {
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
   const { data: profiles } = await supabase.from("profiles").select("*");
-  const { data: circles } = await supabase.from("circles").select("status, created_by, event_date");
+  const { data: circles } = await supabase.from("circles").select("status, created_by, event_date, category");
   const { data: joinedMembers } = await supabase.from("circle_members").select("user_id").eq("status", "joined");
 
   const totalUser = profiles?.length ?? 0;
@@ -67,6 +67,14 @@ export default async function AdminDashboardPage() {
     { name: STATUS_LABEL.completed.label, value: circleStatusCounts.completed },
     { name: "Batal", value: circleStatusCounts.cancelled },
   ];
+
+  const circleByCategoryData = Object.entries(groupCount(circles ?? [], "category"))
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
+
+  const topActivityData = Object.entries(groupCount(profiles ?? [], "categories"))
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value);
 
   // User Aktif = pernah join circle ATAU pernah bikin circle (unik per user)
   const activeUserIds = new Set<string>([
@@ -109,6 +117,12 @@ export default async function AdminDashboardPage() {
         <UserGrowthChart data={growthData} />
         <GenderPieChart data={genderData} />
         <CircleStatusDonutChart data={circleStatusData} />
+      </div>
+
+      {/* Circle per Aktivitas (bar) + Top Aktivitas Disukai (horizontal bar) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CircleByCategoryBarChart data={circleByCategoryData} />
+        <TopActivityBarChart data={topActivityData} />
       </div>
     </div>
   );
