@@ -18,7 +18,6 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -84,10 +83,9 @@ export default function OnboardingPage() {
     setSaving(true);
     await supabase.from("profiles").upsert({ ...profile, onboarding_completed: true });
     setSaving(false);
-    setShowWelcome(true);
-  };
-
-  const handleGoHome = () => {
+    try {
+      sessionStorage.setItem("mincle_show_welcome", profile?.nickname || profile?.full_name || "");
+    } catch {}
     router.push("/");
     router.refresh();
   };
@@ -280,23 +278,6 @@ export default function OnboardingPage() {
 
       {cropFile && (
         <AvatarCropModal file={cropFile} onCancel={() => setCropFile(null)} onConfirm={handleCropConfirm} />
-      )}
-
-      {showWelcome && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-6">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center space-y-4">
-            <img src="/mascotsukses.svg" alt="Berhasil" className="w-40 h-40 mx-auto" />
-            <div>
-              <h2 className="text-xl font-bold">Selamat Datang, {profile?.nickname || profile?.full_name}! 🎉</h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Profil kamu udah lengkap. Yuk mulai cari atau bikin circle mabar pertamamu!
-              </p>
-            </div>
-            <button onClick={handleGoHome} className="w-full bg-primary text-white rounded-xl py-3 font-medium">
-              Mulai Explore
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );

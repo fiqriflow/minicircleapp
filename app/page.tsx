@@ -3,10 +3,13 @@ import HomeBannerSection from "@/components/HomeBannerSection";
 import HomeUpcomingCircles from "@/components/HomeUpcomingCircles";
 import QuickAccessSection from "@/components/QuickAccessSection";
 import CreateCircleBanner from "@/components/CreateCircleBanner";
+import WelcomeDialog from "@/components/WelcomeDialog";
 
 export default function BerandaPage() {
   return (
     <div className="px-4 py-6 space-y-8">
+      <WelcomeDialog />
+
       {/* Banner / Hero — gambar diatur dari halaman admin appearance */}
       <Suspense fallback={<div className="rounded-2xl bg-gray-100 h-40 animate-pulse" />}>
         <HomeBannerSection />
