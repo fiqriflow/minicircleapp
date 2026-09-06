@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/CircleCard";
 import CreateCircleModal from "@/components/CreateCircleModal";
 import ChooseCircleTypeModal from "@/components/ChooseCircleTypeModal";
+import CircleCreatedDialog from "@/components/CircleCreatedDialog";
 import LocationInput from "@/components/LocationInput";
 import { getCirclePlusEnabled, getDefaultCoverMap } from "@/lib/appSettings";
 import { getJoinedCounts } from "@/lib/circleMembers";
@@ -31,6 +32,7 @@ function ExploreContent() {
   const [loading, setLoading] = useState(true);
   const [showChooser, setShowChooser] = useState(false);
   const [createType, setCreateType] = useState<"regular" | "plus" | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [circlePlusEnabled, setCirclePlusEnabled] = useState(true);
   const [joinedCounts, setJoinedCounts] = useState<Record<string, number>>({});
@@ -207,9 +209,14 @@ function ExploreContent() {
         <CreateCircleModal
           circleType={createType}
           onClose={() => setCreateType(null)}
-          onCreated={fetchCircles}
+          onCreated={() => {
+            fetchCircles();
+            setShowSuccess(true);
+          }}
         />
       )}
+
+      {showSuccess && <CircleCreatedDialog onClose={() => setShowSuccess(false)} />}
     </div>
   );
 }
