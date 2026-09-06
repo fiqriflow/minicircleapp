@@ -40,20 +40,20 @@ export default function SplashScreen() {
 
   return (
     <div
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white transition-opacity duration-300 ${
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-primary transition-opacity duration-300 ${
         fading ? "opacity-0" : "opacity-100"
       }`}
       style={{ transitionDuration: `${FADE_MS}ms` }}
       aria-hidden="true"
     >
       <div className="relative w-40 h-40 animate-[splashPop_.5s_ease-out]">
-        <Image src="/logo-login.svg" alt="mincle" fill priority className="object-contain" />
+        <Image src="/logo-white.svg" alt="mincle" fill priority className="object-contain" />
       </div>
 
       <div className="absolute bottom-10 flex gap-1.5">
-        <span className="w-2 h-2 rounded-full bg-primary/70 animate-bounce [animation-delay:-0.3s]" />
-        <span className="w-2 h-2 rounded-full bg-primary/70 animate-bounce [animation-delay:-0.15s]" />
-        <span className="w-2 h-2 rounded-full bg-primary/70 animate-bounce" />
+        <span className="w-2 h-2 rounded-full bg-white/70 animate-bounce [animation-delay:-0.3s]" />
+        <span className="w-2 h-2 rounded-full bg-white/70 animate-bounce [animation-delay:-0.15s]" />
+        <span className="w-2 h-2 rounded-full bg-white/70 animate-bounce" />
       </div>
     </div>
   );
