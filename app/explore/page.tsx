@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/CircleCard";
 import CreateCircleModal from "@/components/CreateCircleModal";
@@ -29,6 +29,7 @@ function ExploreContent() {
     CATEGORIES.includes(initialCategory ?? "") ? (initialCategory as string) : "Semua"
   );
   const [location, setLocation] = useState("");
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [showChooser, setShowChooser] = useState(false);
   const [createType, setCreateType] = useState<"regular" | "plus" | null>(null);
@@ -95,16 +96,30 @@ function ExploreContent() {
     });
   }, [circles]);
 
-  const filteredCircles = useMemo(
-    () => (selectedDate === null ? circles : circles.filter((c) => isSameDay(new Date(c.event_date), selectedDate))),
-    [circles, selectedDate]
-  );
+  const filteredCircles = useMemo(() => {
+    const bySearch = search.trim()
+      ? circles.filter((c) => c.name.toLowerCase().includes(search.trim().toLowerCase()))
+      : circles;
+    return selectedDate === null ? bySearch : bySearch.filter((c) => isSameDay(new Date(c.event_date), selectedDate));
+  }, [circles, selectedDate, search]);
 
   const monthLabel = selectedDate ? selectedDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" }) : "";
 
   return (
     <div className="px-4 py-6 space-y-6 relative">
       <h1 className="text-xl font-bold">Explore Circle</h1>
+
+      {/* Search by name */}
+      <div className="relative">
+        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cari nama circle..."
+          className="w-full border rounded-xl pl-10 pr-4 py-2"
+        />
+      </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
@@ -181,7 +196,11 @@ function ExploreContent() {
             ))
           ) : (
             <p className="text-gray-400 text-sm">
-              {selectedDate === null ? "Tidak ada circle yang cocok." : "Tidak ada circle di tanggal ini."}
+              {search.trim()
+                ? "Tidak ada circle dengan nama tersebut."
+                : selectedDate === null
+                ? "Tidak ada circle yang cocok."
+                : "Tidak ada circle di tanggal ini."}
             </p>
           )}
         </div>
