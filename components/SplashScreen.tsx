@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 
 const SESSION_KEY = "mincle_splash_shown";
-const MIN_VISIBLE_MS = 1100;
+const MIN_VISIBLE_MS = 1400;
 const FADE_MS = 350;
 
 export default function SplashScreen() {
