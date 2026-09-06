@@ -43,10 +43,10 @@ export default function CircleCard({
       className="block bg-white rounded-2xl border p-4 space-y-2 hover:shadow-md transition"
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold flex items-center gap-1.5">
-          {circle.name}
+        <h3 className="min-w-0 flex-1 font-semibold flex items-start gap-1.5">
+          <span className="break-words line-clamp-2">{circle.name}</span>
           {isMyHost && (
-            <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0">
+            <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0 mt-0.5">
               Host
             </span>
           )}

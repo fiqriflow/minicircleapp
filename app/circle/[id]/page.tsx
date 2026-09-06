@@ -246,19 +246,19 @@ export default function CircleDetailPage() {
           })()}
         </div>
 
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">{circle.name}</h1>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold break-words">{circle.name}</h1>
               {circle.is_circle_plus && (
-                <span className="text-xs bg-primary text-white px-2 py-1 rounded-full">Circle+</span>
+                <span className="text-xs bg-primary text-white px-2 py-1 rounded-full shrink-0">Circle+</span>
               )}
             </div>
             {circle.group_name && <p className="text-sm text-gray-400">{circle.group_name}</p>}
           </div>
 
           {isHost && (
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setShowHostMenu((s) => !s)}
                 className="p-2 rounded-full hover:bg-gray-100"
