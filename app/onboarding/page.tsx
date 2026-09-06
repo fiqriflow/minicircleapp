@@ -62,7 +62,7 @@ export default function OnboardingPage() {
     if (step === 0) return !!profile?.full_name && !!profile?.nickname;
     if (step === 1) return (profile?.categories?.length ?? 0) > 0 && !!profile?.location;
     if (step === 2) return !!profile?.birth_date && !!profile?.gender;
-    if (step === 3) return !!profile?.avatar_url && (!profile.instagram || profile.instagram.startsWith("@"));
+    if (step === 3) return !profile.instagram || profile.instagram.startsWith("@");
     return true;
   };
 
@@ -209,7 +209,7 @@ export default function OnboardingPage() {
             <>
               <div>
                 <h2 className="text-lg font-bold">Terakhir nih ✨</h2>
-                <p className="text-sm text-gray-500">Foto profil wajib, Instagram opsional.</p>
+                <p className="text-sm text-gray-500">Foto profil & Instagram opsional, bisa dilengkapi nanti.</p>
               </div>
 
               <div className="flex flex-col items-center gap-2">

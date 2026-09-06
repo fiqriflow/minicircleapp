@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Pencil, Trash2, Info } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import LocationInput from "@/components/LocationInput";
@@ -10,6 +10,13 @@ import AvatarCropModal from "@/components/AvatarCropModal";
 import DeleteAccountModal from "@/components/DeleteAccountModal";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam", "Motoran"];
+
+function getMissingOptionalFields(profile: any) {
+  const missing: string[] = [];
+  if (!profile?.avatar_url) missing.push("Foto Profil");
+  if (!profile?.instagram) missing.push("Instagram");
+  return missing;
+}
 
 export default function DataUserPage() {
   const supabase = createClient();
@@ -104,6 +111,8 @@ export default function DataUserPage() {
 
   if (!profile) return <p className="p-6 text-gray-400">Memuat...</p>;
 
+  const missingFields = getMissingOptionalFields(profile);
+
   return (
     <div className="px-4 py-6 space-y-6">
       {/* Header + back */}
@@ -124,6 +133,15 @@ export default function DataUserPage() {
           </button>
         )}
       </div>
+
+      {!editMode && missingFields.length > 0 && (
+        <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl px-4 py-3 text-sm">
+          <Info size={18} className="shrink-0 mt-0.5" />
+          <p>
+            Lengkapi profil kamu: <span className="font-medium">{missingFields.join(", ")}</span> belum diisi.
+          </p>
+        </div>
+      )}
 
       {/* Section: Foto Profil */}
       <div className="flex flex-col items-center gap-2">
