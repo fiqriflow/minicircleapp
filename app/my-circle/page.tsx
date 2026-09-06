@@ -39,10 +39,13 @@ function MyCircleContent() {
       }
 
       const [{ data: hostedCircles }, { data: memberships }] = await Promise.all([
-        supabase.from("circles").select("*").eq("created_by", user.id),
+        supabase
+          .from("circles")
+          .select("*, host:profiles!circles_created_by_fkey(nickname, full_name)")
+          .eq("created_by", user.id),
         supabase
           .from("circle_members")
-          .select("circle:circles(*)")
+          .select("circle:circles(*, host:profiles!circles_created_by_fkey(nickname, full_name))")
           .eq("user_id", user.id)
           .eq("status", "joined"),
       ]);

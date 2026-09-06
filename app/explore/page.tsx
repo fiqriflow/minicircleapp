@@ -62,7 +62,7 @@ function ExploreContent() {
     setLoading(true);
     let query = supabase
       .from("circles")
-      .select("*")
+      .select("*, host:profiles!circles_created_by_fkey(nickname, full_name)")
       .eq("status", "active")
       .eq("is_private", false)
       .gte("event_date", new Date().toISOString());
