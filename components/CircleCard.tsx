@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Tag, Crosshair, CalendarDays, UserRound } from "lucide-react";
+import { MapPin, Tag, Crosshair, CalendarDays } from "lucide-react";
 import { getCircleDisplayStatus, STATUS_LABEL } from "@/lib/circleStatus";
 
 export type Circle = {
@@ -16,25 +16,19 @@ export type Circle = {
   status: string;
   max_participants?: number | null;
   created_by?: string | null;
-  host?: { nickname: string | null; full_name: string | null } | null;
 };
-
-function getHostLabel(circle: Circle) {
-  if (!circle.created_by) return "Akun Dihapus";
-  const name = circle.host?.nickname || circle.host?.full_name;
-  return name || "Akun Dihapus";
-}
 
 export default function CircleCard({
   circle,
   joinedCount,
+  currentUserId,
 }: {
   circle: Circle;
   defaultCoverMap?: Record<string, string>;
   joinedCount?: number;
+  currentUserId?: string | null;
 }) {
-  const hostLabel = getHostLabel(circle);
-  const hostDeleted = hostLabel === "Akun Dihapus";
+  const isMyHost = !!currentUserId && circle.created_by === currentUserId;
   const max = circle.max_participants ?? null;
   const joined = joinedCount ?? 0;
   const displayStatus = getCircleDisplayStatus(circle, { joined, max });
@@ -49,7 +43,14 @@ export default function CircleCard({
       className="block bg-white rounded-2xl border p-4 space-y-2 hover:shadow-md transition"
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold">{circle.name}</h3>
+        <h3 className="font-semibold flex items-center gap-1.5">
+          {circle.name}
+          {isMyHost && (
+            <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0">
+              Host
+            </span>
+          )}
+        </h3>
         <span
           className={`shrink-0 text-xs font-medium px-2 py-1 rounded-full ${statusInfo.className}`}
         >
@@ -73,13 +74,6 @@ export default function CircleCard({
 
       <div className="flex items-center gap-1 text-sm text-gray-500">
         <Crosshair size={14} className="shrink-0" /> {circle.location}
-      </div>
-
-      <div className="flex items-center gap-1 text-sm">
-        <UserRound size={14} className={`shrink-0 ${hostDeleted ? "text-red-400" : "text-gray-500"}`} />
-        <span className={hostDeleted ? "text-red-500 italic" : "text-gray-500"}>
-          Host: {hostLabel}
-        </span>
       </div>
 
       <div className="flex items-center gap-1 text-sm text-gray-500">

@@ -31,7 +31,7 @@ export default async function HomeUpcomingCircles() {
   if (joinedCircleIds.length) {
     const { data } = await supabase
       .from("circles")
-      .select("*, host:profiles!circles_created_by_fkey(nickname, full_name)")
+      .select("*")
       .eq("status", "active")
       .in("id", joinedCircleIds)
       .gte("event_date", now.toISOString())
@@ -47,6 +47,7 @@ export default async function HomeUpcomingCircles() {
       circles={circles ?? []}
       defaultCoverMap={defaultCoverMap}
       joinedCounts={joinedCounts}
+      currentUserId={user?.id ?? null}
     />
   );
 }

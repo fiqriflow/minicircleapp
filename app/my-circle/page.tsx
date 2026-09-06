@@ -24,6 +24,7 @@ function MyCircleContent() {
   const [loading, setLoading] = useState(true);
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [joinedCounts, setJoinedCounts] = useState<Record<string, number>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     getDefaultCoverMap(supabase).then(setDefaultCoverMap);
@@ -37,15 +38,13 @@ function MyCircleContent() {
         setLoading(false);
         return;
       }
+      setCurrentUserId(user.id);
 
       const [{ data: hostedCircles }, { data: memberships }] = await Promise.all([
-        supabase
-          .from("circles")
-          .select("*, host:profiles!circles_created_by_fkey(nickname, full_name)")
-          .eq("created_by", user.id),
+        supabase.from("circles").select("*").eq("created_by", user.id),
         supabase
           .from("circle_members")
-          .select("circle:circles(*, host:profiles!circles_created_by_fkey(nickname, full_name))")
+          .select("circle:circles(*)")
           .eq("user_id", user.id)
           .eq("status", "joined"),
       ]);
@@ -112,7 +111,7 @@ function MyCircleContent() {
         <div className="grid grid-cols-1 gap-4">
           {list.length ? (
             list.map((c) => (
-              <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} />
+              <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} currentUserId={currentUserId} />
             ))
           ) : (
             <p className="text-gray-400 text-sm">

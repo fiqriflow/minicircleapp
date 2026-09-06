@@ -14,10 +14,12 @@ export default function UpcomingCirclesSection({
   circles,
   defaultCoverMap = {},
   joinedCounts = {},
+  currentUserId = null,
 }: {
   circles: Circle[];
   defaultCoverMap?: Record<string, string>;
   joinedCounts?: Record<string, number>;
+  currentUserId?: string | null;
 }) {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
 
@@ -74,7 +76,7 @@ export default function UpcomingCirclesSection({
       <div className="grid grid-cols-1 gap-4">
         {filteredCircles.length ? (
           filteredCircles.map((c) => (
-            <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} />
+            <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} currentUserId={currentUserId} />
           ))
         ) : (
           <p className="text-gray-400 text-sm">Tidak ada circle di tanggal ini.</p>
