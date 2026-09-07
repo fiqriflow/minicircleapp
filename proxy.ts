@@ -30,6 +30,10 @@ export async function proxy(request: NextRequest) {
   const isAdminPage = path.startsWith("/admin");
   const isOnboardingPage = path === "/onboarding";
   const isSuspendedPage = path === "/akun-dinonaktifkan";
+  const isPublicPolicyPage =
+    path === "/profile/syarat-ketentuan" ||
+    path === "/profile/kebijakan-privasi" ||
+    path === "/profile/panduan-komunitas";
 
   if (!user && !isAuthPage) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -54,6 +58,10 @@ export async function proxy(request: NextRequest) {
     }
 
     if (isSuspendedNow) {
+      return response;
+    }
+
+    if (isPublicPolicyPage) {
       return response;
     }
 
