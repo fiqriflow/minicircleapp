@@ -7,7 +7,7 @@ import LocationInput from "@/components/LocationInput";
 import AvatarCropModal from "@/components/AvatarCropModal";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
-const TOTAL_STEPS = 4;
+const TOTAL_STEPS = 5;
 
 export default function OnboardingPage() {
   const supabase = createClient();
@@ -18,6 +18,7 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -59,10 +60,11 @@ export default function OnboardingPage() {
   };
 
   const canProceed = () => {
-    if (step === 0) return !!profile?.full_name && !!profile?.nickname;
-    if (step === 1) return (profile?.categories?.length ?? 0) > 0 && !!profile?.location;
-    if (step === 2) return !!profile?.birth_date && !!profile?.gender;
-    if (step === 3) return !profile.instagram || profile.instagram.startsWith("@");
+    if (step === 0) return agreed;
+    if (step === 1) return !!profile?.full_name && !!profile?.nickname;
+    if (step === 2) return (profile?.categories?.length ?? 0) > 0 && !!profile?.location;
+    if (step === 3) return !!profile?.birth_date && !!profile?.gender;
+    if (step === 4) return !profile.instagram || profile.instagram.startsWith("@");
     return true;
   };
 
@@ -81,7 +83,7 @@ export default function OnboardingPage() {
 
   const handleFinish = async () => {
     setSaving(true);
-    await supabase.from("profiles").upsert({ ...profile, onboarding_completed: true });
+    await supabase.from("profiles").upsert({ ...profile, onboarding_completed: true, terms_accepted_at: new Date().toISOString() });
     setSaving(false);
     try {
       sessionStorage.setItem("mincle_show_welcome", profile?.nickname || profile?.full_name || "");
@@ -116,6 +118,47 @@ export default function OnboardingPage() {
           {step === 0 && (
             <>
               <div>
+                <h2 className="text-lg font-bold">Sebelum mulai 🙏</h2>
+                <p className="text-sm text-gray-500">
+                  Baca dan setujui dulu Syarat & Ketentuan serta Kebijakan Privasi kami sebelum menggunakan Mincle.
+                </p>
+              </div>
+              <div className="border rounded-xl p-4 max-h-56 overflow-y-auto text-sm text-gray-600 space-y-2">
+                <p>
+                  Dengan menggunakan Mincle, kamu setuju untuk mematuhi{" "}
+                  <a href="/profile/syarat-ketentuan" target="_blank" className="text-primary underline">
+                    Syarat &amp; Ketentuan
+                  </a>{" "}
+                  dan{" "}
+                  <a href="/profile/kebijakan-privasi" target="_blank" className="text-primary underline">
+                    Kebijakan Privasi
+                  </a>{" "}
+                  kami, termasuk{" "}
+                  <a href="/profile/panduan-komunitas" target="_blank" className="text-primary underline">
+                    Panduan Komunitas
+                  </a>
+                  . Kamu bertanggung jawab penuh atas keselamatan diri sendiri saat mengikuti aktivitas circle, dan
+                  Mincle hanya berperan sebagai penyedia platform.
+                </p>
+              </div>
+              <label className="flex items-start gap-3 text-sm">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  Saya sudah membaca dan setuju dengan Syarat &amp; Ketentuan, Kebijakan Privasi, dan Panduan
+                  Komunitas Mincle.
+                </span>
+              </label>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
+              <div>
                 <h2 className="text-lg font-bold">Kenalan dulu yuk 👋</h2>
                 <p className="text-sm text-gray-500">Lengkapi nama kamu.</p>
               </div>
@@ -138,7 +181,7 @@ export default function OnboardingPage() {
             </>
           )}
 
-          {step === 1 && (
+          {step === 2 && (
             <>
               <div>
                 <h2 className="text-lg font-bold">Aktivitas & Domisili</h2>
@@ -175,7 +218,7 @@ export default function OnboardingPage() {
             </>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <>
               <div>
                 <h2 className="text-lg font-bold">Detail Tambahan</h2>
@@ -205,7 +248,7 @@ export default function OnboardingPage() {
             </>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <>
               <div>
                 <h2 className="text-lg font-bold">Terakhir nih ✨</h2>
