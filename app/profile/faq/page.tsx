@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react";
 const FAQS = [
   {
     q: "Apa itu Mincle?",
-    a: "Mincle adalah aplikasi untuk mencari dan bergabung dengan circle/komunitas olahraga (gowes, lari, atau jalan santai) di sekitarmu.",
+    a: "Mincle adalah aplikasi untuk mencari dan bergabung dengan circle/komunitas kecil di sekitarmu untuk beraktivitas bareng — mulai dari olahraga (gowes, jogging, jalan santai), kulineran, ngopi, explore alam, sampai motoran.",
   },
   {
     q: "Bagaimana cara join circle?",

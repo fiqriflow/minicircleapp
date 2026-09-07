@@ -28,8 +28,9 @@ export default function PanduanKomunitasPage() {
       <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex gap-3 items-start">
         <ShieldCheck size={20} className="text-primary shrink-0 mt-0.5" />
         <p className="text-sm text-gray-700">
-          Mincle dibuat untuk bikin olahraga bareng jadi lebih gampang dan menyenangkan. Ikuti panduan ini
-          supaya komunitas tetap aman, ramah, dan nyaman buat semua orang.
+          Mincle dibuat untuk bikin aktivitas bareng — olahraga, kulineran, explore alam, motoran, dan
+          lainnya — jadi lebih gampang dan menyenangkan. Ikuti panduan ini supaya komunitas tetap aman,
+          ramah, dan nyaman buat semua orang.
         </p>
       </div>
 
@@ -45,8 +46,8 @@ export default function PanduanKomunitasPage() {
         <Section title="2. Jujur dengan Profil &amp; Info Circle">
           <ul className="list-disc pl-4 space-y-1">
             <li>Gunakan foto dan data profil yang mencerminkan dirimu sebenarnya — jangan menyamar sebagai orang lain.</li>
-            <li>Sebagai host, tulis informasi circle yang akurat: lokasi, waktu, tingkat kesulitan, dan jumlah slot.</li>
-            <li>Jangan gunakan circle untuk promosi/jualan/spam yang tidak relevan dengan tujuan olahraga bareng.</li>
+            <li>Sebagai host, tulis informasi circle yang akurat: jenis aktivitas, lokasi, waktu, tingkat kesulitan/jarak tempuh, dan jumlah slot.</li>
+            <li>Jangan gunakan circle untuk promosi/jualan/spam yang tidak relevan dengan tujuan aktivitas bareng.</li>
           </ul>
         </Section>
 
@@ -61,8 +62,14 @@ export default function PanduanKomunitasPage() {
         <Section title="4. Utamakan Keselamatan">
           <ul className="list-disc pl-4 space-y-1">
             <li>Untuk pertemuan pertama kali, pilih titik kumpul di tempat umum dan ramai.</li>
-            <li>Beri tahu keluarga/teman soal rencana dan lokasi olahragamu.</li>
-            <li>Kenali batas kemampuan fisikmu sendiri; jangan memaksakan diri mengikuti aktivitas di luar kemampuan.</li>
+            <li>Beri tahu keluarga/teman soal rencana dan lokasi aktivitasmu.</li>
+            <li>Kenali batas kemampuanmu sendiri dan sesuaikan dengan jenis circle yang kamu ikuti:</li>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>Olahraga (gowes, jogging, jalan santai): jangan memaksakan diri di luar kapasitas fisikmu, bawa air minum yang cukup.</li>
+              <li>Motoran: pastikan kendaraan laik jalan, gunakan helm/perlengkapan berkendara standar, patuhi rambu lalu lintas dan aturan konvoi.</li>
+              <li>Explore Alam: perhatikan perkiraan cuaca, bawa perlengkapan yang sesuai medan, dan jangan menyimpang dari jalur/rombongan.</li>
+              <li>Kulineran/Ngopi: sampaikan alergi atau pantangan makanan lebih awal ke host/anggota lain, dan pastikan kejelasan biaya sebelum ikut.</li>
+            </ul>
             <li>Percayai insting — kalau ada yang terasa tidak beres, kamu berhak keluar dari circle atau berhenti berinteraksi kapan saja.</li>
           </ul>
         </Section>

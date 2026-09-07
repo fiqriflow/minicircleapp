@@ -35,16 +35,16 @@ export default function SyaratKetentuanPage() {
         <Section title="1. Tentang Layanan">
           <p>
             Mincle adalah aplikasi yang memfasilitasi orang untuk membentuk dan bergabung dengan &quot;circle&quot;
-            — kelompok kecil untuk berolahraga bersama (jogging, gowes, jalan santai, dan aktivitas sejenis).
-            Mincle hanya berperan sebagai penyedia platform pertemuan; kami bukan pihak penyelenggara acara
-            olahraga itu sendiri.
+            — kelompok kecil untuk beraktivitas bareng, mencakup (namun tidak terbatas pada) olahraga (jogging,
+            gowes, jalan santai), kulineran, ngopi, explore alam, dan motoran. Mincle hanya berperan sebagai
+            penyedia platform pertemuan; kami bukan pihak penyelenggara aktivitas itu sendiri.
           </p>
         </Section>
 
         <Section title="2. Akun Pengguna">
           <ul className="list-disc pl-4 space-y-1">
             <li>Pendaftaran menggunakan akun Google. Kamu bertanggung jawab menjaga keamanan akunmu.</li>
-            <li>Data profil yang kamu isi (nama, kategori olahraga, kota, dsb.) harus akurat dan bukan menyamar sebagai orang lain.</li>
+            <li>Data profil yang kamu isi (nama, kategori aktivitas, kota, dsb.) harus akurat dan bukan menyamar sebagai orang lain.</li>
             <li>Satu akun hanya untuk digunakan oleh satu orang.</li>
             <li>Kami berhak menonaktifkan atau menghapus akun yang melanggar Syarat &amp; Ketentuan ini atau Panduan Komunitas.</li>
           </ul>
@@ -58,22 +58,26 @@ export default function SyaratKetentuanPage() {
           </p>
         </Section>
 
-        <Section title="4. Risiko Aktivitas Fisik">
+        <Section title="4. Risiko Aktivitas">
           <p>
-            Circle yang dibentuk lewat Mincle melibatkan aktivitas fisik (olahraga) dan pertemuan dengan orang
-            yang mungkin baru kamu kenal. Kamu mengikuti circle atas risiko dan tanggung jawab pribadi. Mincle
-            tidak bertanggung jawab atas cedera, kehilangan barang, atau kejadian tidak diinginkan lain yang
-            terjadi selama atau akibat kegiatan circle. Selalu utamakan keselamatan — lihat Panduan Komunitas
-            untuk tips keamanan.
+            Circle yang dibentuk lewat Mincle melibatkan pertemuan dan aktivitas bersama orang yang mungkin
+            baru kamu kenal, dengan risiko yang berbeda-beda tergantung jenis aktivitasnya — misalnya risiko
+            cedera fisik pada circle olahraga, risiko keselamatan lalu lintas pada circle motoran, risiko
+            cuaca/medan pada circle explore alam, hingga risiko alergi/keamanan pangan pada circle kulineran.
+            Kamu mengikuti circle apa pun atas risiko dan tanggung jawab pribadi. Mincle tidak bertanggung
+            jawab atas cedera, kecelakaan, kehilangan barang, atau kejadian tidak diinginkan lain yang terjadi
+            selama atau akibat kegiatan circle. Selalu utamakan keselamatan — lihat Panduan Komunitas untuk
+            tips keamanan per jenis aktivitas.
           </p>
         </Section>
 
         <Section title="5. Tanggung Jawab Host Circle">
           <p>
             Sebagai host (pembuat circle), kamu bertanggung jawab memberikan informasi circle yang jelas dan
-            akurat (lokasi, waktu, jumlah slot), serta bersikap adil dalam menerima/menolak permintaan join.
-            Host tidak diperkenankan memungut biaya di luar kesepakatan yang wajar dan transparan kepada
-            peserta tanpa persetujuan mereka.
+            akurat (jenis aktivitas, lokasi, waktu, jumlah slot, serta kebutuhan khusus seperti kendaraan untuk
+            motoran atau perkiraan biaya makan untuk kulineran). Host tidak diperkenankan memungut biaya di
+            luar kesepakatan yang wajar dan transparan kepada peserta tanpa persetujuan mereka, dan wajib
+            bersikap adil dalam menerima/menolak permintaan join.
           </p>
         </Section>
 
