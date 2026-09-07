@@ -8,7 +8,7 @@ import { extractStoragePath } from "@/lib/storagePath";
 import { toDateTimeLocalValue, fromDateTimeLocalValue } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/LocationInput";
 
-const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Kulineran", "Ngopi", "Explore Alam", "Motoran"];
+const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Kulineran", "Ngopi", "Explore Alam"];
 
 export default function CreateCircleModal({
   circleType,

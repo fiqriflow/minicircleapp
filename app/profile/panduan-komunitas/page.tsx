@@ -28,7 +28,7 @@ export default function PanduanKomunitasPage() {
       <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex gap-3 items-start">
         <ShieldCheck size={20} className="text-primary shrink-0 mt-0.5" />
         <p className="text-sm text-gray-700">
-          Mincle dibuat untuk bikin aktivitas bareng — olahraga, kulineran, explore alam, motoran, dan
+          Mincle dibuat untuk bikin aktivitas bareng — olahraga, kulineran, explore alam, dan
           lainnya — jadi lebih gampang dan menyenangkan. Ikuti panduan ini supaya komunitas tetap aman,
           ramah, dan nyaman buat semua orang.
         </p>
@@ -66,7 +66,6 @@ export default function PanduanKomunitasPage() {
             <li>Kenali batas kemampuanmu sendiri dan sesuaikan dengan jenis circle yang kamu ikuti:</li>
             <ul className="list-disc pl-4 space-y-1">
               <li>Olahraga (gowes, jogging, jalan santai): jangan memaksakan diri di luar kapasitas fisikmu, bawa air minum yang cukup.</li>
-              <li>Motoran: pastikan kendaraan laik jalan, gunakan helm/perlengkapan berkendara standar, patuhi rambu lalu lintas dan aturan konvoi.</li>
               <li>Explore Alam: perhatikan perkiraan cuaca, bawa perlengkapan yang sesuai medan, dan jangan menyimpang dari jalur/rombongan.</li>
               <li>Kulineran/Ngopi: sampaikan alergi atau pantangan makanan lebih awal ke host/anggota lain, dan pastikan kejelasan biaya sebelum ikut.</li>
             </ul>

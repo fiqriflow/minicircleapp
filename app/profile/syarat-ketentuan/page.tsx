@@ -36,7 +36,7 @@ export default function SyaratKetentuanPage() {
           <p>
             Mincle adalah aplikasi yang memfasilitasi orang untuk membentuk dan bergabung dengan &quot;circle&quot;
             — kelompok kecil untuk beraktivitas bareng, mencakup (namun tidak terbatas pada) olahraga (jogging,
-            gowes, jalan santai), kulineran, ngopi, explore alam, dan motoran. Mincle hanya berperan sebagai
+            gowes, jalan santai), kulineran, ngopi, dan explore alam. Mincle hanya berperan sebagai
             penyedia platform pertemuan; kami bukan pihak penyelenggara aktivitas itu sendiri.
           </p>
         </Section>
@@ -62,8 +62,8 @@ export default function SyaratKetentuanPage() {
           <p>
             Circle yang dibentuk lewat Mincle melibatkan pertemuan dan aktivitas bersama orang yang mungkin
             baru kamu kenal, dengan risiko yang berbeda-beda tergantung jenis aktivitasnya — misalnya risiko
-            cedera fisik pada circle olahraga, risiko keselamatan lalu lintas pada circle motoran, risiko
-            cuaca/medan pada circle explore alam, hingga risiko alergi/keamanan pangan pada circle kulineran.
+            cedera fisik pada circle olahraga, risiko cuaca/medan pada circle explore alam, hingga risiko
+            alergi/keamanan pangan pada circle kulineran.
             Kamu mengikuti circle apa pun atas risiko dan tanggung jawab pribadi. Mincle tidak bertanggung
             jawab atas cedera, kecelakaan, kehilangan barang, atau kejadian tidak diinginkan lain yang terjadi
             selama atau akibat kegiatan circle. Selalu utamakan keselamatan — lihat Panduan Komunitas untuk
@@ -74,8 +74,8 @@ export default function SyaratKetentuanPage() {
         <Section title="5. Tanggung Jawab Host Circle">
           <p>
             Sebagai host (pembuat circle), kamu bertanggung jawab memberikan informasi circle yang jelas dan
-            akurat (jenis aktivitas, lokasi, waktu, jumlah slot, serta kebutuhan khusus seperti kendaraan untuk
-            motoran atau perkiraan biaya makan untuk kulineran). Host tidak diperkenankan memungut biaya di
+            akurat (jenis aktivitas, lokasi, waktu, jumlah slot, serta kebutuhan khusus seperti perkiraan biaya
+            makan untuk kulineran). Host tidak diperkenankan memungut biaya di
             luar kesepakatan yang wajar dan transparan kepada peserta tanpa persetujuan mereka, dan wajib
             bersikap adil dalam menerima/menolak permintaan join.
           </p>

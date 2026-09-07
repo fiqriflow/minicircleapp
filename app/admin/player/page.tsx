@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import LocationInput from "@/components/LocationInput";
 
-const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam", "Motoran"];
+const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
 
 const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
 
