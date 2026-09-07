@@ -114,7 +114,7 @@ export default function AdminCirclePage() {
               <th className="p-3">Nama</th>
               <th className="p-3">Aktivitas</th>
               <th className="p-3">Host</th>
-              <th className="p-3">Lokasi</th>
+              <th className="p-3">Domisili/Kota</th>
               <th className="p-3">Tanggal</th>
               <th className="p-3">Status</th>
               <th className="p-3">Aksi</th>
@@ -134,7 +134,7 @@ export default function AdminCirclePage() {
                     </span>
                   )}
                 </td>
-                <td className="p-3">{c.location}</td>
+                <td className="p-3">{c.city}</td>
                 <td className="p-3">{new Date(c.event_date).toLocaleDateString("id-ID")}</td>
                 <td className="p-3">
                   <select
