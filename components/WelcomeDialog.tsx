@@ -26,7 +26,7 @@ export default function WelcomeDialog() {
         <div>
           <h2 className="text-xl font-bold">Selamat Datang, {name}! 🎉</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Profil kamu udah lengkap. Yuk mulai cari atau bikin circle mabar pertamamu!
+            Yuk mulai cari atau bikin circle mabar pertamamu!
           </p>
         </div>
         <button onClick={() => setName(null)} className="w-full bg-primary text-white rounded-xl py-3 font-medium">

@@ -29,6 +29,10 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // FIX: viewportFit "cover" bikin kalkulasi safe-area/viewport lebih
+  // konsisten di PWA standalone iOS — mendukung fix di AppShell (--app-height)
+  // biar bottom nav gak butuh scroll dulu buat sticky.
+  viewportFit: "cover",
   themeColor: "#F46113",
 };
 
