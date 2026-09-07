@@ -26,9 +26,10 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
-  const isAuthPage = path === "/login" || path.startsWith("/auth");
+  const isAuthPage = path === "/login" || path.startsWith("/auth") || path === "/pendaftaran-ditutup";
   const isAdminPage = path.startsWith("/admin");
   const isOnboardingPage = path === "/onboarding";
+  const isSuspendedPage = path === "/akun-dinonaktifkan";
 
   if (!user && !isAuthPage) {
     return NextResponse.redirect(new URL("/login", request.url));
@@ -37,9 +38,24 @@ export async function proxy(request: NextRequest) {
   if (user && !isAuthPage) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("is_super_admin, onboarding_completed")
+      .select("is_super_admin, onboarding_completed, is_banned, suspended_until")
       .eq("id", user.id)
       .single();
+
+    const isSuspendedNow =
+      profile?.is_banned || (profile?.suspended_until && new Date(profile.suspended_until) > new Date());
+
+    if (isSuspendedNow && !isSuspendedPage) {
+      return NextResponse.redirect(new URL("/akun-dinonaktifkan", request.url));
+    }
+
+    if (!isSuspendedNow && isSuspendedPage) {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
+
+    if (isSuspendedNow) {
+      return response;
+    }
 
     if (!profile?.onboarding_completed && !isOnboardingPage) {
       return NextResponse.redirect(new URL("/onboarding", request.url));
