@@ -17,6 +17,7 @@ export default function AdminCirclePage() {
   const [createType, setCreateType] = useState<"regular" | "plus" | null>(null);
   const [circlePlusEnabled, setCirclePlusEnabled] = useState(true);
   const [onlyNoHost, setOnlyNoHost] = useState(false);
+  const [search, setSearch] = useState("");
 
   const load = async () => {
     const { data } = await supabase
@@ -60,7 +61,14 @@ export default function AdminCirclePage() {
   };
 
   const noHostLabel = (c: any) => !c.created_by;
-  const displayedCircles = onlyNoHost ? circles.filter(noHostLabel) : circles;
+  const matchesSearch = (c: any) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return [c.name, c.group_name, c.category, c.city, c.location, c.host?.nickname, c.host?.full_name]
+      .filter(Boolean)
+      .some((v: string) => v.toLowerCase().includes(q));
+  };
+  const displayedCircles = circles.filter((c) => (onlyNoHost ? noHostLabel(c) : true) && matchesSearch(c));
 
   const handleDelete = async (circle: any) => {
     if (!confirm("Hapus circle ini? Line up dan komentar ikut terhapus.")) return;
@@ -77,7 +85,14 @@ export default function AdminCirclePage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-2">
         <h1 className="text-xl font-bold">Circle</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari nama, grup, kategori, host..."
+            className="border rounded-xl px-3 py-2 text-sm w-56"
+          />
           <label className="flex items-center gap-2 text-xs text-gray-600">
             <input
               type="checkbox"

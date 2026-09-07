@@ -12,6 +12,7 @@ const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
 export default function AdminPlayerPage() {
   const supabase = createClient();
   const [players, setPlayers] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
   const [editing, setEditing] = useState<any>(null);
   const [viewing, setViewing] = useState<any>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -68,13 +69,99 @@ export default function AdminPlayerPage() {
     load();
   };
 
+  const handleSuspendTemporary = async (player: any) => {
+    if (player.id === currentUserId) {
+      alert("Kamu tidak bisa menonaktifkan akunmu sendiri.");
+      return;
+    }
+    const daysInput = prompt(
+      `Nonaktifkan sementara "${player.full_name || player.nickname}" selama berapa hari?`,
+      "7"
+    );
+    if (!daysInput) return;
+    const days = Number(daysInput);
+    if (!Number.isFinite(days) || days <= 0) {
+      alert("Jumlah hari tidak valid.");
+      return;
+    }
+    const reason = prompt("Alasan penonaktifan (opsional):", "") ?? "";
+    const suspendedUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+    const { error } = await supabase
+      .from("profiles")
+      .update({ suspended_until: suspendedUntil, is_banned: false, suspension_reason: reason || null })
+      .eq("id", player.id);
+    if (error) {
+      alert("Gagal menonaktifkan user: " + error.message);
+      return;
+    }
+    toast.success(`Akun dinonaktifkan sementara selama ${days} hari.`);
+    load();
+  };
+
+  const handleSuspendPermanent = async (player: any) => {
+    if (player.id === currentUserId) {
+      alert("Kamu tidak bisa menonaktifkan akunmu sendiri.");
+      return;
+    }
+    if (!confirm(`Nonaktifkan PERMANEN akun "${player.full_name || player.nickname}"? Aksi ini bisa dibatalkan lagi lewat "Aktifkan Kembali".`))
+      return;
+    const reason = prompt("Alasan penonaktifan permanen (opsional):", "") ?? "";
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_banned: true, suspended_until: null, suspension_reason: reason || null })
+      .eq("id", player.id);
+    if (error) {
+      alert("Gagal menonaktifkan user: " + error.message);
+      return;
+    }
+    toast.success("Akun dinonaktifkan permanen.");
+    load();
+  };
+
+  const handleReactivate = async (player: any) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ is_banned: false, suspended_until: null, suspension_reason: null })
+      .eq("id", player.id);
+    if (error) {
+      alert("Gagal mengaktifkan kembali user: " + error.message);
+      return;
+    }
+    toast.success("Akun diaktifkan kembali.");
+    load();
+  };
+
+  const getStatus = (p: any): { label: string; className: string } => {
+    if (p.is_banned) return { label: "Banned", className: "bg-red-50 text-red-600" };
+    if (p.suspended_until && new Date(p.suspended_until) > new Date())
+      return { label: "Suspended", className: "bg-yellow-50 text-yellow-700" };
+    return { label: "Aktif", className: "bg-green-50 text-green-600" };
+  };
+
+  const displayedPlayers = players.filter((p) => {
+    if (!search.trim()) return true;
+    const q = search.trim().toLowerCase();
+    return [p.full_name, p.nickname, p.email, p.location, p.instagram]
+      .filter(Boolean)
+      .some((v: string) => v.toLowerCase().includes(q));
+  });
+
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold">Player</h1>
+      <div className="flex justify-between items-center flex-wrap gap-2">
+        <h1 className="text-xl font-bold">Player</h1>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cari nama, email, lokasi..."
+          className="border rounded-xl px-3 py-2 text-sm w-56"
+        />
+      </div>
 
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
-        {players.map((p) => (
+        {displayedPlayers.map((p) => (
           <div key={p.id} className="bg-white rounded-2xl border p-4 space-y-2">
             <div className="flex items-center gap-3">
               <img
@@ -89,19 +176,30 @@ export default function AdminPlayerPage() {
               {p.is_super_admin && (
                 <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full shrink-0">Admin</span>
               )}
+              <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${getStatus(p).className}`}>
+                {getStatus(p).label}
+              </span>
             </div>
             <div className="text-sm text-gray-500 grid grid-cols-2 gap-1">
               <span>📍 {p.location || "-"}</span>
               <span>⚧ {GENDER_LABEL[p.gender] || "-"}</span>
             </div>
-            <div className="flex gap-4 pt-1 border-t text-sm">
+            <div className="flex gap-4 pt-1 border-t text-sm flex-wrap">
               <button onClick={() => setViewing(p)} className="text-gray-600 font-medium py-2">Detail</button>
               <button onClick={() => setEditing(p)} className="text-primary font-medium py-2">Edit</button>
+              {p.is_banned || (p.suspended_until && new Date(p.suspended_until) > new Date()) ? (
+                <button onClick={() => handleReactivate(p)} className="text-green-600 font-medium py-2">Aktifkan Kembali</button>
+              ) : (
+                <>
+                  <button onClick={() => handleSuspendTemporary(p)} className="text-yellow-600 font-medium py-2">Nonaktifkan Sementara</button>
+                  <button onClick={() => handleSuspendPermanent(p)} className="text-red-600 font-medium py-2">Nonaktifkan Permanen</button>
+                </>
+              )}
               <button onClick={() => handleDelete(p)} className="text-red-500 font-medium py-2">Hapus</button>
             </div>
           </div>
         ))}
-        {!players.length && <p className="text-gray-400 text-sm">Belum ada player.</p>}
+        {!displayedPlayers.length && <p className="text-gray-400 text-sm">{search ? "Tidak ada player yang cocok." : "Belum ada player."}</p>}
       </div>
 
       {/* Desktop: table */}
@@ -115,11 +213,12 @@ export default function AdminPlayerPage() {
               <th className="p-3">Lokasi</th>
               <th className="p-3">Gender</th>
               <th className="p-3">Admin</th>
+              <th className="p-3">Status</th>
               <th className="p-3">Aksi</th>
             </tr>
           </thead>
           <tbody>
-            {players.map((p) => (
+            {displayedPlayers.map((p) => (
               <tr key={p.id} className="border-t">
                 <td className="p-3">{p.full_name}</td>
                 <td className="p-3">{p.nickname}</td>
@@ -127,9 +226,20 @@ export default function AdminPlayerPage() {
                 <td className="p-3">{p.location}</td>
                 <td className="p-3">{GENDER_LABEL[p.gender] || "-"}</td>
                 <td className="p-3">{p.is_super_admin ? "✅" : "-"}</td>
+                <td className="p-3">
+                  <span className={`text-xs px-2 py-1 rounded-full ${getStatus(p).className}`}>{getStatus(p).label}</span>
+                </td>
                 <td className="p-3 space-x-2 whitespace-nowrap">
                   <button onClick={() => setViewing(p)} className="text-gray-600 underline">Detail</button>
                   <button onClick={() => setEditing(p)} className="text-primary underline">Edit</button>
+                  {p.is_banned || (p.suspended_until && new Date(p.suspended_until) > new Date()) ? (
+                    <button onClick={() => handleReactivate(p)} className="text-green-600 underline">Aktifkan Kembali</button>
+                  ) : (
+                    <>
+                      <button onClick={() => handleSuspendTemporary(p)} className="text-yellow-600 underline">Suspend</button>
+                      <button onClick={() => handleSuspendPermanent(p)} className="text-red-600 underline">Ban</button>
+                    </>
+                  )}
                   <button onClick={() => handleDelete(p)} className="text-red-500 underline">Hapus</button>
                 </td>
               </tr>
@@ -163,6 +273,7 @@ export default function AdminPlayerPage() {
                 ["Instagram", viewing.instagram || "-"],
                 ["Aktivitas Disukai", viewing.categories?.length ? viewing.categories.join(", ") : "-"],
                 ["Super Admin", viewing.is_super_admin ? "Ya" : "Tidak"],
+                ["Status", getStatus(viewing).label + (viewing.suspension_reason ? ` — ${viewing.suspension_reason}` : "")],
                 [
                   "Terdaftar",
                   viewing.created_at
