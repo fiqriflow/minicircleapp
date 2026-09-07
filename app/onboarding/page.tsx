@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import LocationInput from "@/components/LocationInput";
 import AvatarCropModal from "@/components/AvatarCropModal";
+import PolicyModal from "@/components/PolicyModal";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
 const TOTAL_STEPS = 5;
@@ -19,6 +20,7 @@ export default function OnboardingPage() {
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [policyModal, setPolicyModal] = useState<{ title: string; url: string } | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -126,17 +128,29 @@ export default function OnboardingPage() {
               <div className="border rounded-xl p-4 max-h-56 overflow-y-auto text-sm text-gray-600 space-y-2">
                 <p>
                   Dengan menggunakan Mincle, kamu setuju untuk mematuhi{" "}
-                  <a href="/profile/syarat-ketentuan" target="_blank" className="text-primary underline">
+                  <button
+                    type="button"
+                    onClick={() => setPolicyModal({ title: "Syarat & Ketentuan", url: "/profile/syarat-ketentuan" })}
+                    className="text-primary underline"
+                  >
                     Syarat &amp; Ketentuan
-                  </a>{" "}
+                  </button>{" "}
                   dan{" "}
-                  <a href="/profile/kebijakan-privasi" target="_blank" className="text-primary underline">
+                  <button
+                    type="button"
+                    onClick={() => setPolicyModal({ title: "Kebijakan Privasi", url: "/profile/kebijakan-privasi" })}
+                    className="text-primary underline"
+                  >
                     Kebijakan Privasi
-                  </a>{" "}
+                  </button>{" "}
                   kami, termasuk{" "}
-                  <a href="/profile/panduan-komunitas" target="_blank" className="text-primary underline">
+                  <button
+                    type="button"
+                    onClick={() => setPolicyModal({ title: "Panduan Komunitas", url: "/profile/panduan-komunitas" })}
+                    className="text-primary underline"
+                  >
                     Panduan Komunitas
-                  </a>
+                  </button>
                   . Kamu bertanggung jawab penuh atas keselamatan diri sendiri saat mengikuti aktivitas circle, dan
                   Mincle hanya berperan sebagai penyedia platform.
                 </p>
@@ -321,6 +335,10 @@ export default function OnboardingPage() {
 
       {cropFile && (
         <AvatarCropModal file={cropFile} onCancel={() => setCropFile(null)} onConfirm={handleCropConfirm} />
+      )}
+
+      {policyModal && (
+        <PolicyModal title={policyModal.title} url={policyModal.url} onClose={() => setPolicyModal(null)} />
       )}
     </div>
   );
