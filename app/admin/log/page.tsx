@@ -9,6 +9,9 @@ const TYPE_LABEL: Record<string, { label: string; className: string }> = {
   circle_created: { label: "Circle Dibuat", className: "bg-blue-50 text-blue-600" },
   user_registered: { label: "User Baru", className: "bg-green-50 text-green-600" },
   account_deleted: { label: "Akun Dihapus", className: "bg-red-50 text-red-600" },
+  user_suspended: { label: "User Disuspend", className: "bg-yellow-50 text-yellow-700" },
+  user_banned: { label: "User Dibanned", className: "bg-red-50 text-red-600" },
+  user_reactivated: { label: "User Diaktifkan Kembali", className: "bg-green-50 text-green-600" },
 };
 
 export default function AdminLogPage() {
@@ -117,6 +120,9 @@ export default function AdminLogPage() {
           { value: "circle_created", label: "Circle Dibuat" },
           { value: "user_registered", label: "User Baru" },
           { value: "account_deleted", label: "Akun Dihapus" },
+          { value: "user_suspended", label: "User Disuspend" },
+          { value: "user_banned", label: "User Dibanned" },
+          { value: "user_reactivated", label: "User Diaktifkan Kembali" },
         ].map((f) => (
           <button
             key={f.value}
