@@ -1,7 +1,8 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { Suspense } from "react";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -12,18 +13,22 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function KebijakanPrivasiPage() {
+function KebijakanPrivasiPageContent() {
   const router = useRouter();
+  const isEmbed = useSearchParams().get("embed") === "1";
 
   return (
-    <div className="px-4 py-6 space-y-6 pb-16">
-      <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800" aria-label="Kembali">
-          <ArrowLeft size={22} />
-        </button>
-        <h1 className="text-xl font-bold">Kebijakan Privasi</h1>
-      </div>
+    <div>
+      {!isEmbed && (
+        <div className="sticky top-0 z-10 bg-white border-b flex items-center gap-3 px-4 py-3">
+          <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800" aria-label="Kembali">
+            <ArrowLeft size={22} />
+          </button>
+          <h1 className="text-xl font-bold">Kebijakan Privasi</h1>
+        </div>
+      )}
 
+      <div className="px-4 py-6 space-y-6 pb-16">
       <p className="text-xs text-gray-400">Terakhir diperbarui: 7 September 2026</p>
 
       <div className="bg-white rounded-2xl border p-4 space-y-6">
@@ -105,6 +110,15 @@ export default function KebijakanPrivasiPage() {
           <p>Ada pertanyaan seputar privasi datamu? Kirim lewat menu Akun {'>'} Masukan.</p>
         </Section>
       </div>
+      </div>
     </div>
+  );
+}
+
+export default function KebijakanPrivasiPage() {
+  return (
+    <Suspense fallback={null}>
+      <KebijakanPrivasiPageContent />
+    </Suspense>
   );
 }

@@ -79,14 +79,15 @@ export default function StatistikPage() {
   const conicGradient = gradientParts.length ? `conic-gradient(${gradientParts.join(", ")})` : "#e5e7eb";
 
   return (
-    <div className="px-4 py-6 space-y-6">
-      <div className="flex items-center gap-3">
+    <div>
+      <div className="sticky top-0 z-10 bg-white border-b flex items-center gap-3 px-4 py-3">
         <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800" aria-label="Kembali">
           <ArrowLeft size={22} />
         </button>
         <h1 className="text-xl font-bold">Statistik</h1>
       </div>
 
+      <div className="px-4 py-6 space-y-6">
       {/* Kartu ringkasan */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl border p-4">
@@ -137,6 +138,7 @@ export default function StatistikPage() {
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

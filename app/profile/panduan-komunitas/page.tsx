@@ -1,8 +1,9 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ShieldCheck, Flag } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -13,18 +14,22 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-export default function PanduanKomunitasPage() {
+function PanduanKomunitasPageContent() {
   const router = useRouter();
+  const isEmbed = useSearchParams().get("embed") === "1";
 
   return (
-    <div className="px-4 py-6 space-y-6 pb-16">
-      <div className="flex items-center gap-3">
-        <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800" aria-label="Kembali">
-          <ArrowLeft size={22} />
-        </button>
-        <h1 className="text-xl font-bold">Panduan Komunitas</h1>
-      </div>
+    <div>
+      {!isEmbed && (
+        <div className="sticky top-0 z-10 bg-white border-b flex items-center gap-3 px-4 py-3">
+          <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800" aria-label="Kembali">
+            <ArrowLeft size={22} />
+          </button>
+          <h1 className="text-xl font-bold">Panduan Komunitas</h1>
+        </div>
+      )}
 
+      <div className="px-4 py-6 space-y-6 pb-16">
       <div className="bg-primary/5 border border-primary/20 rounded-2xl p-4 flex gap-3 items-start">
         <ShieldCheck size={20} className="text-primary shrink-0 mt-0.5" />
         <p className="text-sm text-gray-700">
@@ -113,6 +118,15 @@ export default function PanduanKomunitasPage() {
         </Link>
         .
       </p>
+      </div>
     </div>
+  );
+}
+
+export default function PanduanKomunitasPage() {
+  return (
+    <Suspense fallback={null}>
+      <PanduanKomunitasPageContent />
+    </Suspense>
   );
 }

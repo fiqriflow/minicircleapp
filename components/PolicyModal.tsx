@@ -20,7 +20,10 @@ export default function PolicyModal({
             <X size={20} />
           </button>
         </div>
-        <iframe src={url} className="flex-1 w-full" />
+        <iframe
+          src={url + (url.includes("?") ? "&" : "?") + "embed=1"}
+          className="flex-1 w-full"
+        />
       </div>
     </div>
   );

@@ -26,14 +26,15 @@ export default function FaqPage() {
   const router = useRouter();
 
   return (
-    <div className="px-4 py-6 space-y-6">
-      <div className="flex items-center gap-3">
+    <div>
+      <div className="sticky top-0 z-10 bg-white border-b flex items-center gap-3 px-4 py-3">
         <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800" aria-label="Kembali">
           <ArrowLeft size={22} />
         </button>
         <h1 className="text-xl font-bold">FAQ</h1>
       </div>
 
+      <div className="px-4 py-6 space-y-6">
       <div className="space-y-3">
         {FAQS.map((item) => (
           <div key={item.q} className="bg-white rounded-2xl border p-4 space-y-1">
@@ -41,6 +42,7 @@ export default function FaqPage() {
             <p className="text-sm text-gray-500">{item.a}</p>
           </div>
         ))}
+      </div>
       </div>
     </div>
   );

@@ -114,9 +114,9 @@ export default function DataUserPage() {
   const missingFields = getMissingOptionalFields(profile);
 
   return (
-    <div className="px-4 py-6 space-y-6">
-      {/* Header + back */}
-      <div className="flex items-center justify-between">
+    <div>
+      {/* Header + back — sticky biar tombol back kejangkau pas scroll */}
+      <div className="sticky top-0 z-10 bg-white border-b flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
           <button onClick={() => router.back()} className="text-gray-500 hover:text-gray-800" aria-label="Kembali">
             <ArrowLeft size={22} />
@@ -134,6 +134,7 @@ export default function DataUserPage() {
         )}
       </div>
 
+      <div className="px-4 py-6 space-y-6">
       {!editMode && missingFields.length > 0 && (
         <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl px-4 py-3 text-sm">
           <Info size={18} className="shrink-0 mt-0.5" />
@@ -348,6 +349,7 @@ export default function DataUserPage() {
           onConfirm={handleDeleteAccount}
         />
       )}
+      </div>
     </div>
   );
 }
