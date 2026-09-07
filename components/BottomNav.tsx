@@ -33,7 +33,15 @@ export default function BottomNav({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Halaman tanpa chrome (header/bottom nav) — tetap render children-nya
-  if (pathname === "/login" || pathname === "/onboarding" || pathname.startsWith("/circle/")) {
+  // Termasuk semua subpage /profile/* (data-user, statistik, faq, dll) karena
+  // masing-masing sudah punya header back-button sendiri; hanya /profile (root/menu Akun) yang tetap pakai nav.
+  const isProfileSubpage = pathname.startsWith("/profile/") && pathname !== "/profile";
+  if (
+    pathname === "/login" ||
+    pathname === "/onboarding" ||
+    pathname.startsWith("/circle/") ||
+    isProfileSubpage
+  ) {
     return <main className="flex-1 overflow-y-auto">{children}</main>;
   }
 
