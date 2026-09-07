@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users } from "lucide-react";
+import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import MemberProfileModal from "@/components/MemberProfileModal";
 import JoinQuestionModal from "@/components/JoinQuestionModal";
+import ReportModal from "@/components/ReportModal";
 import { getDefaultCoverMap, resolveCircleCover } from "@/lib/appSettings";
 import { getCircleDisplayStatus, STATUS_LABEL, isCircleFull } from "@/lib/circleStatus";
 import { extractStoragePath } from "@/lib/storagePath";
@@ -38,6 +39,10 @@ export default function CircleDetailPage() {
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [hasNewComment, setHasNewComment] = useState(false);
   const [joinedCount, setJoinedCount] = useState(0);
+  const [showViewerMenu, setShowViewerMenu] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: "circle" | "user"; name?: string; userId?: string } | null>(
+    null
+  );
 
   const isJoined = myStatus === "joined";
   const isHost = !!(userId && circle && userId === circle.created_by);
@@ -316,6 +321,31 @@ export default function CircleDetailPage() {
                     className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                   >
                     <Trash2 size={14} /> Hapus Circle
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {!isHost && (
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setShowViewerMenu((s) => !s)}
+                className="p-2 rounded-full hover:bg-gray-100"
+                aria-label="Opsi Circle"
+              >
+                <MoreVertical size={20} />
+              </button>
+              {showViewerMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white border rounded-xl shadow-lg overflow-hidden z-50">
+                  <button
+                    onClick={() => {
+                      setShowViewerMenu(false);
+                      setReportTarget({ type: "circle", name: circle.name });
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                  >
+                    <Flag size={14} /> Laporkan Circle
                   </button>
                 </div>
               )}
@@ -643,7 +673,32 @@ export default function CircleDetailPage() {
       )}
 
       {selectedMember && (
-        <MemberProfileModal profile={selectedMember} onClose={() => setSelectedMember(null)} />
+        <MemberProfileModal
+          profile={selectedMember}
+          onClose={() => setSelectedMember(null)}
+          onReport={
+            selectedMember.id !== userId
+              ? () => {
+                  setReportTarget({
+                    type: "user",
+                    name: selectedMember.nickname || selectedMember.full_name,
+                    userId: selectedMember.id,
+                  });
+                  setSelectedMember(null);
+                }
+              : undefined
+          }
+        />
+      )}
+
+      {reportTarget && (
+        <ReportModal
+          targetType={reportTarget.type}
+          targetName={reportTarget.name}
+          targetCircleId={reportTarget.type === "circle" ? (circle?.id as string) : undefined}
+          targetUserId={reportTarget.type === "user" ? reportTarget.userId : undefined}
+          onClose={() => setReportTarget(null)}
+        />
       )}
 
       {/* Join button — sticky di bawah, hanya tampil di tab Detail */}

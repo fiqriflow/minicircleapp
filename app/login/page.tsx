@@ -48,6 +48,12 @@ export default function LoginPage() {
             </button>
           </div>
         </div>
+
+        <p className="text-xs text-gray-400 px-2">
+          Dengan masuk, kamu setuju dengan{" "}
+          <a href="/profile/syarat-ketentuan" className="underline">Syarat &amp; Ketentuan</a> dan{" "}
+          <a href="/profile/kebijakan-privasi" className="underline">Kebijakan Privasi</a> kami.
+        </p>
       </div>
     </div>
   );

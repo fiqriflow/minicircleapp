@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, HelpCircle, Info, ShieldCheck, LogOut, ChevronRight, BarChart3, MessageSquarePlus } from "lucide-react";
+import { User, HelpCircle, Info, ShieldCheck, LogOut, ChevronRight, BarChart3, MessageSquarePlus, FileText, Scale, Users2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function AccountMenuPage() {
@@ -66,6 +66,28 @@ export default function AccountMenuPage() {
           <Link href="/profile/masukan" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
             <MessageSquarePlus size={18} className="text-gray-400" />
             <span className="flex-1 text-sm font-medium">Masukan</span>
+            <ChevronRight size={16} className="text-gray-300" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Legal */}
+      <div className="space-y-2">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase px-1">Legal</h2>
+        <div className="bg-white rounded-2xl border divide-y overflow-hidden">
+          <Link href="/profile/panduan-komunitas" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+            <Users2 size={18} className="text-gray-400" />
+            <span className="flex-1 text-sm font-medium">Panduan Komunitas</span>
+            <ChevronRight size={16} className="text-gray-300" />
+          </Link>
+          <Link href="/profile/syarat-ketentuan" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+            <Scale size={18} className="text-gray-400" />
+            <span className="flex-1 text-sm font-medium">Syarat &amp; Ketentuan</span>
+            <ChevronRight size={16} className="text-gray-300" />
+          </Link>
+          <Link href="/profile/kebijakan-privasi" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+            <FileText size={18} className="text-gray-400" />
+            <span className="flex-1 text-sm font-medium">Kebijakan Privasi</span>
             <ChevronRight size={16} className="text-gray-300" />
           </Link>
         </div>

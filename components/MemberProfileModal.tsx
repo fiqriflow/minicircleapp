@@ -1,13 +1,15 @@
 "use client";
 
-import { MapPin, Instagram as InstagramIcon, X } from "lucide-react";
+import { MapPin, Instagram as InstagramIcon, X, Flag } from "lucide-react";
 
 export default function MemberProfileModal({
   profile,
   onClose,
+  onReport,
 }: {
   profile: any;
   onClose: () => void;
+  onReport?: () => void;
 }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -45,6 +47,15 @@ export default function MemberProfileModal({
             </div>
           )}
         </div>
+
+        {onReport && (
+          <button
+            onClick={onReport}
+            className="w-full flex items-center justify-center gap-1.5 text-sm text-gray-400 hover:text-red-500 pt-1"
+          >
+            <Flag size={14} /> Laporkan Pengguna
+          </button>
+        )}
       </div>
     </div>
   );
