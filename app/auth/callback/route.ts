@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const intent = searchParams.get("intent"); // "signup" | "login" | null
 
   if (code) {
     const supabase = await createClient();
@@ -13,6 +14,13 @@ export async function GET(request: Request) {
 
     if (user) {
       const isBrandNew = Date.now() - new Date(user.created_at).getTime() < 2 * 60 * 1000;
+
+      // Klik "Daftar dengan Google" tapi akun (email) ini sudah pernah terdaftar sebelumnya
+      // -> jangan lanjutkan sesi, arahkan balik ke halaman login dengan notice.
+      if (intent === "signup" && !isBrandNew) {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(`${origin}/login?notice=already-registered`);
+      }
 
       if (isBrandNew) {
         const { enabled, limit } = await getRegistrationLimit(supabase);

@@ -1,15 +1,29 @@
 "use client";
 
+import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const supabase = createClient();
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const handleGoogleAuth = async () => {
+  useEffect(() => {
+    if (searchParams.get("notice") === "already-registered") {
+      toast.error("Email ini sudah terdaftar", {
+        description: "Silakan klik \"Masuk dengan Google\" untuk login.",
+      });
+      router.replace("/login");
+    }
+  }, [searchParams, router]);
+
+  const handleGoogleAuth = async (intent: "login" | "signup") => {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${location.origin}/auth/callback`,
+        redirectTo: `${location.origin}/auth/callback?intent=${intent}`,
       },
     });
   };
@@ -24,7 +38,7 @@ export default function LoginPage() {
 
         <div className="bg-white border rounded-2xl shadow-sm p-6 space-y-6">
           <button
-            onClick={handleGoogleAuth}
+            onClick={() => handleGoogleAuth("login")}
             className="w-full flex items-center justify-center gap-3 border rounded-xl py-3 font-medium hover:bg-gray-100 transition"
           >
             <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="google" />
@@ -40,7 +54,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <p className="text-sm text-gray-500">Belum punya akun?</p>
             <button
-              onClick={handleGoogleAuth}
+              onClick={() => handleGoogleAuth("signup")}
               className="w-full flex items-center justify-center gap-3 bg-primary text-white rounded-xl py-3 font-medium hover:bg-primary-dark transition"
             >
               <img src="https://www.google.com/favicon.ico" className="w-5 h-5 bg-white rounded-full p-0.5" alt="google" />
@@ -56,5 +70,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
