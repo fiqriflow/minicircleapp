@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getHomeBanner } from "@/lib/appSettings";
-import BannerImage from "@/components/BannerImage";
+import BannerImage from "@/components/ui/BannerImage";
 
 export default async function HomeBannerSection() {
   const supabase = await createClient();

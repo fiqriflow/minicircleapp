@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import CircleCard, { Circle } from "./CircleCard";
+import CircleCard, { Circle } from "@/components/circle/CircleCard";
 
 const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const DAYS_SHOWN = 14;

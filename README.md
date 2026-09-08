@@ -6,8 +6,7 @@ Stack: Next.js 14 (App Router) + Tailwind + Supabase + Vercel.
 
 1. **Supabase**
    - Buat project di supabase.com
-   - Buka SQL Editor → jalankan isi `supabase/schema.sql`
-   - Jalankan juga `supabase/storage.sql` (untuk bucket foto profil & cover circle)
+   - Buka SQL Editor → jalankan semua file di `supabase/migrations/` **urut dari nomor terkecil ke terbesar** (0000, 0001, 0002, dst). Detail lihat `supabase/README.md`.
    - Authentication → Providers → aktifkan **Google**, isi Client ID/Secret dari Google Cloud Console
    - Authentication → URL Configuration → set Redirect URL: `https://DOMAIN_KAMU/auth/callback` (dan `http://localhost:3000/auth/callback` untuk dev)
    - Buat 1 user jadi super admin manual:
@@ -35,6 +34,20 @@ Stack: Next.js 14 (App Router) + Tailwind + Supabase + Vercel.
 - `/profile` — edit profil
 - `/circle/[id]` — detail circle (Line Up, Chat, Join/Batal)
 - `/admin/dashboard`, `/admin/player`, `/admin/circle` — khusus super admin (dilindungi middleware)
+
+## Struktur `components/`
+Dikelompokkan per fitur biar gampang dicari:
+- `layout/` — shell aplikasi, bottom nav, splash screen, notifikasi
+- `home/` — section-section halaman beranda
+- `circle/` — kartu circle & semua modal terkait circle (buat, join, dll)
+- `profile/` — modal terkait akun/profil
+- `admin/` — komponen khusus dashboard admin
+- `ui/` — komponen kecil yang dipakai lintas fitur (input lokasi, toggle, dll)
+- `icons/` — kumpulan ikon custom
+
+## Struktur `supabase/`
+Semua SQL ada di `migrations/`, diberi nomor urut. Lihat `supabase/README.md`
+untuk cara jalanin di project baru dan cara nambah migration baru.
 
 ## Catatan
 - Realtime chat bisa ditingkatkan pakai `supabase.channel()` biar auto-update tanpa reload.

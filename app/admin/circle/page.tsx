@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { extractStoragePath } from "@/lib/storagePath";
 import { getCirclePlusEnabled } from "@/lib/appSettings";
-import ChooseCircleTypeModal from "@/components/ChooseCircleTypeModal";
-import CreateCircleModal from "@/components/CreateCircleModal";
+import ChooseCircleTypeModal from "@/components/circle/ChooseCircleTypeModal";
+import CreateCircleModal from "@/components/circle/CreateCircleModal";
 
 export default function AdminCirclePage() {
   const supabase = createClient();

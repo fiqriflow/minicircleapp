@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { generateInviteCode } from "@/lib/inviteCode";
 import { extractStoragePath } from "@/lib/storagePath";
 import { toDateTimeLocalValue, fromDateTimeLocalValue } from "@/lib/dateTimeLocal";
-import LocationInput from "@/components/LocationInput";
+import LocationInput from "@/components/ui/LocationInput";
 
 const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Kulineran", "Ngopi", "Explore Alam"];
 

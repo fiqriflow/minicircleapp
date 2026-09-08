@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import ToggleSwitch from "@/components/ToggleSwitch";
+import ToggleSwitch from "@/components/ui/ToggleSwitch";
 
 export default function AdminSettingsPage() {
   const supabase = createClient();

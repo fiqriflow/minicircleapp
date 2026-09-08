@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import NotificationProfile from "./NotificationProfile";
-import IconBeranda from "./icons/IconBeranda";
-import IconExplore from "./icons/IconExplore";
-import IconMyCircle from "./icons/IconMyCircle";
-import IconAkun from "./icons/IconAkun";
+import NotificationProfile from "@/components/layout/NotificationProfile";
+import IconBeranda from "@/components/icons/IconBeranda";
+import IconExplore from "@/components/icons/IconExplore";
+import IconMyCircle from "@/components/icons/IconMyCircle";
+import IconAkun from "@/components/icons/IconAkun";
 
 const menu = [
   { href: "/", label: "Beranda", icon: IconBeranda },

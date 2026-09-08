@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import LocationInput from "@/components/LocationInput";
-import AvatarCropModal from "@/components/AvatarCropModal";
-import PolicyModal from "@/components/PolicyModal";
+import LocationInput from "@/components/ui/LocationInput";
+import AvatarCropModal from "@/components/profile/AvatarCropModal";
+import PolicyModal from "@/components/profile/PolicyModal";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
 const TOTAL_STEPS = 5;

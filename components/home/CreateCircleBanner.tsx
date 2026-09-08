@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getCirclePlusEnabled } from "@/lib/appSettings";
-import ChooseCircleTypeModal from "./ChooseCircleTypeModal";
-import CreateCircleModal from "./CreateCircleModal";
-import CircleCreatedDialog from "./CircleCreatedDialog";
+import ChooseCircleTypeModal from "@/components/circle/ChooseCircleTypeModal";
+import CreateCircleModal from "@/components/circle/CreateCircleModal";
+import CircleCreatedDialog from "@/components/circle/CircleCreatedDialog";
 
 export default function CreateCircleBanner() {
   const supabase = createClient();

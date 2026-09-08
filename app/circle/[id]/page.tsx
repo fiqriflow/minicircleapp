@@ -5,15 +5,15 @@ import { useParams, useRouter } from "next/navigation";
 import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import MemberProfileModal from "@/components/MemberProfileModal";
-import JoinQuestionModal from "@/components/JoinQuestionModal";
-import ReportModal from "@/components/ReportModal";
+import MemberProfileModal from "@/components/circle/MemberProfileModal";
+import JoinQuestionModal from "@/components/circle/JoinQuestionModal";
+import ReportModal from "@/components/circle/ReportModal";
 import { getDefaultCoverMap, resolveCircleCover } from "@/lib/appSettings";
 import { getCircleDisplayStatus, STATUS_LABEL, isCircleFull } from "@/lib/circleStatus";
 import { extractStoragePath } from "@/lib/storagePath";
 import { getJoinedCounts } from "@/lib/circleMembers";
 import { markCommentNotifRead } from "@/lib/notifications";
-import CreateCircleModal from "@/components/CreateCircleModal";
+import CreateCircleModal from "@/components/circle/CreateCircleModal";
 
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();

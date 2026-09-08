@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Pencil, Trash2, Info } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import LocationInput from "@/components/LocationInput";
-import AvatarCropModal from "@/components/AvatarCropModal";
-import DeleteAccountModal from "@/components/DeleteAccountModal";
+import LocationInput from "@/components/ui/LocationInput";
+import AvatarCropModal from "@/components/profile/AvatarCropModal";
+import DeleteAccountModal from "@/components/profile/DeleteAccountModal";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
 

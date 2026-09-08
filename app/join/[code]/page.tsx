@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import JoinQuestionModal from "@/components/JoinQuestionModal";
+import JoinQuestionModal from "@/components/circle/JoinQuestionModal";
 import { getDefaultCoverMap, resolveCircleCover } from "@/lib/appSettings";
 
 export default function JoinByInvitePage() {

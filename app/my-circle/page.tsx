@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import CircleCard, { Circle } from "@/components/CircleCard";
+import CircleCard, { Circle } from "@/components/circle/CircleCard";
 import { getDefaultCoverMap } from "@/lib/appSettings";
 import { getCircleDisplayStatus } from "@/lib/circleStatus";
 import { getJoinedCounts } from "@/lib/circleMembers";

@@ -1,9 +1,9 @@
 import { Suspense } from "react";
-import HomeBannerSection from "@/components/HomeBannerSection";
-import HomeUpcomingCircles from "@/components/HomeUpcomingCircles";
-import QuickAccessSection from "@/components/QuickAccessSection";
-import CreateCircleBanner from "@/components/CreateCircleBanner";
-import WelcomeDialog from "@/components/WelcomeDialog";
+import HomeBannerSection from "@/components/home/HomeBannerSection";
+import HomeUpcomingCircles from "@/components/home/HomeUpcomingCircles";
+import QuickAccessSection from "@/components/home/QuickAccessSection";
+import CreateCircleBanner from "@/components/home/CreateCircleBanner";
+import WelcomeDialog from "@/components/home/WelcomeDialog";
 
 export default function BerandaPage() {
   return (

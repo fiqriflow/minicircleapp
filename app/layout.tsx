@@ -1,9 +1,9 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import AppShell from "@/components/AppShell";
+import AppShell from "@/components/layout/AppShell";
 import { Toaster } from "sonner";
-import SplashScreen from "@/components/SplashScreen";
-import PwaRegister from "@/components/PwaRegister";
+import SplashScreen from "@/components/layout/SplashScreen";
+import PwaRegister from "@/components/layout/PwaRegister";
 
 export const metadata: Metadata = {
   title: "Mincle",

@@ -4,11 +4,11 @@ import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import CircleCard, { Circle } from "@/components/CircleCard";
-import CreateCircleModal from "@/components/CreateCircleModal";
-import ChooseCircleTypeModal from "@/components/ChooseCircleTypeModal";
-import CircleCreatedDialog from "@/components/CircleCreatedDialog";
-import LocationInput from "@/components/LocationInput";
+import CircleCard, { Circle } from "@/components/circle/CircleCard";
+import CreateCircleModal from "@/components/circle/CreateCircleModal";
+import ChooseCircleTypeModal from "@/components/circle/ChooseCircleTypeModal";
+import CircleCreatedDialog from "@/components/circle/CircleCreatedDialog";
+import LocationInput from "@/components/ui/LocationInput";
 import { getCirclePlusEnabled, getDefaultCoverMap } from "@/lib/appSettings";
 import { getJoinedCounts } from "@/lib/circleMembers";
 
