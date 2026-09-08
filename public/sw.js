@@ -57,3 +57,46 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+// ================= Push Notification =================
+// Server (route /api/push/send) ngirim push dengan payload JSON:
+// { title, body, url, icon }
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "Mincle", body: event.data ? event.data.text() : "" };
+  }
+
+  const title = data.title || "Mincle";
+  const options = {
+    body: data.body || "",
+    icon: data.icon || "/icons/icon-192.png",
+    badge: "/icons/icon-192.png",
+    data: { url: data.url || "/" },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Klik notif -> buka/fokus tab app, arahkan ke url terkait
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(targetUrl) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clientList.length > 0 && "focus" in clientList[0]) {
+        clientList[0].navigate(targetUrl);
+        return clientList[0].focus();
+      }
+      return self.clients.openWindow(targetUrl);
+    })
+  );
+});

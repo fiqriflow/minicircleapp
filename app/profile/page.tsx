@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { User, HelpCircle, Info, ShieldCheck, LogOut, ChevronRight, BarChart3, MessageSquarePlus, FileText, Scale, Users2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { unsubscribeFromPush } from "@/lib/push";
 
 export default function AccountMenuPage() {
   const supabase = createClient();
@@ -23,6 +24,7 @@ export default function AccountMenuPage() {
 
   const handleLogout = async () => {
     if (!confirm("Yakin mau keluar?")) return;
+    await unsubscribeFromPush().catch(() => {});
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
