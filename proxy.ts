@@ -23,6 +23,21 @@ export async function proxy(request: NextRequest) {
     }
   );
 
+  // FIX: session logout sendiri secara acak (terutama admin yang sering
+  // pindah halaman) -> penyebabnya redirect di bawah ini bikin
+  // NextResponse.redirect() BARU, yang gak bawa cookie sesi yang baru
+  // di-refresh Supabase (tersimpan di `response` lewat setAll di atas).
+  // Kalau pas momen itu access token lagi di-refresh (rotate refresh
+  // token), cookie baru ke-buang -> request berikutnya browser masih
+  // kirim refresh token LAMA yang udah gak valid -> ke-logout paksa.
+  // Solusinya: setiap redirect, salin dulu cookie dari `response` ke
+  // redirect response-nya.
+  const redirect = (path: string) => {
+    const redirectResponse = NextResponse.redirect(new URL(path, request.url));
+    response.cookies.getAll().forEach((cookie) => redirectResponse.cookies.set(cookie));
+    return redirectResponse;
+  };
+
   const { data: { user } } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
@@ -36,7 +51,7 @@ export async function proxy(request: NextRequest) {
     path === "/profile/panduan-komunitas";
 
   if (!user && !isAuthPage) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return redirect("/login");
   }
 
   if (user && !isAuthPage) {
@@ -50,11 +65,11 @@ export async function proxy(request: NextRequest) {
       profile?.is_banned || (profile?.suspended_until && new Date(profile.suspended_until) > new Date());
 
     if (isSuspendedNow && !isSuspendedPage) {
-      return NextResponse.redirect(new URL("/akun-dinonaktifkan", request.url));
+      return redirect("/akun-dinonaktifkan");
     }
 
     if (!isSuspendedNow && isSuspendedPage) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return redirect("/");
     }
 
     if (isSuspendedNow) {
@@ -66,15 +81,15 @@ export async function proxy(request: NextRequest) {
     }
 
     if (!profile?.onboarding_completed && !isOnboardingPage) {
-      return NextResponse.redirect(new URL("/onboarding", request.url));
+      return redirect("/onboarding");
     }
 
     if (profile?.onboarding_completed && isOnboardingPage) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return redirect("/");
     }
 
     if (isAdminPage && !profile?.is_super_admin) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return redirect("/");
     }
   }
 
