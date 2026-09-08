@@ -53,10 +53,11 @@ export default function AdminPlayerPage() {
     }
     if (
       !confirm(
-        `Hapus data player "${player.full_name || player.nickname || player.id}"?\n\n` +
+        `Hapus data player "${player.full_name || player.nickname || player.id}" (Soft Delete)?\n\n` +
           "Profil, keikutsertaan di circle, dan komentarnya akan ikut terhapus. " +
           "Circle yang pernah dia buat tetap ada (host-nya jadi kosong). " +
-          "Akun login (email/password) tidak ikut terhapus dari sistem autentikasi."
+          "Akun Google-nya TIDAK ikut terhapus — kalau dia login lagi pakai akun yang sama, " +
+          "dia akan diarahkan isi ulang data dari awal seperti daftar baru."
       )
     )
       return;
@@ -65,7 +66,40 @@ export default function AdminPlayerPage() {
       alert("Gagal hapus user: " + error.message);
       return;
     }
-    toast.success("Player berhasil dihapus.");
+    toast.success("Player berhasil dihapus (soft delete).");
+    load();
+  };
+
+  const handleHardDelete = async (player: any) => {
+    if (player.id === currentUserId) {
+      alert("Kamu tidak bisa menghapus akunmu sendiri.");
+      return;
+    }
+    if (
+      !confirm(
+        `HAPUS PERMANEN akun "${player.full_name || player.nickname || player.id}"?\n\n` +
+          "Ini menghapus profil DAN akun Google-nya sekaligus dari sistem autentikasi. " +
+          "Emailnya akan benar-benar bersih, seolah belum pernah daftar sama sekali. " +
+          "AKSI INI TIDAK BISA DIBATALKAN."
+      )
+    )
+      return;
+    const confirmText = prompt('Ketik "HAPUS" untuk konfirmasi hapus permanen:');
+    if (confirmText !== "HAPUS") {
+      if (confirmText !== null) alert("Konfirmasi tidak sesuai, dibatalkan.");
+      return;
+    }
+    const res = await fetch("/api/admin/hard-delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: player.id }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      alert("Gagal hapus permanen: " + (json.error || res.statusText));
+      return;
+    }
+    toast.success("Akun berhasil dihapus permanen.");
     load();
   };
 
@@ -195,7 +229,8 @@ export default function AdminPlayerPage() {
                   <button onClick={() => handleSuspendPermanent(p)} className="text-red-600 font-medium py-2">Nonaktifkan Permanen</button>
                 </>
               )}
-              <button onClick={() => handleDelete(p)} className="text-red-500 font-medium py-2">Hapus</button>
+              <button onClick={() => handleDelete(p)} className="text-red-500 font-medium py-2">Hapus (Soft)</button>
+              <button onClick={() => handleHardDelete(p)} className="text-red-700 font-bold py-2">Hapus Permanen</button>
             </div>
           </div>
         ))}
@@ -240,7 +275,8 @@ export default function AdminPlayerPage() {
                       <button onClick={() => handleSuspendPermanent(p)} className="text-red-600 underline">Ban</button>
                     </>
                   )}
-                  <button onClick={() => handleDelete(p)} className="text-red-500 underline">Hapus</button>
+                  <button onClick={() => handleDelete(p)} className="text-red-500 underline">Hapus (Soft)</button>
+                  <button onClick={() => handleHardDelete(p)} className="text-red-700 underline font-bold">Hapus Permanen</button>
                 </td>
               </tr>
             ))}
