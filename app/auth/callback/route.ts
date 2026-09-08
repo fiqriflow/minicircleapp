@@ -7,55 +7,62 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const intent = searchParams.get("intent"); // "signup" | "login" | null
 
-  if (code) {
-    const supabase = await createClient();
-    const { data } = await supabase.auth.exchangeCodeForSession(code);
-    const user = data?.user;
+  // Google/Supabase bisa balikin error langsung di query (misal user cancel
+  // consent, atau provider error) tanpa "code" sama sekali. Sebelumnya ini
+  // gak ditangkap -> langsung redirect ke "/" -> proxy nemu belum ada
+  // session -> tendang balik ke /login -> KELIHATAN LOOP padahal ini gagal
+  // senyap. Sekarang ditangkap & dikasih notice yang jelas.
+  const oauthError = searchParams.get("error_description") || searchParams.get("error");
+  if (oauthError) {
+    return NextResponse.redirect(
+      `${origin}/login?notice=auth-failed&reason=${encodeURIComponent(oauthError)}`
+    );
+  }
 
-    if (user) {
-      const isBrandNew = Date.now() - new Date(user.created_at).getTime() < 2 * 60 * 1000;
+  if (!code) {
+    return NextResponse.redirect(`${origin}/login?notice=auth-failed`);
+  }
 
-      // FIX: fitur "Hapus Akun" cuma soft-delete baris `profiles`, auth.users
-      // TETAP ada. Jadi user yang login lagi pakai akun Google yg sama abis
-      // dihapus, created_at-nya lama (isBrandNew = false) padahal profilnya
-      // sudah gak ada. Sebelumnya intent "signup" langsung dianggap
-      // "sudah terdaftar" cuma modal isBrandNew, gak ngecek profilnya masih
-      // ada beneran atau enggak — makanya tombol "Daftar" salah nolak,
-      // sedangkan tombol "Masuk" (gak lewat cek ini) malah lolos ke onboarding.
-      // Query profiles cuma perlu jalan buat user yang bukan brand-new
-      // (brand-new pasti sudah punya baris profiles dari trigger
-      // on_auth_user_created, jadi gak perlu dicek).
-      let hasProfile = true;
-      if (!isBrandNew) {
-        const { data: existingProfile } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("id", user.id)
-          .maybeSingle();
-        hasProfile = !!existingProfile;
-      }
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
-      // Klik "Daftar dengan Google" tapi akun ini beneran masih aktif terdaftar
-      // (bukan baru, dan baris profiles-nya masih ada) -> tolak ke login.
-      // Kalau profilnya udah dihapus (meski auth.users lama), TETAP diizinkan
-      // lanjut supaya user bisa daftar ulang / isi onboarding dari awal.
-      if (intent === "signup" && !isBrandNew && hasProfile) {
+  // FIX UTAMA: kalau tukar code->session gagal (mis. cookie code_verifier
+  // gak kesimpen/kebaca di browser HP tertentu, koneksi putus, dll),
+  // sebelumnya kode ini diam-diam lanjut ke redirect "/" seolah sukses.
+  // Itu yang bikin looping tak berujung ke /login. Sekarang begitu gagal,
+  // langsung kasih tau user & jangan pura-pura lanjut.
+  if (error || !data?.user) {
+    return NextResponse.redirect(
+      `${origin}/login?notice=auth-failed&reason=${encodeURIComponent(error?.message || "no-session")}`
+    );
+  }
+
+  const user = data.user;
+  const isBrandNew = Date.now() - new Date(user.created_at).getTime() < 2 * 60 * 1000;
+
+  let hasProfile = true;
+  if (!isBrandNew) {
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+    hasProfile = !!existingProfile;
+  }
+
+  if (intent === "signup" && !isBrandNew && hasProfile) {
+    await supabase.auth.signOut();
+    return NextResponse.redirect(`${origin}/login?notice=already-registered`);
+  }
+
+  if (isBrandNew || !hasProfile) {
+    const { enabled, limit } = await getRegistrationLimit(supabase);
+    if (enabled && limit > 0) {
+      const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true });
+      if ((count ?? 0) > limit) {
+        await supabase.from("profiles").delete().eq("id", user.id);
         await supabase.auth.signOut();
-        return NextResponse.redirect(`${origin}/login?notice=already-registered`);
-      }
-
-      // Cek kuota pendaftaran buat user baru ATAU bekas hapus akun
-      // (keduanya butuh baris profiles baru / diisi ulang dari awal).
-      if (isBrandNew || !hasProfile) {
-        const { enabled, limit } = await getRegistrationLimit(supabase);
-        if (enabled && limit > 0) {
-          const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true });
-          if ((count ?? 0) > limit) {
-            await supabase.from("profiles").delete().eq("id", user.id);
-            await supabase.auth.signOut();
-            return NextResponse.redirect(`${origin}/pendaftaran-ditutup`);
-          }
-        }
+        return NextResponse.redirect(`${origin}/pendaftaran-ditutup`);
       }
     }
   }
