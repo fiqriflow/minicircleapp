@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import ToggleSwitch from "@/components/ToggleSwitch";
 
 export default function AdminSettingsPage() {
   const supabase = createClient();
@@ -70,51 +71,30 @@ export default function AdminSettingsPage() {
       <h1 className="text-xl font-bold">Pengaturan</h1>
 
       <div className="bg-white rounded-2xl border p-4 flex items-center justify-between gap-4">
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="font-medium">Fitur Circle+</p>
           <p className="text-sm text-gray-400">
             Kalau dimatikan, pilihan Circle+ saat buat circle baru akan diarahkan ke halaman "Segera Hadir".
           </p>
         </div>
-        <button
-          onClick={handleToggle}
-          disabled={saving}
-          className={`shrink-0 w-14 h-8 rounded-full transition-colors relative ${
-            circlePlusEnabled ? "bg-primary" : "bg-gray-300"
-          }`}
-          aria-label="Toggle Circle+"
-        >
-          <span
-            className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${
-              circlePlusEnabled ? "translate-x-7" : "translate-x-1"
-            }`}
-          />
-        </button>
+        <ToggleSwitch checked={circlePlusEnabled} onChange={handleToggle} disabled={saving} label="Toggle Circle+" />
       </div>
 
       <div className="bg-white rounded-2xl border p-4 space-y-4">
         <div className="flex items-center justify-between gap-4">
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="font-medium">Batasi Pendaftar Baru</p>
             <p className="text-sm text-gray-400">
               Kalau diaktifkan, pendaftaran akun baru ditolak otomatis setelah jumlah total user mencapai batas.
               User yang sudah terdaftar tidak terpengaruh.
             </p>
           </div>
-          <button
-            onClick={handleToggleRegLimit}
+          <ToggleSwitch
+            checked={regLimitEnabled}
+            onChange={handleToggleRegLimit}
             disabled={savingReg}
-            className={`shrink-0 w-14 h-8 rounded-full transition-colors relative ${
-              regLimitEnabled ? "bg-primary" : "bg-gray-300"
-            }`}
-            aria-label="Toggle Batasi Pendaftar Baru"
-          >
-            <span
-              className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${
-                regLimitEnabled ? "translate-x-7" : "translate-x-1"
-              }`}
-            />
-          </button>
+            label="Toggle Batasi Pendaftar Baru"
+          />
         </div>
 
         <div className="flex items-center gap-2">
