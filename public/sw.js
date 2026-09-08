@@ -44,16 +44,24 @@ self.addEventListener("fetch", (event) => {
   // Untuk asset statis: cache-first biar cepat, tetap update cache di background.
   event.respondWith(
     caches.match(request).then((cached) => {
-      const network = fetch(request)
-        .then((res) => {
-          if (res && res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return res;
-        })
-        .catch(() => cached);
-      return cached || network;
+      if (cached) {
+        // update cache di background, gak nunggu — user tetap dapet response cepat dari cache
+        fetch(request)
+          .then((res) => {
+            if (res && res.ok) {
+              caches.open(CACHE_NAME).then((cache) => cache.put(request, res.clone()));
+            }
+          })
+          .catch(() => {});
+        return cached;
+      }
+
+      return fetch(request).then((res) => {
+        if (res && res.ok) {
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, res.clone()));
+        }
+        return res;
+      });
     })
   );
 });

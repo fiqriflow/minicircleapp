@@ -9,26 +9,31 @@ export default function PwaRegister() {
     if (typeof window === "undefined") return;
     if (!("serviceWorker" in navigator)) return;
 
-    window.addEventListener("load", async () => {
-      try {
-        await navigator.serviceWorker.register("/sw.js");
-      } catch (err) {
-        console.error("SW registration failed:", err);
-        return;
-      }
+    let cancelled = false;
 
-      // Cuma tawarin push notif kalau user udah login.
-      // Kalau user belum kasih izin (default), request sekali di sini;
-      // kalau udah pernah ditolak, browser gak akan nanya lagi (aman, silent).
-      const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    navigator.serviceWorker.register("/sw.js").catch((err) => {
+      console.error("SW registration failed:", err);
+    });
 
-      if (user) {
+    const supabase = createClient();
+
+    // Kalau component ini mount pas user UDAH login (misal reload halaman while logged in)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!cancelled && user) subscribeToPush().catch(() => {});
+    });
+
+    // Kalau user baru aja login TANPA reload halaman penuh (client-side redirect),
+    // window "load" udah lama kepanggil duluan, jadi dengerin auth state langsung.
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
         subscribeToPush().catch(() => {});
       }
     });
+
+    return () => {
+      cancelled = true;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   return null;
