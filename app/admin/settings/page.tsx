@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 export default function AdminSettingsPage() {
   const supabase = createClient();
@@ -47,12 +48,19 @@ export default function AdminSettingsPage() {
   const handleSaveRegLimitCount = async () => {
     const n = Number(regLimitCount);
     if (!Number.isFinite(n) || n < 0) {
-      alert("Masukkan angka yang valid.");
+      toast.error("Masukkan angka yang valid.");
       return;
     }
     setSavingReg(true);
-    await supabase.from("app_settings").upsert({ key: "registration_limit_count", value: String(n) });
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ key: "registration_limit_count", value: String(n) });
     setSavingReg(false);
+    if (error) {
+      toast.error("Gagal menyimpan kuota: " + error.message);
+      return;
+    }
+    toast.success(`Kuota pendaftar disimpan: ${n} user.`);
   };
 
   if (loading) return <p className="text-gray-400">Memuat...</p>;
