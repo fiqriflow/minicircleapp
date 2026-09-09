@@ -22,11 +22,13 @@ export default function CircleCard({
   circle,
   joinedCount,
   currentUserId,
+  isJoined,
 }: {
   circle: Circle;
   defaultCoverMap?: Record<string, string>;
   joinedCount?: number;
   currentUserId?: string | null;
+  isJoined?: boolean;
 }) {
   const isMyHost = !!currentUserId && circle.created_by === currentUserId;
   const max = circle.max_participants ?? null;
@@ -43,13 +45,8 @@ export default function CircleCard({
       className="block bg-white rounded-2xl border p-4 space-y-2 hover:shadow-md transition"
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="min-w-0 flex-1 font-semibold flex items-start gap-1.5">
+        <h3 className="min-w-0 flex-1 font-semibold">
           <span className="break-words line-clamp-2">{circle.name}</span>
-          {isMyHost && (
-            <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full shrink-0 mt-0.5">
-              Host
-            </span>
-          )}
         </h3>
         <span
           className={`shrink-0 text-xs font-medium px-2 py-1 rounded-full ${statusInfo.className}`}
@@ -57,6 +54,20 @@ export default function CircleCard({
           {statusInfo.label}
         </span>
       </div>
+
+      {(isMyHost || isJoined) && (
+        <div>
+          {isMyHost ? (
+            <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+              Host
+            </span>
+          ) : (
+            <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
+              Diikuti
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center gap-2 text-sm text-gray-500">
         <span className="flex items-center gap-1">

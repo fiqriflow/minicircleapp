@@ -24,6 +24,7 @@ function MyCircleContent() {
   const [loading, setLoading] = useState(true);
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [joinedCounts, setJoinedCounts] = useState<Record<string, number>>({});
+  const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,6 +57,7 @@ function MyCircleContent() {
       // tidak dobel ditampilkan di tab Sedang Diikuti — cukup di tab Host.
       const hostedIds = new Set(hostedAll.map((c) => c.id));
       const joinedOnly = joinedAll.filter((c) => !hostedIds.has(c.id));
+      setJoinedIds(new Set(joinedOnly.map((c) => c.id)));
 
       setHosted(hostedAll.filter((c: any) => ["open", "full", "ongoing"].includes(getCircleDisplayStatus(c))));
       setActive(joinedOnly.filter((c: any) => ["open", "full", "ongoing"].includes(getCircleDisplayStatus(c))));
@@ -111,7 +113,7 @@ function MyCircleContent() {
         <div className="grid grid-cols-1 gap-4">
           {list.length ? (
             list.map((c) => (
-              <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} currentUserId={currentUserId} />
+              <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} currentUserId={currentUserId} isJoined={joinedIds.has(c.id)} />
             ))
           ) : (
             <p className="text-gray-400 text-sm">

@@ -37,6 +37,7 @@ function ExploreContent() {
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [circlePlusEnabled, setCirclePlusEnabled] = useState(true);
   const [joinedCounts, setJoinedCounts] = useState<Record<string, number>>({});
+  const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(() => {
     const d = new Date();
@@ -56,6 +57,13 @@ function ExploreContent() {
       setCurrentUserId(user.id);
       const { data } = await supabase.from("profiles").select("location").eq("id", user.id).single();
       if (data?.location) setLocation((prev) => prev || data.location);
+
+      const { data: memberships } = await supabase
+        .from("circle_members")
+        .select("circle_id")
+        .eq("user_id", user.id)
+        .eq("status", "joined");
+      setJoinedIds(new Set((memberships ?? []).map((m) => m.circle_id)));
     };
     loadUserLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -192,7 +200,7 @@ function ExploreContent() {
         <div className="grid grid-cols-1 gap-4">
           {filteredCircles.length ? (
             filteredCircles.map((c) => (
-              <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} currentUserId={currentUserId} />
+              <CircleCard key={c.id} circle={c} defaultCoverMap={defaultCoverMap} joinedCount={joinedCounts[c.id]} currentUserId={currentUserId} isJoined={joinedIds.has(c.id)} />
             ))
           ) : (
             <p className="text-gray-400 text-sm">

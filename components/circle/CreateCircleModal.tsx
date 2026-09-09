@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { generateInviteCode } from "@/lib/inviteCode";
@@ -63,6 +63,27 @@ export default function CreateCircleModal({
   const [coverError, setCoverError] = useState(false);
   const [error, setError] = useState("");
   const [host, setHost] = useState<any>(null);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
+  // Di HP, pas keyboard muncul, browser ngecilin "visual viewport" tapi elemen
+  // position:fixed tetap ngikutin ukuran layar penuh -> sheet ini jadi ketutupan
+  // keyboard. Dengerin visualViewport biar tingginya ikut nyesuain.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handleResize = () => setViewportHeight(vv.height);
+    handleResize();
+    vv.addEventListener("resize", handleResize);
+    return () => vv.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Auto-scroll input yang lagi difokus biar keliatan di atas keyboard.
+  const handleFieldFocus = (e: React.FocusEvent<HTMLElement>) => {
+    const target = e.target;
+    setTimeout(() => {
+      target.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 300);
+  };
 
   useEffect(() => {
     const loadHost = async () => {
@@ -195,8 +216,14 @@ export default function CreateCircleModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50">
-      <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-3 max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-x-0 top-0 bg-black/40 flex items-end justify-center z-50"
+      style={{ height: viewportHeight ? `${viewportHeight}px` : "100vh" }}
+    >
+      <div
+        className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-3 max-h-[90%] overflow-y-auto"
+        onFocusCapture={handleFieldFocus}
+      >
         <h2 className="font-bold text-lg">
           {isEdit ? "Edit Circle" : `Buat ${isPlus ? "Circle+" : "Circle"} Baru`}
         </h2>
