@@ -4,8 +4,8 @@ import Link from "next/link";
 
 export default function CircleCreatedDialog({ onClose }: { onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center space-y-4">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center space-y-4 animate-pop-in">
         <img src="/mascotsukses.svg" alt="Berhasil" className="w-32 h-32 mx-auto" />
         <div>
           <h2 className="font-bold text-lg">Circle Berhasil Dibuat!</h2>
