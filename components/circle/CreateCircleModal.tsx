@@ -199,7 +199,6 @@ export default function CreateCircleModal({
     }
 
     setSaving(false);
-    toast.success(`${isPlus ? "Circle+" : "Circle"} berhasil dibuat!`);
     onCreated();
     onClose();
   };
