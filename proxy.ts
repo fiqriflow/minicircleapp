@@ -2,6 +2,16 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  // Endpoint push notification dipanggil server-ke-server (Supabase Database
+  // Webhook) atau dari client tapi divalidasi manual di dalam route-nya sendiri
+  // (subscribe/unsubscribe pakai session, send pakai secret header) -> gak
+  // punya cookie login kayak request browser biasa, jadi jangan di-redirect.
+  if (path.startsWith("/api/push/")) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -40,7 +50,6 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  const path = request.nextUrl.pathname;
   const isAuthPage = path === "/login" || path.startsWith("/auth") || path === "/pendaftaran-ditutup";
   const isAdminPage = path.startsWith("/admin");
   const isOnboardingPage = path === "/onboarding";
