@@ -2,6 +2,8 @@
 
 import { MapPin, Instagram as InstagramIcon, X, Flag } from "lucide-react";
 
+const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
+
 export default function MemberProfileModal({
   profile,
   onClose,
@@ -39,6 +41,11 @@ export default function MemberProfileModal({
           {profile.location && (
             <div className="flex items-center justify-center gap-2 text-gray-500">
               <MapPin size={14} /> {profile.location}
+            </div>
+          )}
+          {GENDER_LABEL[profile.gender] && (
+            <div className="flex items-center justify-center gap-2 text-gray-500">
+              ⚧ {GENDER_LABEL[profile.gender]}
             </div>
           )}
           {profile.instagram && (

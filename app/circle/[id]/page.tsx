@@ -168,6 +168,32 @@ export default function CircleDetailPage() {
     load();
   };
 
+  const handleCheckin = async (memberRowId: string) => {
+    const { error } = await supabase
+      .from("circle_members")
+      .update({ checked_in: true, checked_in_at: new Date().toISOString() })
+      .eq("id", memberRowId);
+    if (error) {
+      toast.error("Gagal check-in: " + error.message);
+      return;
+    }
+    toast.success("Check-in berhasil!");
+    load();
+  };
+
+  const handleToggleCheckinHost = async (m: any) => {
+    const next = !m.checked_in;
+    const { error } = await supabase
+      .from("circle_members")
+      .update({ checked_in: next, checked_in_at: next ? new Date().toISOString() : null })
+      .eq("id", m.id);
+    if (error) {
+      toast.error("Gagal ubah status hadir: " + error.message);
+      return;
+    }
+    load();
+  };
+
   const handleSendComment = async () => {
     if (!newComment.trim() || !userId || isCommentLocked) return;
     await supabase.from("circle_comments").insert({
@@ -588,35 +614,62 @@ export default function CircleDetailPage() {
 
       {tab === "lineup" && (
         <div className="space-y-3">
-          {members.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => isJoined && setSelectedMember(m.profile)}
-              className="w-full flex items-center justify-between gap-3 border rounded-xl p-3 text-left hover:bg-gray-50"
-            >
-              <div className="flex items-center gap-3">
-                <img
-                  src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
-                  className="w-10 h-10 rounded-full object-cover"
-                  alt=""
-                />
-                <div>
-                  <p className="font-medium">{m.profile?.nickname || m.profile?.full_name}</p>
-                  {isJoined && <p className="text-xs text-gray-400">Lihat profil</p>}
+          {(displayStatus === "ongoing" || displayStatus === "completed") && (
+            <p className="text-xs text-gray-400">
+              {members.filter((m) => m.checked_in).length}/{members.length} sudah check-in
+            </p>
+          )}
+          {members.map((m) => {
+            const canSelfCheckin = displayStatus === "ongoing" && m.user_id === userId && !m.checked_in;
+            const canHostOverride = isHost && displayStatus === "completed";
+            return (
+              <div
+                key={m.id}
+                className="w-full flex items-center justify-between gap-3 border rounded-xl p-3"
+              >
+                <button
+                  onClick={() => isJoined && setSelectedMember(m.profile)}
+                  className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                >
+                  <img
+                    src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
+                    className="w-10 h-10 rounded-full object-cover shrink-0"
+                    alt=""
+                  />
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{m.profile?.nickname || m.profile?.full_name}</p>
+                    {isJoined && <p className="text-xs text-gray-400">Lihat profil</p>}
+                  </div>
+                </button>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {m.checked_in && (
+                    <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                      ✅ Hadir
+                    </span>
+                  )}
+
+                  {canSelfCheckin && (
+                    <button
+                      onClick={() => handleCheckin(m.id)}
+                      className="text-xs font-semibold text-white bg-primary px-3 py-1.5 rounded-full"
+                    >
+                      Check-in
+                    </button>
+                  )}
+
+                  {canHostOverride && (
+                    <button
+                      onClick={() => handleToggleCheckinHost(m)}
+                      className="text-xs text-gray-500 underline whitespace-nowrap"
+                    >
+                      {m.checked_in ? "Batalkan" : "Tandai Hadir"}
+                    </button>
+                  )}
                 </div>
               </div>
-              {m.profile?.gender === "male" && (
-                <span className="shrink-0 w-7 h-7 rounded-lg bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
-                  ♂
-                </span>
-              )}
-              {m.profile?.gender === "female" && (
-                <span className="shrink-0 w-7 h-7 rounded-lg bg-pink-500 text-white flex items-center justify-center font-bold text-sm">
-                  ♀
-                </span>
-              )}
-            </button>
-          ))}
+            );
+          })}
           {!members.length && <p className="text-gray-400 text-sm">Belum ada yang join.</p>}
         </div>
       )}

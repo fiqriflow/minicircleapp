@@ -4,7 +4,8 @@ export type NotificationType =
   | "new_comment"
   | "circle_completed"
   | "circle_cancelled"
-  | "slot_available";
+  | "slot_available"
+  | "no_show_energy";
 
 export type AppNotification = {
   id: string;
