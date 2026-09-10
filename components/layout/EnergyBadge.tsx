@@ -51,7 +51,7 @@ export default function EnergyBadge() {
         <div className="absolute right-0 mt-2 w-56 bg-white border rounded-xl shadow-lg z-50 p-3 text-xs text-gray-600 space-y-1">
           <p className="font-semibold text-gray-800">⚡ Energy</p>
           <p>Dipakai tiap kali kamu buat circle baru (-1). Reset otomatis jadi {MAX_ENERGY} setiap Senin jam 00.00.</p>
-          {isLow && <p className="text-red-500 font-medium">Energy habis. Reset berikutnya: {getNextResetLabel()}.</p>}
+          {isLow && <p className="text-red-500 font-medium">Energy habis. Reset {getNextResetLabel()}.</p>}
         </div>
       )}
     </div>
