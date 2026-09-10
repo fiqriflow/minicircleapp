@@ -94,6 +94,14 @@ export async function proxy(request: NextRequest) {
     return redirect("/");
   }
 
+  // Begitu user (yang emang seharusnya diblokir) udah nyampe di /maintenance,
+  // STOP di sini -> jangan lanjut ke cek onboarding/suspended/dst di bawah,
+  // soalnya itu bisa nge-redirect balik ke halaman lain yang ketimpa aturan
+  // maintenance lagi -> bolak-balik selamanya (infinite redirect loop).
+  if (isMaintenancePage) {
+    return response;
+  }
+
   if (!user && !isAuthPage) {
     return redirect("/login");
   }
