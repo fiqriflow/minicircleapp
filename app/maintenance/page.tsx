@@ -1,8 +1,11 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Wrench } from "lucide-react";
 
 export default function MaintenancePage() {
+  const router = useRouter();
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-6">
       <div className="w-full max-w-sm text-center space-y-4">
@@ -18,10 +21,10 @@ export default function MaintenancePage() {
         </p>
 
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => router.replace("/login")}
           className="w-full border rounded-xl py-3 font-medium text-gray-600"
         >
-          Coba Lagi
+          Kembali ke Halaman Masuk
         </button>
       </div>
     </div>

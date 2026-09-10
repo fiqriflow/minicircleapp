@@ -8,6 +8,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isAdmin = pathname.startsWith("/admin");
   const isLogin = pathname === "/login";
+  const isMaintenance = pathname === "/maintenance";
 
   // FIX: di PWA (standalone) iOS/Android, tinggi viewport (dvh) kadang telat
   // ke-kalkulasi pas pertama load — bikin frame lebih tinggi dari layar asli,
@@ -43,8 +44,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return <main className="min-h-screen">{children}</main>;
   }
 
-  // Login: bare, tetap dalam frame (tanpa BottomNav)
-  if (isLogin) {
+  // Login & Maintenance: bare, tetap dalam frame (tanpa BottomNav)
+  if (isLogin || isMaintenance) {
     return (
       <div className="min-h-screen bg-gray-200 flex justify-center">
         <div
