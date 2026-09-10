@@ -63,7 +63,12 @@ export default function CreateCircleModal({
   const [coverError, setCoverError] = useState(false);
   const [error, setError] = useState("");
   const [host, setHost] = useState<any>(null);
+  const [hostChecked, setHostChecked] = useState(false);
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
+  const missingInstagram = !isEdit && hostChecked && !host?.instagram;
+  const missingAvatar = !isEdit && hostChecked && !host?.avatar_url;
+  const profileIncomplete = missingInstagram || missingAvatar;
 
   // Di HP, pas keyboard muncul, browser ngecilin "visual viewport" tapi elemen
   // position:fixed tetap ngikutin ukuran layar penuh -> sheet ini jadi ketutupan
@@ -89,8 +94,9 @@ export default function CreateCircleModal({
     const loadHost = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("full_name, nickname, avatar_url").eq("id", user.id).single();
+      const { data } = await supabase.from("profiles").select("full_name, nickname, avatar_url, instagram").eq("id", user.id).single();
       setHost(data);
+      setHostChecked(true);
     };
     loadHost();
   }, []);
@@ -118,6 +124,10 @@ export default function CreateCircleModal({
   };
 
   const handleSave = async () => {
+    if (profileIncomplete) {
+      setError("Lengkapi foto profil (wajah jelas) dan Instagram dulu sebelum buat circle.");
+      return;
+    }
     if (!form.name || !form.city || !form.location || !form.event_date) {
       setError("Lengkapi semua field wajib dulu ya.");
       return;
@@ -226,6 +236,46 @@ export default function CreateCircleModal({
         <h2 className="font-bold text-lg">
           {isEdit ? "Edit Circle" : `Buat ${isPlus ? "Circle+" : "Circle"} Baru`}
         </h2>
+
+        {profileIncomplete ? (
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-gray-600">
+              Sebelum buat circle, lengkapi dulu profilmu supaya calon member percaya sama host-nya:
+            </p>
+            <ul className="text-sm space-y-1">
+              {missingAvatar && (
+                <li className="flex items-center gap-2 text-red-500">
+                  ⚠️ Foto profil wajib diisi (pakai foto wajah yang jelas, bukan logo/kartun)
+                </li>
+              )}
+              {missingInstagram && (
+                <li className="flex items-center gap-2 text-red-500">
+                  ⚠️ Username Instagram wajib diisi
+                </li>
+              )}
+            </ul>
+            <div className="bg-blue-50 rounded-xl p-3 space-y-1.5">
+              <p className="text-xs font-semibold text-blue-700">💡 Tips biar circle-mu dipercaya:</p>
+              <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                <li>Pakai foto profil asli & wajah kelihatan jelas, jangan foto grup/logo/meme</li>
+                <li>Isi Instagram dengan akun asli milikmu sendiri, bukan akun orang lain</li>
+                <li>Pastikan akun Instagram aktif & terkunci publik (bisa dicek calon member)</li>
+                <li>Samain nama di profil MiniCircle dengan nama/bio Instagram-mu</li>
+                <li>Profil yang jelas bikin calon member lebih yakin buat join circle-mu</li>
+              </ul>
+            </div>
+            <a
+              href="/profile/data-user"
+              className="block text-center bg-primary text-white rounded-xl py-3 font-medium"
+            >
+              Lengkapi Profil
+            </a>
+            <button onClick={onClose} className="w-full py-2 text-gray-500 text-sm">
+              Nanti dulu
+            </button>
+          </div>
+        ) : (
+        <>
 
         {host && !isEdit && (
           <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
@@ -412,6 +462,8 @@ export default function CreateCircleModal({
             {saving ? "Menyimpan..." : isEdit ? "Simpan" : "Save"}
           </button>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
