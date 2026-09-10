@@ -182,11 +182,10 @@ export default function CircleDetailPage() {
   };
 
   const handleToggleCheckinHost = async (m: any) => {
-    const next = !m.checked_in;
-    const { error } = await supabase
-      .from("circle_members")
-      .update({ checked_in: next, checked_in_at: next ? new Date().toISOString() : null })
-      .eq("id", m.id);
+    const { error } = await supabase.rpc("host_set_checkin", {
+      p_member_row_id: m.id,
+      p_checked_in: !m.checked_in,
+    });
     if (error) {
       toast.error("Gagal ubah status hadir: " + error.message);
       return;
