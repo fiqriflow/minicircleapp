@@ -7,6 +7,7 @@ import { generateInviteCode } from "@/lib/inviteCode";
 import { extractStoragePath } from "@/lib/storagePath";
 import { toDateTimeLocalValue, fromDateTimeLocalValue } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/ui/LocationInput";
+import { getMyEnergy, getNextResetLabel, mapEnergyError, MAX_ENERGY } from "@/lib/energy";
 
 const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Kulineran", "Ngopi", "Explore Alam"];
 
@@ -64,11 +65,13 @@ export default function CreateCircleModal({
   const [error, setError] = useState("");
   const [host, setHost] = useState<any>(null);
   const [hostChecked, setHostChecked] = useState(false);
+  const [energy, setEnergy] = useState<number | null>(null);
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
 
   const missingInstagram = !isEdit && hostChecked && !host?.instagram;
   const missingAvatar = !isEdit && hostChecked && !host?.avatar_url;
-  const profileIncomplete = missingInstagram || missingAvatar;
+  const noEnergy = !isEdit && energy !== null && energy <= 0;
+  const profileIncomplete = missingInstagram || missingAvatar || noEnergy;
 
   // Di HP, pas keyboard muncul, browser ngecilin "visual viewport" tapi elemen
   // position:fixed tetap ngikutin ukuran layar penuh -> sheet ini jadi ketutupan
@@ -97,6 +100,10 @@ export default function CreateCircleModal({
       const { data } = await supabase.from("profiles").select("full_name, nickname, avatar_url, instagram").eq("id", user.id).single();
       setHost(data);
       setHostChecked(true);
+      if (!isEdit) {
+        const info = await getMyEnergy(supabase);
+        setEnergy(info.energy);
+      }
     };
     loadHost();
   }, []);
@@ -124,8 +131,12 @@ export default function CreateCircleModal({
   };
 
   const handleSave = async () => {
-    if (profileIncomplete) {
+    if (missingInstagram || missingAvatar) {
       setError("Lengkapi foto profil (wajah jelas) dan Instagram dulu sebelum buat circle.");
+      return;
+    }
+    if (noEnergy) {
+      setError(`Energy kamu habis. Reset otomatis tiap Senin 00.00 (berikutnya: ${getNextResetLabel()}).`);
       return;
     }
     if (!form.name || !form.city || !form.location || !form.event_date) {
@@ -191,11 +202,15 @@ export default function CreateCircleModal({
 
     if (insertError) {
       setSaving(false);
+      const energyMsg = mapEnergyError(insertError.message);
       setError(
-        insertError.message.includes("duplicate")
+        energyMsg
+          ? energyMsg
+          : insertError.message.includes("duplicate")
           ? "Kode undangan sudah dipakai, coba kode lain."
           : insertError.message
       );
+      if (energyMsg) setEnergy(0);
       return;
     }
 
@@ -240,7 +255,7 @@ export default function CreateCircleModal({
         {profileIncomplete ? (
           <div className="space-y-4 py-2">
             <p className="text-sm text-gray-600">
-              Sebelum buat circle, lengkapi dulu profilmu supaya calon member percaya sama host-nya:
+              Sebelum buat circle, lengkapi/cek dulu hal berikut:
             </p>
             <ul className="text-sm space-y-1">
               {missingAvatar && (
@@ -253,25 +268,34 @@ export default function CreateCircleModal({
                   ⚠️ Username Instagram wajib diisi
                 </li>
               )}
+              {noEnergy && (
+                <li className="flex items-center gap-2 text-red-500">
+                  ⚡ Energy kamu habis (0/{MAX_ENERGY}). Reset otomatis: {getNextResetLabel()}.
+                </li>
+              )}
             </ul>
-            <div className="bg-blue-50 rounded-xl p-3 space-y-1.5">
-              <p className="text-xs font-semibold text-blue-700">💡 Tips biar circle-mu dipercaya:</p>
-              <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
-                <li>Pakai foto profil asli & wajah kelihatan jelas, jangan foto grup/logo/meme</li>
-                <li>Isi Instagram dengan akun asli milikmu sendiri, bukan akun orang lain</li>
-                <li>Pastikan akun Instagram aktif & terkunci publik (bisa dicek calon member)</li>
-                <li>Samain nama di profil MiniCircle dengan nama/bio Instagram-mu</li>
-                <li>Profil yang jelas bikin calon member lebih yakin buat join circle-mu</li>
-              </ul>
-            </div>
-            <a
-              href="/profile/data-user"
-              className="block text-center bg-primary text-white rounded-xl py-3 font-medium"
-            >
-              Lengkapi Profil
-            </a>
+            {(missingAvatar || missingInstagram) && (
+              <div className="bg-blue-50 rounded-xl p-3 space-y-1.5">
+                <p className="text-xs font-semibold text-blue-700">💡 Tips biar circle-mu dipercaya:</p>
+                <ul className="text-xs text-blue-700 space-y-1 list-disc list-inside">
+                  <li>Pakai foto profil asli & wajah kelihatan jelas, jangan foto grup/logo/meme</li>
+                  <li>Isi Instagram dengan akun asli milikmu sendiri, bukan akun orang lain</li>
+                  <li>Pastikan akun Instagram aktif & terkunci publik (bisa dicek calon member)</li>
+                  <li>Samain nama di profil MiniCircle dengan nama/bio Instagram-mu</li>
+                  <li>Profil yang jelas bikin calon member lebih yakin buat join circle-mu</li>
+                </ul>
+              </div>
+            )}
+            {(missingAvatar || missingInstagram) && (
+              <a
+                href="/profile/data-user"
+                className="block text-center bg-primary text-white rounded-xl py-3 font-medium"
+              >
+                Lengkapi Profil
+              </a>
+            )}
             <button onClick={onClose} className="w-full py-2 text-gray-500 text-sm">
-              Nanti dulu
+              {noEnergy && !missingAvatar && !missingInstagram ? "Oke, mengerti" : "Nanti dulu"}
             </button>
           </div>
         ) : (
@@ -284,10 +308,15 @@ export default function CreateCircleModal({
               className="w-8 h-8 rounded-full object-cover"
               alt=""
             />
-            <div>
+            <div className="flex-1">
               <p className="text-xs text-gray-400">Host / Pembuat Circle</p>
               <p className="text-sm font-medium">{host.nickname || host.full_name}</p>
             </div>
+            {energy !== null && (
+              <span className="text-xs font-semibold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full shrink-0">
+                ⚡ {energy}/{MAX_ENERGY}
+              </span>
+            )}
           </div>
         )}
 

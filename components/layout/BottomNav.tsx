@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import NotificationProfile from "@/components/layout/NotificationProfile";
+import EnergyBadge from "@/components/layout/EnergyBadge";
 import IconBeranda from "@/components/icons/IconBeranda";
 import IconExplore from "@/components/icons/IconExplore";
 import IconMyCircle from "@/components/icons/IconMyCircle";
@@ -64,6 +65,7 @@ export default function BottomNav({ children }: { children: React.ReactNode }) {
             <p className="font-semibold text-sm truncate">Halo, {firstName} 👋</p>
             <p className="text-xs text-gray-400 truncate">Yuk cari circle mabar terdekat & gabung sekarang!</p>
           </div>
+          <EnergyBadge />
           <NotificationProfile />
         </header>
       )}

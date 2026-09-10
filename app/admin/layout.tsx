@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, CalendarDays, Image as ImageIcon, Settings2, ArrowLeftCircle, MessageSquare, History, Flag } from "lucide-react";
+import { LayoutDashboard, Users, CalendarDays, Image as ImageIcon, Settings2, ArrowLeftCircle, MessageSquare, History, Flag, Zap } from "lucide-react";
 
 const menu = [
   { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/player", label: "Player", icon: Users },
   { href: "/admin/circle", label: "Circle", icon: CalendarDays },
+  { href: "/admin/energy", label: "Energy", icon: Zap },
   { href: "/admin/laporan", label: "Laporan", icon: Flag },
   { href: "/admin/appearance", label: "Tampilan", icon: ImageIcon },
   { href: "/admin/masukan", label: "Masukan", icon: MessageSquare },
