@@ -54,22 +54,51 @@ export async function proxy(request: NextRequest) {
   const isAdminPage = path.startsWith("/admin");
   const isOnboardingPage = path === "/onboarding";
   const isSuspendedPage = path === "/akun-dinonaktifkan";
+  const isMaintenancePage = path === "/maintenance";
   const isPublicPolicyPage =
     path === "/profile/syarat-ketentuan" ||
     path === "/profile/kebijakan-privasi" ||
     path === "/profile/panduan-komunitas";
+
+  let profile: {
+    is_super_admin?: boolean;
+    onboarding_completed?: boolean;
+    is_banned?: boolean;
+    suspended_until?: string | null;
+  } | null = null;
+
+  if (user) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("is_super_admin, onboarding_completed, is_banned, suspended_until")
+      .eq("id", user.id)
+      .single();
+    profile = data;
+  }
+
+  // ================= Maintenance mode =================
+  // Kalau nyala, semua orang (kecuali super admin) diarahkan ke halaman
+  // maintenance. Halaman login/auth tetap bisa diakses biar admin bisa login.
+  const { data: maintenanceSetting } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "maintenance_mode")
+    .maybeSingle();
+  const maintenanceOn = maintenanceSetting?.value === "true";
+
+  if (maintenanceOn && !profile?.is_super_admin && !isMaintenancePage && !isAuthPage) {
+    return redirect("/maintenance");
+  }
+
+  if (!maintenanceOn && isMaintenancePage) {
+    return redirect("/");
+  }
 
   if (!user && !isAuthPage) {
     return redirect("/login");
   }
 
   if (user && !isAuthPage) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_super_admin, onboarding_completed, is_banned, suspended_until")
-      .eq("id", user.id)
-      .single();
-
     const isSuspendedNow =
       profile?.is_banned || (profile?.suspended_until && new Date(profile.suspended_until) > new Date());
 

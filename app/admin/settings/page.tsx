@@ -8,6 +8,8 @@ import ToggleSwitch from "@/components/ui/ToggleSwitch";
 export default function AdminSettingsPage() {
   const supabase = createClient();
   const [circlePlusEnabled, setCirclePlusEnabled] = useState(true);
+  const [maintenanceMode, setMaintenanceMode] = useState(false);
+  const [savingMaintenance, setSavingMaintenance] = useState(false);
   const [regLimitEnabled, setRegLimitEnabled] = useState(false);
   const [regLimitCount, setRegLimitCount] = useState("1000");
   const [loading, setLoading] = useState(true);
@@ -19,10 +21,11 @@ export default function AdminSettingsPage() {
       const { data } = await supabase
         .from("app_settings")
         .select("key,value")
-        .in("key", ["circle_plus_enabled", "registration_limit_enabled", "registration_limit_count"]);
+        .in("key", ["circle_plus_enabled", "registration_limit_enabled", "registration_limit_count", "maintenance_mode"]);
       const map: Record<string, string> = {};
       data?.forEach((row) => (map[row.key] = row.value));
       setCirclePlusEnabled(map.circle_plus_enabled !== "false");
+      setMaintenanceMode(map.maintenance_mode === "true");
       setRegLimitEnabled(map.registration_limit_enabled === "true");
       setRegLimitCount(map.registration_limit_count ?? "1000");
       setLoading(false);
@@ -36,6 +39,17 @@ export default function AdminSettingsPage() {
     setCirclePlusEnabled(next);
     await supabase.from("app_settings").upsert({ key: "circle_plus_enabled", value: String(next) });
     setSaving(false);
+  };
+
+  const handleToggleMaintenance = async () => {
+    const next = !maintenanceMode;
+    setSavingMaintenance(true);
+    setMaintenanceMode(next);
+    await supabase.from("app_settings").upsert({ key: "maintenance_mode", value: String(next) });
+    setSavingMaintenance(false);
+    toast.success(
+      next ? "Mode maintenance diaktifkan. User biasa gak bisa akses app." : "Mode maintenance dimatikan."
+    );
   };
 
   const handleToggleRegLimit = async () => {
@@ -69,6 +83,22 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-6 max-w-md">
       <h1 className="text-xl font-bold">Pengaturan</h1>
+
+      <div className="bg-white rounded-2xl border p-4 flex items-center justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-red-600">Mode Maintenance</p>
+          <p className="text-sm text-gray-400">
+            Kalau diaktifkan, semua user (kecuali super admin) diarahkan ke halaman "Sedang Dalam
+            Perbaikan" dan gak bisa pakai app.
+          </p>
+        </div>
+        <ToggleSwitch
+          checked={maintenanceMode}
+          onChange={handleToggleMaintenance}
+          disabled={savingMaintenance}
+          label="Toggle Mode Maintenance"
+        />
+      </div>
 
       <div className="bg-white rounded-2xl border p-4 flex items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
