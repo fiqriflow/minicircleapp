@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag } from "lucide-react";
+import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import MemberProfileModal from "@/components/circle/MemberProfileModal";
@@ -223,6 +223,22 @@ export default function CircleDetailPage() {
     setShowHostMenu(false);
   };
 
+  const handleShareCircle = async () => {
+    const url = `${location.origin}/circle/${id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: circle.name, text: `Yuk gabung circle "${circle.name}"!`, url });
+      } catch {
+        // user batal share, gak apa-apa
+      }
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link circle disalin!");
+    }
+    setShowHostMenu(false);
+    setShowViewerMenu(false);
+  };
+
   const handleDeleteCircle = async () => {
     if (!confirm("Yakin mau hapus circle ini? Semua data line up dan komentar akan ikut terhapus dan tidak bisa dikembalikan.")) {
       return;
@@ -308,6 +324,12 @@ export default function CircleDetailPage() {
                     Edit Circle
                   </button>
                   <button
+                    onClick={handleShareCircle}
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                  >
+                    <Share2 size={14} /> Bagikan Circle
+                  </button>
+                  <button
                     onClick={() => {
                       setShowHostMenu(false);
                       setConfirmStatusAction("completed");
@@ -363,6 +385,12 @@ export default function CircleDetailPage() {
               </button>
               {showViewerMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-white border rounded-xl shadow-lg overflow-hidden z-50">
+                  <button
+                    onClick={handleShareCircle}
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                  >
+                    <Share2 size={14} /> Bagikan Circle
+                  </button>
                   <button
                     onClick={() => {
                       setShowViewerMenu(false);
