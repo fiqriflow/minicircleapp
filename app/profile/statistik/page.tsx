@@ -16,10 +16,6 @@ const FALLBACK_COLOR = "#9ca3af"; // gray, untuk kategori lain di luar 3 di atas
 type Stats = {
   totalJoin: number;
   totalHost: number;
-  totalSukses: number;
-  totalTerbuka: number;
-  totalSelesai: number;
-  totalBatal: number;
   categoryCounts: Record<string, number>;
 };
 
@@ -33,40 +29,38 @@ export default function StatistikPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Join Circle = circle ORANG LAIN yang di-join, SUDAH SELESAI & dia HADIR (checked-in)
       const { data: memberships } = await supabase
         .from("circle_members")
-        .select("circle:circles(id, category, status, event_date)")
+        .select("checked_in, circle:circles(id, category, created_by, status, event_date)")
         .eq("user_id", user.id)
         .eq("status", "joined");
 
       const joinedCircles = (memberships ?? []).map((m: any) => m.circle).filter(Boolean);
 
+      const totalJoin = (memberships ?? []).filter((m: any) => {
+        if (!m.circle) return false;
+        if (m.circle.created_by === user.id) return false;
+        if (!m.checked_in) return false;
+        return getCircleDisplayStatus(m.circle) === "completed";
+      }).length;
+
+      // Host Circle = circle yang dia buat, SUDAH SELESAI & SUKSES (>80% peserta check-in)
       const { data: hostedCircles } = await supabase
         .from("circles")
-        .select("id, category, status, event_date")
+        .select("id, status, event_date")
         .eq("created_by", user.id);
 
-      // Gabungan semua circle yang user terlibat (host ATAU join), unik per id
-      const myCirclesMap = new Map<string, any>();
-      joinedCircles.forEach((c: any) => myCirclesMap.set(c.id, c));
-      (hostedCircles ?? []).forEach((c: any) => myCirclesMap.set(c.id, c));
-      const myCircles = Array.from(myCirclesMap.values());
-
-      const totalSelesai = myCircles.filter((c: any) => getCircleDisplayStatus(c) === "completed").length;
-      const totalBatal = myCircles.filter((c: any) => c.status === "cancelled").length;
-      const totalTerbuka = myCircles.length - totalSelesai - totalBatal;
-
-      // Circle Sukses = selesai dengan >80% peserta yang joined ikut check-in
-      const completedIds = myCircles
+      const completedHostedIds = (hostedCircles ?? [])
         .filter((c: any) => getCircleDisplayStatus(c) === "completed")
         .map((c: any) => c.id);
 
-      let totalSukses = 0;
-      if (completedIds.length) {
+      let totalHost = 0;
+      if (completedHostedIds.length) {
         const { data: attendanceRows } = await supabase
           .from("circle_members")
           .select("circle_id, checked_in")
-          .in("circle_id", completedIds)
+          .in("circle_id", completedHostedIds)
           .eq("status", "joined");
 
         const byCircle: Record<string, { total: number; checked: number }> = {};
@@ -75,7 +69,7 @@ export default function StatistikPage() {
           byCircle[r.circle_id].total += 1;
           if (r.checked_in) byCircle[r.circle_id].checked += 1;
         });
-        totalSukses = Object.values(byCircle).filter((v) => v.total > 0 && v.checked / v.total > 0.8).length;
+        totalHost = Object.values(byCircle).filter((v) => v.total > 0 && v.checked / v.total > 0.8).length;
       }
 
       const categoryCounts: Record<string, number> = {};
@@ -83,15 +77,7 @@ export default function StatistikPage() {
         if (c.category) categoryCounts[c.category] = (categoryCounts[c.category] || 0) + 1;
       });
 
-      setStats({
-        totalJoin: joinedCircles.length,
-        totalHost: hostedCircles?.length ?? 0,
-        totalSukses,
-        totalTerbuka,
-        totalSelesai,
-        totalBatal,
-        categoryCounts,
-      });
+      setStats({ totalJoin, totalHost, categoryCounts });
     };
     load();
   }, []);
@@ -125,27 +111,11 @@ export default function StatistikPage() {
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white rounded-2xl border p-4">
           <p className="text-2xl font-bold text-primary">{stats.totalJoin}</p>
-          <p className="text-xs text-gray-400 mt-1">Total Join Circle</p>
+          <p className="text-xs text-gray-400 mt-1">Join Circle</p>
         </div>
         <div className="bg-white rounded-2xl border p-4">
           <p className="text-2xl font-bold text-primary">{stats.totalHost}</p>
-          <p className="text-xs text-gray-400 mt-1">Total Buat Circle</p>
-        </div>
-        <div className="bg-white rounded-2xl border p-4">
-          <p className="text-2xl font-bold text-green-600">{stats.totalSukses}</p>
-          <p className="text-xs text-gray-400 mt-1">Total Circle Sukses</p>
-        </div>
-        <div className="bg-white rounded-2xl border p-4">
-          <p className="text-2xl font-bold text-blue-500">{stats.totalTerbuka}</p>
-          <p className="text-xs text-gray-400 mt-1">Total Circle Terbuka</p>
-        </div>
-        <div className="bg-white rounded-2xl border p-4">
-          <p className="text-2xl font-bold text-gray-700">{stats.totalSelesai}</p>
-          <p className="text-xs text-gray-400 mt-1">Total Circle Selesai</p>
-        </div>
-        <div className="bg-white rounded-2xl border p-4">
-          <p className="text-2xl font-bold text-red-500">{stats.totalBatal}</p>
-          <p className="text-xs text-gray-400 mt-1">Total Circle Batal</p>
+          <p className="text-xs text-gray-400 mt-1">Host Circle</p>
         </div>
       </div>
 

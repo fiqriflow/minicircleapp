@@ -1,13 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapPin, Instagram as InstagramIcon, X, Flag } from "lucide-react";
+import { X, Flag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getCircleDisplayStatus } from "@/lib/circleStatus";
 
 const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
-const GENDER_SYMBOL: Record<string, string> = { male: "♂", female: "♀" };
-const GENDER_COLOR: Record<string, string> = { male: "text-blue-500", female: "text-pink-500" };
 
 export default function MemberProfileModal({
   profile,
@@ -53,16 +51,19 @@ export default function MemberProfileModal({
         hostCircle = Object.values(byCircle).filter((v) => v.total > 0 && v.checked / v.total > 0.8).length;
       }
 
-      // Join Circle = circle ORANG LAIN yang dia join (bukan circle buatan sendiri)
+      // Join Circle = circle ORANG LAIN yang dia join, SUDAH SELESAI & dia HADIR (checked-in)
       const { data: memberships } = await supabase
         .from("circle_members")
-        .select("circle:circles(id, created_by)")
+        .select("checked_in, circle:circles(id, created_by, status, event_date)")
         .eq("user_id", profile.id)
         .eq("status", "joined");
 
-      const joinCircle = (memberships ?? []).filter(
-        (m: any) => m.circle && m.circle.created_by !== profile.id
-      ).length;
+      const joinCircle = (memberships ?? []).filter((m: any) => {
+        if (!m.circle) return false;
+        if (m.circle.created_by === profile.id) return false;
+        if (!m.checked_in) return false;
+        return getCircleDisplayStatus(m.circle) === "completed";
+      }).length;
 
       if (active) setCircleStats({ hostCircle, joinCircle });
     };
@@ -113,26 +114,35 @@ export default function MemberProfileModal({
           </div>
         )}
 
-        <div className="space-y-2 text-sm">
-          <div className="flex flex-wrap gap-2 justify-center">
-            {profile.categories?.map((c: string) => (
-              <span key={c} className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">{c}</span>
-            ))}
-          </div>
+        <div className="border rounded-2xl p-4 space-y-4 text-sm">
           {profile.location && (
-            <div className="flex items-center justify-center gap-2 text-gray-500">
-              <MapPin size={14} /> {profile.location}
+            <div>
+              <p className="text-gray-400">Kota/Domisili</p>
+              <p className="font-semibold text-gray-900">{profile.location}</p>
             </div>
           )}
           {GENDER_LABEL[profile.gender] && (
-            <div className="flex items-center justify-center gap-2 text-gray-500">
-              <span className={`font-bold ${GENDER_COLOR[profile.gender]}`}>{GENDER_SYMBOL[profile.gender]}</span>
-              {GENDER_LABEL[profile.gender]}
+            <div>
+              <p className="text-gray-400">Gender</p>
+              <p className="font-semibold text-gray-900">{GENDER_LABEL[profile.gender]}</p>
             </div>
           )}
           {profile.instagram && (
-            <div className="flex items-center justify-center gap-2 text-gray-500">
-              <InstagramIcon size={14} /> {profile.instagram}
+            <div>
+              <p className="text-gray-400">Akun Instagram</p>
+              <p className="font-semibold text-gray-900">{profile.instagram}</p>
+            </div>
+          )}
+          {profile.categories?.length > 0 && (
+            <div>
+              <p className="text-gray-400 mb-2">Aktivitas Disukai</p>
+              <div className="flex flex-wrap gap-2">
+                {profile.categories.map((c: string) => (
+                  <span key={c} className="text-xs font-semibold bg-orange-50 text-orange-500 px-3 py-1.5 rounded-full">
+                    {c}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
