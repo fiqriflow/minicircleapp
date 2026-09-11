@@ -16,6 +16,8 @@ const FALLBACK_COLOR = "#9ca3af"; // gray, untuk kategori lain di luar 3 di atas
 type Stats = {
   totalJoin: number;
   totalHost: number;
+  totalSukses: number;
+  totalTerbuka: number;
   totalSelesai: number;
   totalBatal: number;
   categoryCounts: Record<string, number>;
@@ -39,13 +41,42 @@ export default function StatistikPage() {
 
       const joinedCircles = (memberships ?? []).map((m: any) => m.circle).filter(Boolean);
 
-      const { count: hostCount } = await supabase
+      const { data: hostedCircles } = await supabase
         .from("circles")
-        .select("id", { count: "exact", head: true })
+        .select("id, category, status, event_date")
         .eq("created_by", user.id);
 
-      const totalSelesai = joinedCircles.filter((c: any) => getCircleDisplayStatus(c) === "completed").length;
-      const totalBatal = joinedCircles.filter((c: any) => c.status === "cancelled").length;
+      // Gabungan semua circle yang user terlibat (host ATAU join), unik per id
+      const myCirclesMap = new Map<string, any>();
+      joinedCircles.forEach((c: any) => myCirclesMap.set(c.id, c));
+      (hostedCircles ?? []).forEach((c: any) => myCirclesMap.set(c.id, c));
+      const myCircles = Array.from(myCirclesMap.values());
+
+      const totalSelesai = myCircles.filter((c: any) => getCircleDisplayStatus(c) === "completed").length;
+      const totalBatal = myCircles.filter((c: any) => c.status === "cancelled").length;
+      const totalTerbuka = myCircles.length - totalSelesai - totalBatal;
+
+      // Circle Sukses = selesai dengan >80% peserta yang joined ikut check-in
+      const completedIds = myCircles
+        .filter((c: any) => getCircleDisplayStatus(c) === "completed")
+        .map((c: any) => c.id);
+
+      let totalSukses = 0;
+      if (completedIds.length) {
+        const { data: attendanceRows } = await supabase
+          .from("circle_members")
+          .select("circle_id, checked_in")
+          .in("circle_id", completedIds)
+          .eq("status", "joined");
+
+        const byCircle: Record<string, { total: number; checked: number }> = {};
+        (attendanceRows ?? []).forEach((r: any) => {
+          if (!byCircle[r.circle_id]) byCircle[r.circle_id] = { total: 0, checked: 0 };
+          byCircle[r.circle_id].total += 1;
+          if (r.checked_in) byCircle[r.circle_id].checked += 1;
+        });
+        totalSukses = Object.values(byCircle).filter((v) => v.total > 0 && v.checked / v.total > 0.8).length;
+      }
 
       const categoryCounts: Record<string, number> = {};
       joinedCircles.forEach((c: any) => {
@@ -54,7 +85,9 @@ export default function StatistikPage() {
 
       setStats({
         totalJoin: joinedCircles.length,
-        totalHost: hostCount ?? 0,
+        totalHost: hostedCircles?.length ?? 0,
+        totalSukses,
+        totalTerbuka,
         totalSelesai,
         totalBatal,
         categoryCounts,
@@ -96,7 +129,15 @@ export default function StatistikPage() {
         </div>
         <div className="bg-white rounded-2xl border p-4">
           <p className="text-2xl font-bold text-primary">{stats.totalHost}</p>
-          <p className="text-xs text-gray-400 mt-1">Total Jadi Host/Pembuat</p>
+          <p className="text-xs text-gray-400 mt-1">Total Buat Circle</p>
+        </div>
+        <div className="bg-white rounded-2xl border p-4">
+          <p className="text-2xl font-bold text-green-600">{stats.totalSukses}</p>
+          <p className="text-xs text-gray-400 mt-1">Total Circle Sukses</p>
+        </div>
+        <div className="bg-white rounded-2xl border p-4">
+          <p className="text-2xl font-bold text-blue-500">{stats.totalTerbuka}</p>
+          <p className="text-xs text-gray-400 mt-1">Total Circle Terbuka</p>
         </div>
         <div className="bg-white rounded-2xl border p-4">
           <p className="text-2xl font-bold text-gray-700">{stats.totalSelesai}</p>
