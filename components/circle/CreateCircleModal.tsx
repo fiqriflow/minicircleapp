@@ -63,6 +63,8 @@ export default function CreateCircleModal({
   const [uploadingCover, setUploadingCover] = useState(false);
   const [coverError, setCoverError] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
+  const fieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [host, setHost] = useState<any>(null);
   const [hostChecked, setHostChecked] = useState(false);
   const [energy, setEnergy] = useState<number | null>(null);
@@ -139,14 +141,24 @@ export default function CreateCircleModal({
       setError(`Energy habis. Reset ${getNextResetLabel()}.`);
       return;
     }
-    if (!form.name || !form.city || !form.location || !form.event_date) {
-      setError("Lengkapi semua field wajib dulu ya.");
+    const requiredFields: { key: string; label: string; ok: boolean }[] = [
+      { key: "name", label: "Nama Event", ok: !!form.name.trim() },
+      { key: "category", label: "Aktivitas Circle", ok: !!form.category },
+      { key: "city", label: "Lokasi / Domisili", ok: !!form.city.trim() },
+      { key: "location", label: "Titik Kumpul", ok: !!form.location.trim() },
+      { key: "event_date", label: "Tanggal & Jam", ok: !!form.event_date },
+      { key: "description", label: "Rundown / Detail Kegiatan", ok: !!form.description.trim() },
+    ];
+    const missing = requiredFields.filter((f) => !f.ok);
+    if (missing.length) {
+      const errs: Record<string, boolean> = {};
+      missing.forEach((f) => (errs[f.key] = true));
+      setFieldErrors(errs);
+      toast.error(`Lengkapi dulu "${missing[0].label}" (ditandai merah).`);
+      fieldRefs.current[missing[0].key]?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    if (!form.category) {
-      setError("Pilih aktivitas circle dulu ya.");
-      return;
-    }
+    setFieldErrors({});
     if (!isEdit && new Date(form.event_date) < new Date()) {
       setError("Tanggal & jam tidak boleh yang sudah lewat. Pilih waktu di masa depan.");
       return;
@@ -337,13 +349,18 @@ export default function CreateCircleModal({
           </div>
         )}
 
-        <div>
-          <label className="text-sm text-gray-500">Nama Event</label>
+        <div ref={(el) => { fieldRefs.current.name = el; }}>
+          <label className="text-sm text-gray-500">
+            Nama Event{fieldErrors.name && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+          </label>
           <input
-            className="w-full border rounded-xl px-3 py-2"
+            className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.name ? "border-red-500" : ""}`}
             placeholder="Mis. Gowes Pagi Akhir Pekan"
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(e) => {
+              setForm({ ...form, name: e.target.value });
+              if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: false });
+            }}
           />
         </div>
 
@@ -376,12 +393,17 @@ export default function CreateCircleModal({
           </div>
         </div>
 
-        <div>
-          <label className="text-sm text-gray-500">Aktivitas Circle</label>
+        <div ref={(el) => { fieldRefs.current.category = el; }}>
+          <label className="text-sm text-gray-500">
+            Aktivitas Circle{fieldErrors.category && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+          </label>
           <select
-            className="w-full border rounded-xl px-3 py-2"
+            className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.category ? "border-red-500" : ""}`}
             value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
+            onChange={(e) => {
+              setForm({ ...form, category: e.target.value });
+              if (fieldErrors.category) setFieldErrors({ ...fieldErrors, category: false });
+            }}
           >
             <option value="" disabled>Pilih Aktivitas</option>
             {CATEGORY_OPTIONS.map((c) => (
@@ -390,48 +412,68 @@ export default function CreateCircleModal({
           </select>
         </div>
 
-        <div>
-          <label className="text-sm text-gray-500">Lokasi / Domisili</label>
-          <LocationInput
-            id="create-circle-city-list"
-            value={form.city}
-            onChange={(v) => setForm({ ...form, city: v })}
-            placeholder="Ketik nama kota..."
-          />
+        <div ref={(el) => { fieldRefs.current.city = el; }}>
+          <label className="text-sm text-gray-500">
+            Lokasi / Domisili{fieldErrors.city && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+          </label>
+          <div className={fieldErrors.city ? "rounded-xl ring-1 ring-red-500" : ""}>
+            <LocationInput
+              id="create-circle-city-list"
+              value={form.city}
+              onChange={(v) => {
+                setForm({ ...form, city: v });
+                if (fieldErrors.city) setFieldErrors({ ...fieldErrors, city: false });
+              }}
+              placeholder="Ketik nama kota..."
+            />
+          </div>
         </div>
 
-        <div>
-          <label className="text-sm text-gray-500">Titik Kumpul</label>
+        <div ref={(el) => { fieldRefs.current.location = el; }}>
+          <label className="text-sm text-gray-500">
+            Titik Kumpul{fieldErrors.location && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+          </label>
           <input
-            className="w-full border rounded-xl px-3 py-2"
+            className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.location ? "border-red-500" : ""}`}
             placeholder="Mis. Taman Kota, Gerbang Utara"
             value={form.location}
-            onChange={(e) => setForm({ ...form, location: e.target.value })}
-          />
-        </div>
-
-        <div>
-          <label className="text-sm text-gray-500">Tanggal & Jam</label>
-          <input
-            type="datetime-local"
-            min={toDateTimeLocalValue(new Date().toISOString())}
-            className="w-full border rounded-xl px-3 py-2"
-            value={toDateTimeLocalValue(form.event_date)}
             onChange={(e) => {
-              const v = e.target.value;
-              setForm({ ...form, event_date: v ? fromDateTimeLocalValue(v) : "" });
+              setForm({ ...form, location: e.target.value });
+              if (fieldErrors.location) setFieldErrors({ ...fieldErrors, location: false });
             }}
           />
         </div>
 
-        <div>
-          <label className="text-sm text-gray-500">Rundown / Detail Kegiatan</label>
+        <div ref={(el) => { fieldRefs.current.event_date = el; }}>
+          <label className="text-sm text-gray-500">
+            Tanggal & Jam{fieldErrors.event_date && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+          </label>
+          <input
+            type="datetime-local"
+            min={toDateTimeLocalValue(new Date().toISOString())}
+            className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.event_date ? "border-red-500" : ""}`}
+            value={toDateTimeLocalValue(form.event_date)}
+            onChange={(e) => {
+              const v = e.target.value;
+              setForm({ ...form, event_date: v ? fromDateTimeLocalValue(v) : "" });
+              if (fieldErrors.event_date) setFieldErrors({ ...fieldErrors, event_date: false });
+            }}
+          />
+        </div>
+
+        <div ref={(el) => { fieldRefs.current.description = el; }}>
+          <label className="text-sm text-gray-500">
+            Rundown / Detail Kegiatan{fieldErrors.description && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+          </label>
           <textarea
-            className="w-full border rounded-xl px-3 py-2"
+            className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.description ? "border-red-500" : ""}`}
             rows={3}
             placeholder="Mis. Kumpul 06.00, briefing, gowes 15km, sarapan bareng"
             value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
+            onChange={(e) => {
+              setForm({ ...form, description: e.target.value });
+              if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: false });
+            }}
           />
         </div>
 
