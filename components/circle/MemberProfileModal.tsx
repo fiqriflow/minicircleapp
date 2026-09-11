@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapPin, Instagram as InstagramIcon, X, Flag, Mars, Venus } from "lucide-react";
+import { MapPin, Instagram as InstagramIcon, X, Flag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getCircleDisplayStatus } from "@/lib/circleStatus";
 
 const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
-const GENDER_ICON: Record<string, any> = { male: Mars, female: Venus };
+const GENDER_SYMBOL: Record<string, string> = { male: "♂", female: "♀" };
+const GENDER_COLOR: Record<string, string> = { male: "text-blue-500", female: "text-pink-500" };
 
 export default function MemberProfileModal({
   profile,
@@ -19,7 +20,6 @@ export default function MemberProfileModal({
 }) {
   const supabase = createClient();
   const [circleStats, setCircleStats] = useState<{ hostCircle: number; joinCircle: number } | null>(null);
-  const GenderIcon = GENDER_ICON[profile.gender];
 
   useEffect(() => {
     if (!profile?.id) return;
@@ -126,7 +126,8 @@ export default function MemberProfileModal({
           )}
           {GENDER_LABEL[profile.gender] && (
             <div className="flex items-center justify-center gap-2 text-gray-500">
-              {GenderIcon && <GenderIcon size={14} />} {GENDER_LABEL[profile.gender]}
+              <span className={`font-bold ${GENDER_COLOR[profile.gender]}`}>{GENDER_SYMBOL[profile.gender]}</span>
+              {GENDER_LABEL[profile.gender]}
             </div>
           )}
           {profile.instagram && (
