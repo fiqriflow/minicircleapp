@@ -8,7 +8,7 @@ export async function proxy(request: NextRequest) {
   // Webhook) atau dari client tapi divalidasi manual di dalam route-nya sendiri
   // (subscribe/unsubscribe pakai session, send pakai secret header) -> gak
   // punya cookie login kayak request browser biasa, jadi jangan di-redirect.
-  if (path.startsWith("/api/push/")) {
+  if (path.startsWith("/api/push/") || path === "/api/keepalive") {
     return NextResponse.next();
   }
 
