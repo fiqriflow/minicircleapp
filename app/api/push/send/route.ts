@@ -1,12 +1,20 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import webpush from "web-push";
+import { timingSafeEqual } from "crypto";
 
 // Endpoint ini DIPANGGIL SUPABASE (Database Webhook), bukan dari browser.
 // Diproteksi pakai shared secret di header, bukan session login.
 // Setup: Supabase Dashboard > Database > Webhooks > tabel `notifications`,
 // event INSERT, kirim ke URL ini dengan header:
 //   x-webhook-secret: <PUSH_WEBHOOK_SECRET>
+
+function safeEqual(a: string | null, b: string | undefined) {
+  if (!a || !b) return false;
+  const A = Buffer.from(a);
+  const B = Buffer.from(b);
+  return A.length === B.length && timingSafeEqual(A, B);
+}
 
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
@@ -28,7 +36,7 @@ const TITLE_BY_TYPE: Record<string, string> = {
 
 export async function POST(request: Request) {
   const secret = request.headers.get("x-webhook-secret");
-  if (!process.env.PUSH_WEBHOOK_SECRET || secret !== process.env.PUSH_WEBHOOK_SECRET) {
+  if (!safeEqual(secret, process.env.PUSH_WEBHOOK_SECRET)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

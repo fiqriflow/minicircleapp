@@ -25,11 +25,9 @@ export default function JoinByInvitePage() {
       setUserId(user?.id ?? null);
       getDefaultCoverMap(supabase).then(setDefaultCoverMap);
 
-      const { data: c } = await supabase
-        .from("circles")
-        .select("*")
-        .eq("invite_code", (code as string).toUpperCase())
-        .single();
+      // circle private disembunyikan oleh RLS -> cari lewat RPC pakai kode undangan
+      const { data: rows } = await supabase.rpc("get_circle_by_invite", { p_code: code as string });
+      const c = Array.isArray(rows) ? rows[0] : rows;
 
       if (!c) {
         setNotFound(true);

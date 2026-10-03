@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { timingSafeEqual } from "crypto";
 
 export const dynamic = "force-dynamic";
 
 // Dipanggil Vercel Cron tiap hari -> ada query ke DB biar Supabase gak di-pause.
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
-  if (secret && request.headers.get("authorization") !== `Bearer ${secret}`) {
-    return NextResponse.json({ ok: false }, { status: 401 });
+  if (secret) {
+    const got = Buffer.from(request.headers.get("authorization") ?? "");
+    const want = Buffer.from(`Bearer ${secret}`);
+    if (got.length !== want.length || !timingSafeEqual(got, want)) {
+      return NextResponse.json({ ok: false }, { status: 401 });
+    }
   }
 
   const supabase = createClient(

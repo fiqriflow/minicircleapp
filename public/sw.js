@@ -1,7 +1,7 @@
 // Service worker Mincle — network-first, cache seperlunya buat asset statis.
 // Sengaja TIDAK cache halaman/data dinamis (Supabase) biar data selalu fresh.
 
-const CACHE_NAME = "mincle-static-v1";
+const CACHE_NAME = "mincle-static-v2";
 const STATIC_ASSETS = [
   "/logo-login.svg",
   "/logo-white.svg",
@@ -28,40 +28,36 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
-
-  // Cuma tangani GET, dan skip request ke API/Supabase — biar selalu network fresh.
   if (request.method !== "GET") return;
-  if (request.url.includes("/auth/") || request.url.includes("supabase.co")) return;
 
-  // Untuk navigasi (buka halaman), coba network dulu; kalau offline & ada di cache, pakai cache.
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(request).then((res) => res || caches.match("/")))
-    );
-    return;
-  }
+  const url = new URL(request.url);
 
-  // Untuk asset statis: cache-first biar cepat, tetap update cache di background.
+  // Cuma cache asset statis same-origin. Halaman, RSC payload, /api, /auth
+  // TIDAK PERNAH di-cache (data user bisa bocor ke akun lain di HP yang sama).
+  if (url.origin !== self.location.origin) return;
+  if (request.mode === "navigate") return;
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) return;
+  if (url.searchParams.has("_rsc") || request.headers.get("RSC")) return;
+
+  const isStatic =
+    url.pathname.startsWith("/_next/static/") ||
+    url.pathname.startsWith("/icons/") ||
+    STATIC_ASSETS.includes(url.pathname);
+  if (!isStatic) return;
+
+  // cache-first, update di background
   event.respondWith(
     caches.match(request).then((cached) => {
-      if (cached) {
-        // update cache di background, gak nunggu — user tetap dapet response cepat dari cache
-        fetch(request)
-          .then((res) => {
-            if (res && res.ok) {
-              caches.open(CACHE_NAME).then((cache) => cache.put(request, res.clone()));
-            }
-          })
-          .catch(() => {});
-        return cached;
-      }
-
-      return fetch(request).then((res) => {
-        if (res && res.ok) {
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, res.clone()));
-        }
-        return res;
-      });
+      const network = fetch(request)
+        .then((res) => {
+          if (res && res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return res;
+        })
+        .catch(() => cached);
+      return cached || network;
     })
   );
 });
