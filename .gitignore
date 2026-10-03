@@ -1,18 +1,20 @@
 # dependencies
-node_modules/
+node_modules
+.pnp
+.pnp.js
 
 # next.js
-.next/
-out/
+.next
+out
+next-env.d.ts
 
-# env
-.env.local
-.env*.local
+# env (JANGAN pernah commit)
+.env
+.env.*
+!.env.local.example
 
-# vercel
+# build / misc
+*.tsbuildinfo
 .vercel
-
-# misc
 .DS_Store
-*.log
 npm-debug.log*

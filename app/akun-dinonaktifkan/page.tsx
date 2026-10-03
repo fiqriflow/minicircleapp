@@ -17,11 +17,7 @@ export default function AkunDinonaktifkanPage() {
         router.replace("/login");
         return;
       }
-      const { data } = await supabase
-        .from("profiles")
-        .select("is_banned, suspended_until, suspension_reason")
-        .eq("id", user.id)
-        .single();
+      const { data } = await supabase.rpc("get_my_profile").maybeSingle();
       setInfo(data as any);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps

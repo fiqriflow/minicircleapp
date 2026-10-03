@@ -14,6 +14,7 @@ import { extractStoragePath } from "@/lib/storagePath";
 import { getJoinedCounts } from "@/lib/circleMembers";
 import { markCommentNotifRead } from "@/lib/notifications";
 import CreateCircleModal from "@/components/circle/CreateCircleModal";
+import { PUBLIC_PROFILE_COLUMNS } from "@/lib/profile";
 
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -57,13 +58,13 @@ export default function CircleDetailPage() {
     setCircle(c);
 
     if (c?.created_by) {
-      const { data: h } = await supabase.from("profiles").select("*").eq("id", c.created_by).single();
+      const { data: h } = await supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", c.created_by).single();
       setHost(h);
     }
 
     const { data: allMembers } = await supabase
       .from("circle_members")
-      .select("*, profile:profiles(*)")
+      .select(`*, profile:profiles(${PUBLIC_PROFILE_COLUMNS})`)
       .eq("circle_id", id);
 
     const joined = (allMembers ?? []).filter((m) => m.status === "joined");

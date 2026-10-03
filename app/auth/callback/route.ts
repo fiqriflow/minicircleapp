@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getRegistrationLimit } from "@/lib/appSettings";
 import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -60,7 +61,9 @@ export async function GET(request: Request) {
     if (enabled && limit > 0) {
       const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true });
       if ((count ?? 0) > limit) {
-        await supabase.from("profiles").delete().eq("id", user.id);
+        // hapus user dari auth.users (profiles ikut kehapus lewat cascade), bukan cuma profilnya
+        const { error: delError } = await createAdminClient().auth.admin.deleteUser(user.id);
+        if (delError) await supabase.from("profiles").delete().eq("id", user.id);
         await supabase.auth.signOut();
         return NextResponse.redirect(`${origin}/pendaftaran-ditutup`);
       }

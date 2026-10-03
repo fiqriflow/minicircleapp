@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import LocationInput from "@/components/ui/LocationInput";
 import AvatarCropModal from "@/components/profile/AvatarCropModal";
 import PolicyModal from "@/components/profile/PolicyModal";
+import { saveProfile } from "@/lib/profile";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
 const TOTAL_STEPS = 5;
@@ -26,7 +27,7 @@ export default function OnboardingPage() {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      const { data } = await supabase.rpc("get_my_profile").maybeSingle();
       setProfile(data ?? { id: user.id });
     };
     load();
@@ -85,8 +86,16 @@ export default function OnboardingPage() {
 
   const handleFinish = async () => {
     setSaving(true);
-    await supabase.from("profiles").upsert({ ...profile, onboarding_completed: true, terms_accepted_at: new Date().toISOString() });
+    const { error: saveError } = await saveProfile(supabase, {
+      ...profile,
+      onboarding_completed: true,
+      terms_accepted_at: new Date().toISOString(),
+    });
     setSaving(false);
+    if (saveError) {
+      alert("Gagal menyimpan profil: " + saveError.message);
+      return;
+    }
     try {
       sessionStorage.setItem("mincle_show_welcome", profile?.nickname || profile?.full_name || "");
     } catch {}

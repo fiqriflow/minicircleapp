@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import LocationInput from "@/components/ui/LocationInput";
 import AvatarCropModal from "@/components/profile/AvatarCropModal";
 import DeleteAccountModal from "@/components/profile/DeleteAccountModal";
+import { saveProfile } from "@/lib/profile";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
 
@@ -32,7 +33,7 @@ export default function DataUserPage() {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+      const { data } = await supabase.rpc("get_my_profile").maybeSingle();
       setProfile(data ?? { id: user.id });
     };
     load();
@@ -66,7 +67,7 @@ export default function DataUserPage() {
     const avatar_url = `${data.publicUrl}?t=${Date.now()}`;
 
     setProfile((p: any) => ({ ...p, avatar_url }));
-    await supabase.from("profiles").upsert({ ...profile, avatar_url });
+    await saveProfile(supabase, { ...profile, avatar_url });
     setUploading(false);
   };
 
@@ -76,8 +77,12 @@ export default function DataUserPage() {
       return;
     }
     setSaving(true);
-    await supabase.from("profiles").upsert(profile);
+    const { error } = await saveProfile(supabase, profile);
     setSaving(false);
+    if (error) {
+      toast.error("Gagal menyimpan profil: " + error.message);
+      return;
+    }
     setEditMode(false);
     toast.success("Profil berhasil disimpan!");
   };
