@@ -53,12 +53,12 @@ export default function JoinByInvitePage() {
   const doJoin = async (answer?: string) => {
     if (!userId || !circle) return;
     // join lewat RPC (cek kode undangan di DB), bukan insert langsung
-    const { error } = await supabase.rpc("join_circle_by_invite", {
+    const { data, error } = await supabase.rpc("join_circle_by_invite", {
       p_code: code as string,
       p_answer: answer ?? null,
     });
-    if (error) {
-      toast.error(error.message);
+    if (error || !data) {
+      toast.error(error?.message ?? "Kode undangan tidak valid.");
       return;
     }
     router.push(`/circle/${circle.id}`);
