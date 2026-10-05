@@ -163,6 +163,18 @@ export default function CreateCircleModal({
       setError("Tanggal & jam tidak boleh yang sudah lewat. Pilih waktu di masa depan.");
       return;
     }
+    // kode undangan buatan sendiri: min 6 karakter, hanya A-Z 0-9 - _ (aman dipakai di URL)
+    const customCode = form.invite_code.trim().toUpperCase();
+    if (isPlus && customCode && customCode !== (editCircle?.invite_code ?? "").toUpperCase()) {
+      if (customCode.length < 6) {
+        setError("Kode undangan minimal 6 karakter biar tidak mudah ditebak.");
+        return;
+      }
+      if (!/^[A-Z0-9_-]+$/.test(customCode)) {
+        setError("Kode undangan hanya boleh huruf, angka, tanda - dan _.");
+        return;
+      }
+    }
     setSaving(true);
     setError("");
 
