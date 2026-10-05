@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { generateInviteCode } from "@/lib/inviteCode";
 import { extractStoragePath } from "@/lib/storagePath";
+import { compressImage, LONG_CACHE } from "@/lib/imageCompress";
 import { toDateTimeLocalValue, fromDateTimeLocalValue } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/ui/LocationInput";
 import { ENERGY_COST, getMyEnergy, mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
@@ -115,9 +116,18 @@ export default function CreateCircleModal({
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingCover(true);
-    const ext = file.name.split(".").pop();
-    const path = `${Date.now()}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from("circle-covers").upload(path, file, { upsert: true });
+    let up;
+    try {
+      up = await compressImage(file, { maxSize: 1280, quality: 0.8 });
+    } catch {
+      alert("Gagal memproses gambar");
+      setUploadingCover(false);
+      return;
+    }
+    const path = `${Date.now()}.${up.ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("circle-covers")
+      .upload(path, up.blob, { upsert: true, contentType: up.contentType, cacheControl: LONG_CACHE });
     if (uploadError) {
       alert("Gagal upload cover: " + uploadError.message);
       setUploadingCover(false);

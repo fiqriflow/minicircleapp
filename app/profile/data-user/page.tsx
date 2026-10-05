@@ -55,7 +55,7 @@ export default function DataUserPage() {
     const path = `${profile.id}/avatar.jpg`;
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(path, blob, { upsert: true, contentType: "image/jpeg" });
+      .upload(path, blob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
 
     if (uploadError) {
       alert("Gagal upload foto: " + uploadError.message);
