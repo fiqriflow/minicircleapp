@@ -3,6 +3,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
+  // Defense-in-depth anti-CSRF: request lintas-origin ditolak.
+  const origin = request.headers.get("origin");
+  if (origin && new URL(origin).host !== new URL(request.url).host) {
+    return NextResponse.json({ error: "Origin tidak valid" }, { status: 403 });
+  }
+
   const { userId } = await request.json().catch(() => ({}));
   if (!userId || typeof userId !== "string") {
     return NextResponse.json({ error: "userId wajib diisi" }, { status: 400 });
