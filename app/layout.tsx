@@ -1,4 +1,5 @@
 import "./globals.css";
+import { connection } from "next/server";
 import type { Metadata, Viewport } from "next";
 import AppShell from "@/components/layout/AppShell";
 import { Toaster } from "sonner";
@@ -36,7 +37,9 @@ export const viewport: Viewport = {
   themeColor: "#F46113",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// Wajib dinamis: nonce CSP dibuat per request, halaman statis tidak bisa membawanya.
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  await connection();
   return (
     <html lang="id">
       <body>

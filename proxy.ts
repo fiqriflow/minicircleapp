@@ -1,6 +1,32 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// CSP dibuat per-request dengan nonce (tanpa 'unsafe-inline' di script-src).
+// Set CSP_REPORT_ONLY=1 di Vercel untuk tes tanpa memblokir apa pun.
+const CSP_HEADER =
+  process.env.CSP_REPORT_ONLY === "1"
+    ? "Content-Security-Policy-Report-Only"
+    : "Content-Security-Policy";
+
+function buildCsp(nonce: string) {
+  const isDev = process.env.NODE_ENV !== "production";
+  return [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://ui-avatars.com https://www.google.com",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    "frame-src 'self'",
+    "worker-src 'self'",
+    "manifest-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self'",
+  ].join("; ");
+}
+
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
@@ -12,7 +38,20 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  let response = NextResponse.next({ request });
+  // Nonce diteruskan lewat header request -> Next.js otomatis memasangnya di semua <script>.
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  const csp = buildCsp(nonce);
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set(CSP_HEADER, csp);
+
+  const nextWithCsp = () => {
+    const res = NextResponse.next({ request: { headers: requestHeaders } });
+    res.headers.set(CSP_HEADER, csp);
+    return res;
+  };
+
+  let response = nextWithCsp();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -24,7 +63,9 @@ export async function proxy(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          // header request adalah salinan -> sinkronkan cookie yang baru di-refresh
+          requestHeaders.set("cookie", request.headers.get("cookie") ?? "");
+          response = nextWithCsp();
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options)
           );

@@ -1,26 +1,4 @@
-const isDev = process.env.NODE_ENV !== "production";
-
-// Set CSP_REPORT_ONLY=1 di Vercel kalau mau tes CSP tanpa memblokir apa pun.
-const cspHeader =
-  process.env.CSP_REPORT_ONLY === "1"
-    ? "Content-Security-Policy-Report-Only"
-    : "Content-Security-Policy";
-
-const csp = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://ui-avatars.com https://www.google.com",
-  "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
-  "frame-src 'self'",
-  "worker-src 'self'",
-  "manifest-src 'self'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'self'",
-].join("; ");
+// CSP (pakai nonce per request) diatur di proxy.ts, bukan di sini.
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -35,7 +13,6 @@ const nextConfig = {
       {
         source: "/:path*",
         headers: [
-          { key: cspHeader, value: csp },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
