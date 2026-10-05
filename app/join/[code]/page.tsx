@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import JoinQuestionModal from "@/components/circle/JoinQuestionModal";
 import { getDefaultCoverMap, resolveCircleCover } from "@/lib/appSettings";
@@ -51,12 +52,15 @@ export default function JoinByInvitePage() {
 
   const doJoin = async (answer?: string) => {
     if (!userId || !circle) return;
-    await supabase.from("circle_members").insert({
-      circle_id: circle.id,
-      user_id: userId,
-      status: circle.requires_approval ? "pending" : "joined",
-      join_answer: answer ?? null,
+    // join lewat RPC (cek kode undangan di DB), bukan insert langsung
+    const { error } = await supabase.rpc("join_circle_by_invite", {
+      p_code: code as string,
+      p_answer: answer ?? null,
     });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     router.push(`/circle/${circle.id}`);
   };
 
