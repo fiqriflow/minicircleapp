@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { extractStoragePath } from "@/lib/storagePath";
+import { compressImage, LONG_CACHE } from "@/lib/imageCompress";
 
 const CATEGORIES = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
 
@@ -39,9 +40,18 @@ export default function AdminAppearancePage() {
     if (!file) return;
     setBannerUploading(true);
 
-    const ext = file.name.split(".").pop();
-    const path = `home-banner.${ext}`;
-    const { error: uploadError } = await supabase.storage.from("circle-covers").upload(path, file, { upsert: true });
+    let up;
+    try {
+      up = await compressImage(file, { maxSize: 1600, quality: 0.8 });
+    } catch {
+      alert("Gagal memproses gambar");
+      setBannerUploading(false);
+      return;
+    }
+    const path = `home-banner.${up.ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("circle-covers")
+      .upload(path, up.blob, { upsert: true, contentType: up.contentType, cacheControl: LONG_CACHE });
 
     if (uploadError) {
       alert("Gagal upload: " + uploadError.message);
@@ -88,9 +98,18 @@ export default function AdminAppearancePage() {
     const settingKey = `default_circle_cover:${category}`;
     setUploadingKey(settingKey);
 
-    const ext = file.name.split(".").pop();
-    const path = `default-${category.replace(/\s+/g, "-").toLowerCase()}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from("circle-covers").upload(path, file, { upsert: true });
+    let up;
+    try {
+      up = await compressImage(file, { maxSize: 1280, quality: 0.8 });
+    } catch {
+      alert("Gagal memproses gambar");
+      setUploadingKey(null);
+      return;
+    }
+    const path = `default-${category.replace(/\s+/g, "-").toLowerCase()}.${up.ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("circle-covers")
+      .upload(path, up.blob, { upsert: true, contentType: up.contentType, cacheControl: LONG_CACHE });
 
     if (uploadError) {
       alert("Gagal upload: " + uploadError.message);
