@@ -1,10 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { isAllowedPushEndpoint } from "@/lib/pushEndpoint";
 
 export async function POST(request: Request) {
   const { subscription } = await request.json().catch(() => ({}));
 
-  if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
+  if (
+    !isAllowedPushEndpoint(subscription?.endpoint) ||
+    !subscription?.keys?.p256dh ||
+    !subscription?.keys?.auth
+  ) {
     return NextResponse.json({ error: "Subscription tidak valid" }, { status: 400 });
   }
 

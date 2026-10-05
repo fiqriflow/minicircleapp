@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { NextResponse } from "next/server";
 import webpush from "web-push";
 import { timingSafeEqual } from "crypto";
+import { isAllowedPushEndpoint } from "@/lib/pushEndpoint";
 
 // Endpoint ini DIPANGGIL SUPABASE (Database Webhook), bukan dari browser.
 // Diproteksi pakai shared secret di header, bukan session login.
@@ -77,13 +78,19 @@ export async function POST(request: Request) {
 
   await Promise.all(
     subs.map(async (sub) => {
+      // Anti-SSRF: endpoint di luar allowlist host push service dibuang, tidak pernah dipanggil
+      if (!isAllowedPushEndpoint(sub.endpoint)) {
+        staleIds.push(sub.id);
+        return;
+      }
       try {
         await webpush.sendNotification(
           {
             endpoint: sub.endpoint,
             keys: { p256dh: sub.p256dh, auth: sub.auth },
           },
-          notifPayload
+          notifPayload,
+          { timeout: 8000 }
         );
         sent += 1;
       } catch (err: any) {

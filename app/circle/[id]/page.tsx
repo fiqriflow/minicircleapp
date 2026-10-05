@@ -64,11 +64,21 @@ export default function CircleDetailPage() {
 
     const { data: allMembers } = await supabase
       .from("circle_members")
-      .select(`*, profile:profiles(${PUBLIC_PROFILE_COLUMNS})`)
+      // join_answer sengaja tidak di-select (dicabut dari client, lihat migration 0030) -> host ambil lewat RPC
+      .select(`id, circle_id, user_id, status, joined_at, checked_in, checked_in_at, energy_penalized, profile:profiles(${PUBLIC_PROFILE_COLUMNS})`)
       .eq("circle_id", id);
 
     const joined = (allMembers ?? []).filter((m) => m.status === "joined");
-    const pending = (allMembers ?? []).filter((m) => m.status === "pending");
+    let pending = (allMembers ?? []).filter((m) => m.status === "pending");
+
+    // jawaban pertanyaan join cuma boleh dibaca host
+    if (c?.created_by && c.created_by === user?.id && pending.length > 0) {
+      const { data: answers } = await supabase.rpc("get_circle_join_answers", { p_circle_id: id });
+      const answerMap = new Map<string, string | null>(
+        (answers ?? []).map((a: any) => [a.member_id, a.join_answer] as [string, string | null])
+      );
+      pending = pending.map((m) => ({ ...m, join_answer: answerMap.get(m.id) ?? null }));
+    }
     setMembers(joined);
     setPendingMembers(pending);
     setJoinedCount(joined.length);
