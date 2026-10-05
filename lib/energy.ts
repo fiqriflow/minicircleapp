@@ -1,19 +1,28 @@
-export const MAX_ENERGY = 7;
+// Sistem energy = saldo kredit. Angka ini HARUS sama dengan yang di migration 0032
+// (DB yang menegakkan; konstanta ini cuma untuk tampilan & pengecekan awal di UI).
+export const INITIAL_ENERGY = 1000;
+export const WEEKLY_ENERGY_BONUS = 10;
+export const ENERGY_COST = {
+  join: 1,
+  create: 10,
+  createPlus: 100,
+} as const;
 
 export type EnergyInfo = {
   energy: number;
   energyResetAt: string | null;
 };
 
-/** Ambil energy TERKINI milik user yang login (sekalian lazy-reset kalau sudah lewat Senin 00:00 WIB). */
+/** Ambil energy TERKINI milik user yang login (sekalian hitung bonus mingguan yang tertunda). */
 export async function getMyEnergy(supabase: any): Promise<EnergyInfo> {
   const { data, error } = await supabase.rpc("get_my_energy").single();
-  if (error || !data) return { energy: MAX_ENERGY, energyResetAt: null };
-  return { energy: data.energy ?? MAX_ENERGY, energyResetAt: data.energy_reset_at ?? null };
+  // gagal baca -> jangan blokir UI; DB tetap yang menolak kalau energy memang kurang
+  if (error || !data) return { energy: INITIAL_ENERGY, energyResetAt: null };
+  return { energy: data.energy ?? INITIAL_ENERGY, energyResetAt: data.energy_reset_at ?? null };
 }
 
-/** Label "Senin, 14 Sep 00:00" untuk reset mingguan berikutnya (WIB, UTC+7 tetap). */
-export function getNextResetLabel(): string {
+/** Label "Senin, 14 September" untuk bonus mingguan berikutnya (WIB, UTC+7 tetap). */
+export function getNextBonusLabel(): string {
   const now = new Date();
   const wibNow = new Date(now.getTime() + 7 * 60 * 60 * 1000); // geser ke WIB
   const dow = wibNow.getUTCDay(); // 0=Minggu..6=Sabtu (pakai getUTC* krn sudah digeser manual)
@@ -30,11 +39,14 @@ export function getNextResetLabel(): string {
   });
 }
 
-/** Ubah pesan error dari DB (trigger energy habis) jadi pesan ramah kalau cocok, selain itu null. */
+/** Pesan error dari DB soal energy -> tampilkan apa adanya (sudah ramah); selain itu null. */
 export function mapEnergyError(message: string | undefined | null): string | null {
   if (!message) return null;
-  if (message.toLowerCase().includes("energy")) {
-    return "Energy kamu sudah habis, jadi belum bisa buat circle baru. Energy reset otomatis tiap Senin jam 00:00 ya.";
-  }
+  if (message.toLowerCase().includes("energy kamu tidak cukup")) return message;
   return null;
+}
+
+/** Beri tahu EnergyBadge (dan komponen lain) supaya baca ulang saldo setelah aksi yang memotong energy. */
+export function notifyEnergyChanged() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("energy-changed"));
 }

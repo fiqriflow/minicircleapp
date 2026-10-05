@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { MAX_ENERGY, getMyEnergy, getNextResetLabel } from "@/lib/energy";
+import { ENERGY_COST, WEEKLY_ENERGY_BONUS, getMyEnergy, getNextBonusLabel } from "@/lib/energy";
 
 export default function EnergyBadge() {
   const supabase = createClient();
@@ -19,6 +19,9 @@ export default function EnergyBadge() {
       setEnergy(info.energy);
     };
     load();
+    // saldo dibaca ulang setelah join / buat circle
+    window.addEventListener("energy-changed", load);
+    return () => window.removeEventListener("energy-changed", load);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -32,7 +35,7 @@ export default function EnergyBadge() {
 
   if (energy === null) return null;
 
-  const isLow = energy <= 0;
+  const isLow = energy < ENERGY_COST.join;
 
   return (
     <div className="relative shrink-0" ref={ref}>
@@ -44,14 +47,24 @@ export default function EnergyBadge() {
         aria-label="Energy"
       >
         <Zap size={14} fill="currentColor" />
-        {energy}/{MAX_ENERGY}
+        {energy}
       </button>
 
       {showInfo && (
-        <div className="absolute right-0 mt-2 w-56 bg-white border rounded-xl shadow-lg z-50 p-3 text-xs text-gray-600 space-y-1">
+        <div className="absolute right-0 mt-2 w-64 bg-white border rounded-xl shadow-lg z-50 p-3 text-xs text-gray-600 space-y-1">
           <p className="font-semibold text-gray-800">⚡ Energy</p>
-          <p>Dipakai tiap kali kamu buat circle baru (-1). Reset otomatis jadi {MAX_ENERGY} setiap Senin jam 00.00.</p>
-          {isLow && <p className="text-red-500 font-medium">Energy habis. Reset {getNextResetLabel()}.</p>}
+          <p>Saldo energy kamu dipakai untuk:</p>
+          <ul className="list-disc pl-4 space-y-0.5">
+            <li>Join circle: -{ENERGY_COST.join}</li>
+            <li>Buat circle: -{ENERGY_COST.create}</li>
+            <li>Buat circle plus: -{ENERGY_COST.createPlus}</li>
+          </ul>
+          <p>
+            Bonus +{WEEKLY_ENERGY_BONUS} energy tiap Senin 00.00 (berikutnya {getNextBonusLabel()}), dan menumpuk.
+          </p>
+          {isLow && (
+            <p className="text-red-500 font-medium">Energy habis. Hubungi admin untuk menambah energy.</p>
+          )}
         </div>
       )}
     </div>

@@ -3,13 +3,16 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { MAX_ENERGY, getNextResetLabel } from "@/lib/energy";
+import { ENERGY_COST, WEEKLY_ENERGY_BONUS, getNextBonusLabel } from "@/lib/energy";
+
+const QUICK_ADD = [10, 100, 1000];
 
 export default function AdminEnergyPage() {
   const supabase = createClient();
   const [players, setPlayers] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
 
   const load = async () => {
     const { data, error } = await supabase
@@ -25,39 +28,33 @@ export default function AdminEnergyPage() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const nameOf = (p: any) => p.full_name || p.nickname || "user";
+
+  // Atomik di DB (admin_adjust_energy): aman walau user sedang memakai energy di saat yang sama.
   const adjustEnergy = async (player: any, delta: number) => {
-    const next = Math.max(0, Math.min(MAX_ENERGY, (player.energy ?? 0) + delta));
+    if (!Number.isInteger(delta) || delta === 0) {
+      toast.error("Isi jumlah energy (angka bulat, bukan 0).");
+      return;
+    }
     setBusyId(player.id);
-    const { error } = await supabase.from("profiles").update({ energy: next }).eq("id", player.id);
+    const { data, error } = await supabase.rpc("admin_adjust_energy", {
+      p_user_id: player.id,
+      p_delta: delta,
+    });
     setBusyId(null);
     if (error) {
       toast.error("Gagal ubah energy: " + error.message);
       return;
     }
+    const next = typeof data === "number" ? data : Math.max(0, (player.energy ?? 0) + delta);
     setPlayers((prev) => prev.map((p) => (p.id === player.id ? { ...p, energy: next } : p)));
-    toast.success(`Energy ${player.full_name || player.nickname || "user"} sekarang ${next}/${MAX_ENERGY}.`);
+    toast.success(`Energy ${nameOf(player)} sekarang ${next} (${delta > 0 ? "+" : ""}${delta}).`);
   };
 
-  const resetEnergy = async (player: any) => {
-    if (!confirm(`Reset energy "${player.full_name || player.nickname}" ke ${MAX_ENERGY}?`)) return;
-    setBusyId(player.id);
-    const nowIso = new Date().toISOString();
-    const { error } = await supabase
-      .from("profiles")
-      .update({ energy: MAX_ENERGY, energy_reset_at: nowIso })
-      .eq("id", player.id);
-    setBusyId(null);
-    if (error) {
-      toast.error("Gagal reset energy: " + error.message);
-      return;
-    }
-    setPlayers((prev) =>
-      prev.map((p) => (p.id === player.id ? { ...p, energy: MAX_ENERGY, energy_reset_at: nowIso } : p))
-    );
-    toast.success(`Energy ${player.full_name || player.nickname || "user"} berhasil di-reset.`);
-  };
+  const amountOf = (id: string) => parseInt(amounts[id] ?? "", 10);
 
   const displayed = players.filter((p) => {
     if (!search.trim()) return true;
@@ -65,14 +62,57 @@ export default function AdminEnergyPage() {
     return [p.full_name, p.nickname, p.email].filter(Boolean).some((v: string) => v.toLowerCase().includes(q));
   });
 
+  const Controls = ({ p }: { p: any }) => (
+    <div className="space-y-2">
+      <div className="flex gap-2 items-center flex-wrap">
+        <input
+          type="number"
+          min={1}
+          inputMode="numeric"
+          value={amounts[p.id] ?? ""}
+          onChange={(e) => setAmounts((prev) => ({ ...prev, [p.id]: e.target.value }))}
+          placeholder="Jumlah"
+          className="border rounded-lg px-3 py-1.5 text-sm w-24"
+        />
+        <button
+          onClick={() => adjustEnergy(p, amountOf(p.id))}
+          disabled={busyId === p.id || !(amountOf(p.id) > 0)}
+          className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium disabled:opacity-40"
+        >
+          Tambah
+        </button>
+        <button
+          onClick={() => adjustEnergy(p, -amountOf(p.id))}
+          disabled={busyId === p.id || !(amountOf(p.id) > 0)}
+          className="px-3 py-1.5 rounded-lg border text-xs font-medium disabled:opacity-40"
+        >
+          Kurangi
+        </button>
+      </div>
+      <div className="flex gap-2 flex-wrap">
+        {QUICK_ADD.map((n) => (
+          <button
+            key={n}
+            onClick={() => adjustEnergy(p, n)}
+            disabled={busyId === p.id}
+            className="px-2.5 py-1 rounded-full border text-xs text-gray-600 disabled:opacity-40"
+          >
+            +{n}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center flex-wrap gap-2">
         <div>
           <h1 className="text-xl font-bold">Energy</h1>
           <p className="text-sm text-gray-500">
-            Energy dipakai user tiap buat circle baru (-1). Reset otomatis ke {MAX_ENERGY} tiap Senin 00.00 WIB —
-            reset otomatis berikutnya: <span className="font-medium">{getNextResetLabel()}</span>.
+            Energy = saldo kredit. Join circle -{ENERGY_COST.join}, buat circle -{ENERGY_COST.create}, buat circle plus -
+            {ENERGY_COST.createPlus}. Bonus +{WEEKLY_ENERGY_BONUS} tiap Senin 00.00 WIB (menumpuk), berikutnya{" "}
+            <span className="font-medium">{getNextBonusLabel()}</span>. User yang kehabisan energy minta tambahan ke admin.
           </p>
         </div>
         <input
@@ -99,32 +139,10 @@ export default function AdminEnergyPage() {
                 <p className="text-xs text-gray-500 truncate">{p.email || "-"}</p>
               </div>
               <span className="text-sm font-semibold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full shrink-0">
-                ⚡ {p.energy}/{MAX_ENERGY}
+                ⚡ {p.energy}
               </span>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => adjustEnergy(p, -1)}
-                disabled={busyId === p.id || p.energy <= 0}
-                className="flex-1 py-2 rounded-xl border text-sm font-medium disabled:opacity-40"
-              >
-                -1
-              </button>
-              <button
-                onClick={() => adjustEnergy(p, 1)}
-                disabled={busyId === p.id || p.energy >= MAX_ENERGY}
-                className="flex-1 py-2 rounded-xl border text-sm font-medium disabled:opacity-40"
-              >
-                +1
-              </button>
-              <button
-                onClick={() => resetEnergy(p)}
-                disabled={busyId === p.id}
-                className="flex-1 py-2 rounded-xl bg-primary text-white text-sm font-medium disabled:opacity-40"
-              >
-                Reset
-              </button>
-            </div>
+            <Controls p={p} />
           </div>
         ))}
         {!displayed.length && <p className="text-gray-400 text-sm">{search ? "Tidak ada yang cocok." : "Belum ada user."}</p>}
@@ -138,13 +156,13 @@ export default function AdminEnergyPage() {
               <th className="p-3">User</th>
               <th className="p-3">Email</th>
               <th className="p-3">Energy</th>
-              <th className="p-3">Reset Terakhir</th>
+              <th className="p-3">Bonus Terakhir</th>
               <th className="p-3">Aksi</th>
             </tr>
           </thead>
           <tbody>
             {displayed.map((p) => (
-              <tr key={p.id} className="border-t">
+              <tr key={p.id} className="border-t align-top">
                 <td className="p-3">
                   <div className="flex items-center gap-2">
                     <img
@@ -157,37 +175,13 @@ export default function AdminEnergyPage() {
                 </td>
                 <td className="p-3">{p.email}</td>
                 <td className="p-3">
-                  <span className="font-semibold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">
-                    ⚡ {p.energy}/{MAX_ENERGY}
-                  </span>
+                  <span className="font-semibold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full">⚡ {p.energy}</span>
                 </td>
                 <td className="p-3 text-gray-500">
                   {p.energy_reset_at ? new Date(p.energy_reset_at).toLocaleString("id-ID") : "-"}
                 </td>
                 <td className="p-3">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => adjustEnergy(p, -1)}
-                      disabled={busyId === p.id || p.energy <= 0}
-                      className="px-3 py-1.5 rounded-lg border text-xs font-medium disabled:opacity-40"
-                    >
-                      -1
-                    </button>
-                    <button
-                      onClick={() => adjustEnergy(p, 1)}
-                      disabled={busyId === p.id || p.energy >= MAX_ENERGY}
-                      className="px-3 py-1.5 rounded-lg border text-xs font-medium disabled:opacity-40"
-                    >
-                      +1
-                    </button>
-                    <button
-                      onClick={() => resetEnergy(p)}
-                      disabled={busyId === p.id}
-                      className="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-medium disabled:opacity-40"
-                    >
-                      Reset ke {MAX_ENERGY}
-                    </button>
-                  </div>
+                  <Controls p={p} />
                 </td>
               </tr>
             ))}

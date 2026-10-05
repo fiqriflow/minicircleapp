@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
 import MemberProfileModal from "@/components/circle/MemberProfileModal";
 import JoinQuestionModal from "@/components/circle/JoinQuestionModal";
 import ReportModal from "@/components/circle/ReportModal";
@@ -134,12 +135,17 @@ export default function CircleDetailPage() {
       load();
       return;
     }
-    await supabase.from("circle_members").insert({
+    const { error: joinError } = await supabase.from("circle_members").insert({
       circle_id: id,
       user_id: userId,
       status: circle.requires_approval ? "pending" : "joined",
       join_answer: answer ?? null,
     });
+    if (joinError) {
+      toast.error(mapEnergyError(joinError.message) ?? joinError.message);
+      return;
+    }
+    notifyEnergyChanged();
     toast.success(circle.requires_approval ? "Permintaan join terkirim, menunggu persetujuan host." : "Berhasil join circle!");
     load();
   };

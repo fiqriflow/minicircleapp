@@ -7,7 +7,7 @@ import { generateInviteCode } from "@/lib/inviteCode";
 import { extractStoragePath } from "@/lib/storagePath";
 import { toDateTimeLocalValue, fromDateTimeLocalValue } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/ui/LocationInput";
-import { getMyEnergy, getNextResetLabel, mapEnergyError, MAX_ENERGY } from "@/lib/energy";
+import { ENERGY_COST, getMyEnergy, mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
 
 const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Kulineran", "Ngopi", "Explore Alam"];
 
@@ -72,7 +72,8 @@ export default function CreateCircleModal({
 
   const missingInstagram = !isEdit && hostChecked && !host?.instagram;
   const missingAvatar = !isEdit && hostChecked && !host?.avatar_url;
-  const noEnergy = !isEdit && energy !== null && energy <= 0;
+  const createCost = isPlus ? ENERGY_COST.createPlus : ENERGY_COST.create;
+  const noEnergy = !isEdit && energy !== null && energy < createCost;
   const profileIncomplete = missingInstagram || missingAvatar || noEnergy;
 
   // Di HP, pas keyboard muncul, browser ngecilin "visual viewport" tapi elemen
@@ -138,7 +139,7 @@ export default function CreateCircleModal({
       return;
     }
     if (noEnergy) {
-      setError(`Energy habis. Reset ${getNextResetLabel()}.`);
+      setError(`Energy tidak cukup (butuh ${createCost}, sisa ${energy}). Hubungi admin untuk menambah energy.`);
       return;
     }
     const requiredFields: { key: string; label: string; ok: boolean }[] = [
@@ -234,7 +235,7 @@ export default function CreateCircleModal({
           ? "Kode undangan sudah dipakai, coba kode lain."
           : insertError.message
       );
-      if (energyMsg) setEnergy(0);
+      if (energyMsg) notifyEnergyChanged();
       return;
     }
 
@@ -248,6 +249,7 @@ export default function CreateCircleModal({
     }
 
     setSaving(false);
+    notifyEnergyChanged();
     onCreated();
     onClose();
   };
@@ -294,7 +296,7 @@ export default function CreateCircleModal({
               )}
               {noEnergy && (
                 <li className="flex items-center gap-2 text-red-500">
-                  ⚡ Energy habis. Reset {getNextResetLabel()}.
+                  ⚡ Energy tidak cukup (butuh {createCost}, sisa {energy}). Hubungi admin untuk menambah energy.
                 </li>
               )}
             </ul>
@@ -333,7 +335,7 @@ export default function CreateCircleModal({
             </div>
             {energy !== null && (
               <span className="text-xs font-semibold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full shrink-0">
-                ⚡ {energy}/{MAX_ENERGY}
+                ⚡ {energy} (biaya -{createCost})
               </span>
             )}
           </div>

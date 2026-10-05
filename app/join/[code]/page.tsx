@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
 import { createClient } from "@/lib/supabase/client";
 import JoinQuestionModal from "@/components/circle/JoinQuestionModal";
 import { getDefaultCoverMap, resolveCircleCover } from "@/lib/appSettings";
@@ -58,9 +59,10 @@ export default function JoinByInvitePage() {
       p_answer: answer ?? null,
     });
     if (error || !data) {
-      toast.error(error?.message ?? "Kode undangan tidak valid.");
+      toast.error((error && mapEnergyError(error.message)) ?? error?.message ?? "Kode undangan tidak valid.");
       return;
     }
+    notifyEnergyChanged();
     router.push(`/circle/${circle.id}`);
   };
 

@@ -223,8 +223,15 @@ where id = 'avatars';
 
 -- ================= 7) FUNCTION YANG TIDAK PERLU DIPANGGIL CLIENT =================
 -- get_email_by_username membocorkan email user ke anon, dan tidak dipakai app (login = Google)
-revoke execute on function public.get_email_by_username(text) from public, anon, authenticated;
-revoke execute on function public.ensure_energy_reset(uuid) from public, anon, authenticated;
+do $$
+begin
+  if to_regprocedure('public.get_email_by_username(text)') is not null then
+    revoke execute on function public.get_email_by_username(text) from public, anon, authenticated;
+  end if;
+  if to_regprocedure('public.ensure_energy_reset(uuid)') is not null then
+    revoke execute on function public.ensure_energy_reset(uuid) from public, anon, authenticated;
+  end if;
+end $$;
 
 -- kunci search_path semua function security definer (cegah search_path hijack)
 do $$
