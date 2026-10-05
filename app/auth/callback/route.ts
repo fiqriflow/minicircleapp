@@ -15,6 +15,12 @@ export async function GET(request: Request) {
   // senyap. Sekarang ditangkap & dikasih notice yang jelas.
   const oauthError = searchParams.get("error_description") || searchParams.get("error");
   if (oauthError) {
+    // Kuota pendaftaran penuh ditolak di DB (handle_new_user) -> Supabase balas
+    // "Database error saving new user". Kalau limit memang aktif, arahkan ke halaman tutup.
+    if (/database error saving new user|pendaftaran ditutup/i.test(oauthError)) {
+      const { enabled, limit } = await getRegistrationLimit(await createClient());
+      if (enabled && limit > 0) return NextResponse.redirect(`${origin}/pendaftaran-ditutup`);
+    }
     return NextResponse.redirect(
       `${origin}/login?notice=auth-failed&reason=${encodeURIComponent(oauthError)}`
     );

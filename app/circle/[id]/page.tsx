@@ -36,7 +36,7 @@ export default function CircleDetailPage() {
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [showJoinQuestion, setShowJoinQuestion] = useState(false);
   const [confirmAction, setConfirmAction] = useState<"join" | "leave" | null>(null);
-  const [confirmStatusAction, setConfirmStatusAction] = useState<"completed" | "cancelled" | null>(null);
+  const [confirmStatusAction, setConfirmStatusAction] = useState<"started" | "completed" | "cancelled" | null>(null);
   const [showEditCircle, setShowEditCircle] = useState(false);
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [hasNewComment, setHasNewComment] = useState(false);
@@ -222,7 +222,17 @@ export default function CircleDetailPage() {
   };
 
   const handleSetStatus = async (status: string) => {
-    await supabase.from("circles").update({ status }).eq("id", id);
+    const { error } = await supabase.from("circles").update({ status }).eq("id", id);
+    if (error) toast.error(error.message);
+    setShowHostMenu(false);
+    load();
+  };
+
+  const handleStartCircle = async () => {
+    // waktu mulai dicap server (trigger guard_circle_write)
+    const { error } = await supabase.from("circles").update({ started_at: new Date().toISOString() }).eq("id", id);
+    if (error) toast.error(error.message);
+    else toast.success("Circle ditandai mulai.");
     setShowHostMenu(false);
     load();
   };
@@ -346,15 +356,28 @@ export default function CircleDetailPage() {
                   >
                     <Share2 size={14} /> Bagikan Circle
                   </button>
-                  <button
-                    onClick={() => {
-                      setShowHostMenu(false);
-                      setConfirmStatusAction("completed");
-                    }}
-                    className="w-full text-left px-4 py-3 text-sm text-green-600 hover:bg-green-50 border-b"
-                  >
-                    Tandai Selesai
-                  </button>
+                  {(displayStatus === "open" || displayStatus === "full") && (
+                    <button
+                      onClick={() => {
+                        setShowHostMenu(false);
+                        setConfirmStatusAction("started");
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm text-green-600 hover:bg-green-50 border-b"
+                    >
+                      Tandai Mulai
+                    </button>
+                  )}
+                  {displayStatus === "ongoing" && (
+                    <button
+                      onClick={() => {
+                        setShowHostMenu(false);
+                        setConfirmStatusAction("completed");
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm text-green-600 hover:bg-green-50 border-b"
+                    >
+                      Tandai Selesai
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setShowHostMenu(false);
@@ -501,11 +524,17 @@ export default function CircleDetailPage() {
         <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
           <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4">
             <h3 className="font-bold text-lg">
-              {confirmStatusAction === "completed" ? "Tandai Circle Selesai?" : "Batalkan Circle?"}
+              {confirmStatusAction === "started"
+                ? "Tandai Circle Mulai?"
+                : confirmStatusAction === "completed"
+                ? "Tandai Circle Selesai?"
+                : "Batalkan Circle?"}
             </h3>
             <p className="text-sm text-gray-600">
-              {confirmStatusAction === "completed"
-                ? `Circle "${circle.name}" akan ditandai selesai.`
+              {confirmStatusAction === "started"
+                ? `Circle "${circle.name}" akan ditandai sedang berlangsung (check-in dibuka). Bisa dilakukan maksimal 2 jam sebelum acara.`
+                : confirmStatusAction === "completed"
+                ? `Circle "${circle.name}" akan ditandai selesai. Member yang belum check-in kena penalti energy.`
                 : `Circle "${circle.name}" akan dibatalkan.`}{" "}
               Tindakan ini <span className="font-semibold">tidak bisa diubah kembali</span>.
             </p>
@@ -518,14 +547,19 @@ export default function CircleDetailPage() {
               </button>
               <button
                 onClick={() => {
-                  handleSetStatus(confirmStatusAction);
+                  if (confirmStatusAction === "started") handleStartCircle();
+                  else handleSetStatus(confirmStatusAction);
                   setConfirmStatusAction(null);
                 }}
                 className={`flex-1 rounded-xl py-3 font-medium text-white ${
-                  confirmStatusAction === "completed" ? "bg-green-600 hover:bg-green-700" : "bg-red-500 hover:bg-red-600"
+                  confirmStatusAction === "cancelled" ? "bg-red-500 hover:bg-red-600" : "bg-green-600 hover:bg-green-700"
                 }`}
               >
-                {confirmStatusAction === "completed" ? "Ya, Tandai Selesai" : "Ya, Batalkan"}
+                {confirmStatusAction === "started"
+                  ? "Ya, Tandai Mulai"
+                  : confirmStatusAction === "completed"
+                  ? "Ya, Tandai Selesai"
+                  : "Ya, Batalkan"}
               </button>
             </div>
           </div>
