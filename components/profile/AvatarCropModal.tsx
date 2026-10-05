@@ -29,15 +29,15 @@ export default function AvatarCropModal({
     const sy = (offsetY / 100) * maxY;
 
     const canvas = document.createElement("canvas");
-    canvas.width = 400;
-    canvas.height = 400;
+    canvas.width = 256;
+    canvas.height = 256;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.drawImage(img, sx, sy, size, size, 0, 0, 400, 400);
+    ctx.drawImage(img, sx, sy, size, size, 0, 0, 256, 256);
 
     canvas.toBlob((blob) => {
       if (blob) onConfirm(blob);
-    }, "image/jpeg", 0.8);
+    }, "image/jpeg", 0.75);
   };
 
   return (

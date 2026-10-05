@@ -550,7 +550,7 @@ export default function CircleDetailPage() {
           {pendingMembers.map((m) => (
             <div key={m.id} className="border rounded-xl p-3 space-y-2">
               <div className="flex items-center gap-3">
-                <img
+                <img loading="lazy" decoding="async"
                   src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
                   className="w-10 h-10 rounded-full object-cover"
                   alt=""
@@ -625,7 +625,7 @@ export default function CircleDetailPage() {
           <div className="grid grid-cols-2 gap-3">
             {host && (
               <div className="flex items-center gap-3 border rounded-xl p-4">
-                <img
+                <img loading="lazy" decoding="async"
                   src={host.avatar_url || "https://ui-avatars.com/api/?name=" + (host.full_name || "U")}
                   className="w-9 h-9 rounded-full object-cover shrink-0"
                   alt=""
@@ -675,7 +675,7 @@ export default function CircleDetailPage() {
                   onClick={() => isJoined && setSelectedMember(m.profile)}
                   className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 >
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
                     className="w-10 h-10 rounded-full object-cover shrink-0"
                     alt=""
