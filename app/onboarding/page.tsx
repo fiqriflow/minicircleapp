@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import LocationInput from "@/components/ui/LocationInput";
 import AvatarCropModal from "@/components/profile/AvatarCropModal";
 import PolicyModal from "@/components/profile/PolicyModal";
+import AvatarPresetPicker from "@/components/profile/AvatarPresetPicker";
 import { saveProfile } from "@/lib/profile";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
@@ -285,7 +286,7 @@ export default function OnboardingPage() {
                   className="w-20 h-20 rounded-full object-cover border"
                 />
                 <label className="text-sm text-primary font-medium cursor-pointer">
-                  {uploadingAvatar ? "Mengunggah..." : "Pilih Foto"}
+                  {uploadingAvatar ? "Mengunggah..." : "Upload Foto Sendiri"}
                   <input
                     type="file"
                     accept="image/*"
@@ -299,6 +300,11 @@ export default function OnboardingPage() {
                   />
                 </label>
               </div>
+
+              <AvatarPresetPicker
+                selectedUrl={profile.avatar_url}
+                onSelect={(url) => setProfile((p: any) => ({ ...p, avatar_url: url }))}
+              />
 
               <div>
                 <label className="text-sm text-gray-500">Instagram</label>
