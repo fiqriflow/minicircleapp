@@ -88,8 +88,12 @@ export default function DataUserPage() {
   };
 
   const handleSave = async () => {
-    if (profile.instagram && !profile.instagram.startsWith("@")) {
-      toast.error("Akun Instagram harus diawali dengan @, contoh: @username");
+    if (!profile.instagram || !profile.instagram.startsWith("@") || profile.instagram.length < 2) {
+      toast.error("Instagram wajib diisi dan diawali @, contoh: @username");
+      return;
+    }
+    if (!profile.avatar_url) {
+      toast.error("Foto profil wajib diisi.");
       return;
     }
     setSaving(true);
@@ -332,7 +336,7 @@ export default function DataUserPage() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-500">Instagram</label>
+            <label className="text-sm text-gray-500">Instagram (wajib)</label>
             <input
               className="w-full border rounded-xl px-4 py-2"
               placeholder="@username"

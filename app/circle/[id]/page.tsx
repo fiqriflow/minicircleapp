@@ -15,7 +15,7 @@ import { extractStoragePath } from "@/lib/storagePath";
 import { getJoinedCounts } from "@/lib/circleMembers";
 import { markCommentNotifRead } from "@/lib/notifications";
 import CreateCircleModal from "@/components/circle/CreateCircleModal";
-import { PUBLIC_PROFILE_COLUMNS } from "@/lib/profile";
+import { PUBLIC_PROFILE_COLUMNS, isProfileIncompleteError } from "@/lib/profile";
 
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -195,6 +195,11 @@ export default function CircleDetailPage() {
       join_answer: answer ?? null,
     });
     if (joinError) {
+      if (isProfileIncompleteError(joinError.message)) {
+        toast.error(joinError.message);
+        router.push("/profile/data-user");
+        return;
+      }
       toast.error(mapEnergyError(joinError.message) ?? joinError.message);
       return;
     }
