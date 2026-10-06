@@ -6,7 +6,9 @@ export type NotificationType =
   | "circle_cancelled"
   | "circle_finish_reminder"
   | "slot_available"
-  | "no_show_energy";
+  | "no_show_energy"
+  | "co_host_appointed"
+  | "co_host_removed";
 
 export type AppNotification = {
   id: string;

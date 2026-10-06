@@ -34,6 +34,8 @@ const TITLE_BY_TYPE: Record<string, string> = {
   circle_cancelled: "Circle dibatalkan",
   circle_finish_reminder: "Jangan lupa tandai selesai",
   slot_available: "Slot kosong tersedia",
+  co_host_appointed: "Kamu jadi Co Host",
+  co_host_removed: "Peran Co Host dicabut",
 };
 
 export async function POST(request: Request) {

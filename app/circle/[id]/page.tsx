@@ -48,6 +48,10 @@ export default function CircleDetailPage() {
 
   const isJoined = myStatus === "joined";
   const isHost = !!(userId && circle && userId === circle.created_by);
+  const [myIsCoHost, setMyIsCoHost] = useState(false);
+  const isCoHost = !isHost && myIsCoHost && !!circle?.is_circle_plus;
+  const canManage = isHost || isCoHost; // host atau co host: approve/tolak, koreksi hadir
+  const coHostCount = members.filter((m) => m.is_co_host).length;
   const displayStatus = circle ? getCircleDisplayStatus(circle, { joined: joinedCount, max: circle.max_participants }) : null;
   const isCommentLocked = displayStatus === "completed" || displayStatus === "cancelled";
 
@@ -66,7 +70,7 @@ export default function CircleDetailPage() {
       supabase
         .from("circle_members")
         // join_answer sengaja tidak di-select (dicabut dari client, lihat migration 0030) -> host ambil lewat RPC
-        .select(`id, circle_id, user_id, status, joined_at, checked_in, checked_in_at, energy_penalized, profile:profiles(${PUBLIC_PROFILE_COLUMNS})`)
+        .select(`id, circle_id, user_id, status, joined_at, checked_in, checked_in_at, energy_penalized, is_co_host, profile:profiles(${PUBLIC_PROFILE_COLUMNS})`)
         .eq("circle_id", id),
     ]);
     if (c?.created_by) setHost(hostRes.data);
@@ -75,7 +79,10 @@ export default function CircleDetailPage() {
     let pending = (allMembers ?? []).filter((m) => m.status === "pending");
 
     // jawaban pertanyaan join cuma boleh dibaca host
-    if (c?.created_by && c.created_by === user?.id && pending.length > 0) {
+    const mine = allMembers?.find((m) => m.user_id === user?.id);
+    const iAmCoHost = !!(mine?.status === "joined" && mine?.is_co_host && c?.is_circle_plus);
+    setMyIsCoHost(iAmCoHost);
+    if (c?.created_by && (c.created_by === user?.id || iAmCoHost) && pending.length > 0) {
       const { data: answers } = await supabase.rpc("get_circle_join_answers", { p_circle_id: id });
       const answerMap = new Map<string, string | null>(
         (answers ?? []).map((a: any) => [a.member_id, a.join_answer] as [string, string | null])
@@ -86,7 +93,6 @@ export default function CircleDetailPage() {
     setPendingMembers(pending);
     setJoinedCount(joined.length);
 
-    const mine = allMembers?.find((m) => m.user_id === user?.id);
     setMyStatus(mine ? (mine.status as "joined" | "pending") : null);
 
     if (mine?.status === "joined") {
@@ -218,6 +224,19 @@ export default function CircleDetailPage() {
       return;
     }
     toast.success("Check-in berhasil!");
+    load();
+  };
+
+  const handleToggleCoHost = async (m: any) => {
+    const next = !m.is_co_host;
+    const name = m.profile?.nickname || m.profile?.full_name || "member ini";
+    if (!window.confirm(next ? `Jadikan ${name} co host? Dia bisa terima/tolak permintaan join dan koreksi kehadiran.` : `Cabut peran co host ${name}?`)) return;
+    const { error } = await supabase.rpc("set_circle_co_host", { p_member_row_id: m.id, p_value: next });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(next ? "Co host ditunjuk." : "Co host dicabut.");
     load();
   };
 
@@ -600,8 +619,8 @@ export default function CircleDetailPage() {
         />
       )}
 
-      {/* Approval requests untuk host */}
-      {isHost && pendingMembers.length > 0 && (
+      {/* Approval requests untuk host / co host */}
+      {canManage && pendingMembers.length > 0 && (
         <div className="space-y-2">
           <h3 className="font-semibold text-sm text-gray-700">Menunggu Persetujuan ({pendingMembers.length})</h3>
           {pendingMembers.map((m) => (
@@ -723,7 +742,10 @@ export default function CircleDetailPage() {
           {members.map((m) => {
             const checkinOpen = Date.now() <= new Date(circle.event_date).getTime() + 24 * 60 * 60 * 1000; // sama dengan policy DB
             const canSelfCheckin = displayStatus === "ongoing" && checkinOpen && m.user_id === userId && !m.checked_in;
-            const canHostOverride = isHost && displayStatus === "completed";
+            const canHostOverride = canManage && displayStatus === "completed";
+            const canSetCoHost =
+              isHost && !!circle.is_circle_plus && displayStatus !== "completed" && displayStatus !== "cancelled" &&
+              m.user_id !== circle.created_by && (m.is_co_host || coHostCount < 2);
             return (
               <div
                 key={m.id}
@@ -739,7 +761,14 @@ export default function CircleDetailPage() {
                     alt=""
                   />
                   <div className="min-w-0">
-                    <p className="font-medium truncate">{m.profile?.nickname || m.profile?.full_name}</p>
+                    <p className="font-medium truncate">
+                      {m.profile?.nickname || m.profile?.full_name}
+                      {m.is_co_host && (
+                        <span className="ml-2 align-middle text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                          Co Host
+                        </span>
+                      )}
+                    </p>
                     {isJoined && <p className="text-xs text-gray-400">Lihat profil</p>}
                   </div>
                 </button>
@@ -757,6 +786,15 @@ export default function CircleDetailPage() {
                       className="text-xs font-semibold text-white bg-primary px-3 py-1.5 rounded-full"
                     >
                       Check-in
+                    </button>
+                  )}
+
+                  {canSetCoHost && (
+                    <button
+                      onClick={() => handleToggleCoHost(m)}
+                      className="text-xs text-primary underline whitespace-nowrap"
+                    >
+                      {m.is_co_host ? "Cabut Co Host" : "Jadikan Co Host"}
                     </button>
                   )}
 
