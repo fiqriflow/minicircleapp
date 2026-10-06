@@ -23,12 +23,14 @@ export default function JoinQuestionModal({
           rows={3}
           placeholder="Jawaban kamu..."
           value={answer}
+          maxLength={200}
           onChange={(e) => setAnswer(e.target.value)}
         />
+        <p className="text-xs text-gray-400 text-right">{answer.length}/200</p>
         <div className="flex gap-2">
           <button onClick={onCancel} className="flex-1 py-3 text-gray-500">Batal</button>
           <button
-            onClick={() => onSubmit(answer)}
+            onClick={() => onSubmit(answer.trim())}
             disabled={!answer.trim()}
             className="flex-1 bg-primary text-white rounded-xl py-3 font-medium disabled:opacity-50"
           >

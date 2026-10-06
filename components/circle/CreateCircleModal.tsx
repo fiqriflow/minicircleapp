@@ -48,6 +48,7 @@ export default function CreateCircleModal({
           is_private: editCircle.is_private ?? false,
           invite_code: editCircle.invite_code ?? "",
           join_question: editCircle.join_question ?? "",
+          requires_approval: editCircle.requires_approval ?? false,
         }
       : {
           name: "",
@@ -63,6 +64,7 @@ export default function CreateCircleModal({
           is_private: false,
           invite_code: "",
           join_question: "",
+          requires_approval: false,
         }
   );
   const [saving, setSaving] = useState(false);
@@ -228,7 +230,9 @@ export default function CreateCircleModal({
       payload.cover_url = form.cover_url || null;
       payload.is_private = form.is_private;
       payload.invite_code = (form.invite_code.trim() || generateInviteCode()).toUpperCase();
-      payload.join_question = form.join_question.trim() || null;
+      // pertanyaan join hanya berlaku kalau approval aktif (dijaga juga di DB, migration 0043)
+      payload.requires_approval = form.requires_approval;
+      payload.join_question = form.requires_approval ? form.join_question.trim().slice(0, 200) || null : null;
     }
 
     if (isEdit) {
@@ -595,15 +599,27 @@ export default function CreateCircleModal({
               </div>
             </div>
 
-            <div>
-              <label className="text-sm text-gray-500">Pertanyaan saat Join (opsional)</label>
+            <label className="flex items-center gap-2 text-sm">
               <input
-                className="w-full border rounded-xl px-3 py-2"
-                placeholder="Mis. Sudah pernah gowes berapa km?"
-                value={form.join_question}
-                onChange={(e) => setForm({ ...form, join_question: e.target.value })}
+                type="checkbox"
+                checked={form.requires_approval}
+                onChange={(e) => setForm({ ...form, requires_approval: e.target.checked })}
               />
-            </div>
+              Perlu approval host untuk join
+            </label>
+
+            {form.requires_approval && (
+              <div>
+                <label className="text-sm text-gray-500">Pertanyaan saat Join (opsional, wajib dijawab pelamar)</label>
+                <input
+                  className="w-full border rounded-xl px-3 py-2"
+                  placeholder="Mis. Sudah pernah gowes berapa km?"
+                  value={form.join_question}
+                  onChange={(e) => setForm({ ...form, join_question: e.target.value })}
+                  maxLength={200}
+                />
+              </div>
+            )}
           </>
         )}
 
