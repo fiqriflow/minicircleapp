@@ -14,7 +14,7 @@ import {
   refreshCompletedCircles,
 } from "@/lib/notifications";
 
-const POLL_MS = 15000;
+const POLL_MS = 45000; // polling notif; penutupan circle dilakukan pg_cron (0037), bukan per-user
 
 function timeAgo(iso: string) {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -56,11 +56,19 @@ export default function NotificationProfile() {
 
   useEffect(() => {
     if (!userId) return;
-    const interval = setInterval(async () => {
-      await refreshCompletedCircles(supabase);
+    const tick = async () => {
+      if (document.hidden) return;
       await load(userId);
-    }, POLL_MS);
-    return () => clearInterval(interval);
+    };
+    const interval = setInterval(tick, POLL_MS);
+    const onVisible = () => {
+      if (!document.hidden) tick();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 

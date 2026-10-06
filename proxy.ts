@@ -39,6 +39,17 @@ function buildCsp(nonce: string) {
   ].join("; ");
 }
 
+// Cache flag maintenance 15 detik per instance (hemat 1 query di tiap request).
+let maintenanceCache: { value: boolean; at: number } | null = null;
+async function getMaintenanceFlag(supabase: any): Promise<boolean> {
+  const now = Date.now();
+  if (maintenanceCache && now - maintenanceCache.at < 15_000) return maintenanceCache.value;
+  const { data } = await supabase.from("app_settings").select("value").eq("key", "maintenance_mode").maybeSingle();
+  const value = data?.value === "true";
+  maintenanceCache = { value, at: now };
+  return value;
+}
+
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
@@ -121,22 +132,17 @@ export async function proxy(request: NextRequest) {
   };
   let profile = null as ProfileGate | null;
 
-  if (user) {
-    // Kolom is_super_admin/is_banned/suspended_until tidak bisa dibaca langsung (0036) -> pakai RPC.
-    const { data } = await supabase.rpc("get_my_profile").maybeSingle();
-    profile = (data as ProfileGate | null) ?? null;
-  }
+  // Profil & flag maintenance dibaca PARALEL (sebelumnya berurutan = 1 round-trip ekstra per navigasi).
+  // Kolom is_super_admin/is_banned/suspended_until tidak bisa dibaca langsung (0036) -> pakai RPC.
+  const [profileRes, maintenanceOn] = await Promise.all([
+    user ? supabase.rpc("get_my_profile").maybeSingle() : Promise.resolve({ data: null }),
+    getMaintenanceFlag(supabase),
+  ]);
+  if (user) profile = (profileRes.data as unknown as ProfileGate | null) ?? null;
 
   // ================= Maintenance mode =================
   // Kalau nyala, semua orang (kecuali super admin) diarahkan ke halaman
   // maintenance. Halaman login/auth tetap bisa diakses biar admin bisa login.
-  const { data: maintenanceSetting } = await supabase
-    .from("app_settings")
-    .select("value")
-    .eq("key", "maintenance_mode")
-    .maybeSingle();
-  const maintenanceOn = maintenanceSetting?.value === "true";
-
   if (maintenanceOn && !profile?.is_super_admin && !isMaintenancePage && !isAuthPage) {
     return redirect("/maintenance");
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -52,22 +52,24 @@ export default function CircleDetailPage() {
   const isCommentLocked = displayStatus === "completed" || displayStatus === "cancelled";
 
   const load = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const [{ data: { user } }, { data: c }] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.from("circles").select("*").eq("id", id).single(),
+    ]);
     setUserId(user?.id ?? null);
-
-    const { data: c } = await supabase.from("circles").select("*").eq("id", id).single();
     setCircle(c);
 
-    if (c?.created_by) {
-      const { data: h } = await supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", c.created_by).single();
-      setHost(h);
-    }
-
-    const { data: allMembers } = await supabase
-      .from("circle_members")
-      // join_answer sengaja tidak di-select (dicabut dari client, lihat migration 0030) -> host ambil lewat RPC
-      .select(`id, circle_id, user_id, status, joined_at, checked_in, checked_in_at, energy_penalized, profile:profiles(${PUBLIC_PROFILE_COLUMNS})`)
-      .eq("circle_id", id);
+    const [hostRes, { data: allMembers }] = await Promise.all([
+      c?.created_by
+        ? supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", c.created_by).single()
+        : Promise.resolve({ data: null }),
+      supabase
+        .from("circle_members")
+        // join_answer sengaja tidak di-select (dicabut dari client, lihat migration 0030) -> host ambil lewat RPC
+        .select(`id, circle_id, user_id, status, joined_at, checked_in, checked_in_at, energy_penalized, profile:profiles(${PUBLIC_PROFILE_COLUMNS})`)
+        .eq("circle_id", id),
+    ]);
+    if (c?.created_by) setHost(hostRes.data);
 
     const joined = (allMembers ?? []).filter((m) => m.status === "joined");
     let pending = (allMembers ?? []).filter((m) => m.status === "pending");
@@ -103,23 +105,44 @@ export default function CircleDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // polling komen baru tiap 8 detik (kalau sudah join)
+  // polling komen baru tiap 10 detik (kalau sudah join): hanya ambil yang LEBIH BARU dari komen terakhir,
+  // dan berhenti saat tab tidak terlihat.
+  const commentsRef = useRef<any[]>([]);
+  useEffect(() => {
+    commentsRef.current = comments;
+  }, [comments]);
+
   useEffect(() => {
     if (!isJoined) return;
-    const interval = setInterval(async () => {
-      const { data: cm } = await supabase
+    const poll = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      const last = commentsRef.current[commentsRef.current.length - 1]?.created_at;
+      let q = supabase
         .from("circle_comments")
         .select("*, profile:profiles(full_name, avatar_url)")
         .eq("circle_id", id)
         .order("created_at", { ascending: true });
-      if (cm) {
+      if (last) q = q.gt("created_at", last);
+      const { data: fresh } = await q;
+      if (fresh && fresh.length > 0) {
         setComments((prev) => {
-          if (cm.length > prev.length && tab !== "chat") setHasNewComment(true);
-          return cm;
+          const seen = new Set(prev.map((c) => c.id));
+          const add = fresh.filter((c: any) => !seen.has(c.id));
+          if (add.length === 0) return prev;
+          if (tab !== "chat") setHasNewComment(true);
+          return [...prev, ...add];
         });
       }
-    }, 8000);
-    return () => clearInterval(interval);
+    };
+    const interval = setInterval(poll, 10000);
+    const onVisible = () => {
+      if (!document.hidden) poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [isJoined, tab, id]);
 
   const doJoin = async (answer?: string) => {
