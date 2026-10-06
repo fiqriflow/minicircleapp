@@ -37,6 +37,8 @@ const TITLE_BY_TYPE: Record<string, string> = {
   co_host_appointed: "Kamu jadi Co Host",
   co_host_removed: "Peran Co Host dicabut",
   circle_announcement: "Pengumuman host",
+  verification_approved: "Akun terverifikasi",
+  verification_rejected: "Verifikasi ditolak",
 };
 
 export async function POST(request: Request) {

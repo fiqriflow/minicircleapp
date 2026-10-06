@@ -9,7 +9,9 @@ export type NotificationType =
   | "no_show_energy"
   | "co_host_appointed"
   | "co_host_removed"
-  | "circle_announcement";
+  | "circle_announcement"
+  | "verification_approved"
+  | "verification_rejected";
 
 export type AppNotification = {
   id: string;

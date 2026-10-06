@@ -15,6 +15,7 @@ import { extractStoragePath } from "@/lib/storagePath";
 import { getJoinedCounts } from "@/lib/circleMembers";
 import { markCommentNotifRead } from "@/lib/notifications";
 import CreateCircleModal from "@/components/circle/CreateCircleModal";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { PUBLIC_PROFILE_COLUMNS, isProfileIncompleteError } from "@/lib/profile";
 
 export default function CircleDetailPage() {
@@ -706,7 +707,10 @@ export default function CircleDetailPage() {
                   className="w-10 h-10 rounded-full object-cover"
                   alt=""
                 />
-                <p className="flex-1 font-medium">{m.profile?.nickname || m.profile?.full_name}</p>
+                <p className="flex-1 font-medium">
+                  {m.profile?.nickname || m.profile?.full_name}
+                  <VerifiedBadge show={m.profile?.is_verified} />
+                </p>
                 <button onClick={() => handleApprove(m.id)} className="text-primary text-sm font-medium">Terima</button>
                 <button onClick={() => handleReject(m.id)} className="text-red-500 text-sm font-medium">Tolak</button>
               </div>
@@ -804,7 +808,10 @@ export default function CircleDetailPage() {
                 />
                 <div className="min-w-0">
                   <p className="font-semibold text-sm">Dibuat oleh</p>
-                  <p className="text-sm text-gray-500 truncate">{host.nickname || host.full_name}</p>
+                  <p className="text-sm text-gray-500 truncate">
+                  {host.nickname || host.full_name}
+                  <VerifiedBadge show={host.is_verified} />
+                </p>
                 </div>
               </div>
             )}
@@ -859,6 +866,7 @@ export default function CircleDetailPage() {
                   <div className="min-w-0">
                     <p className="font-medium truncate">
                       {m.profile?.nickname || m.profile?.full_name}
+                      <VerifiedBadge show={m.profile?.is_verified} />
                       {m.is_co_host && (
                         <span className="ml-2 align-middle text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                           Co Host
