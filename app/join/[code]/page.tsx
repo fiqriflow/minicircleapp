@@ -105,7 +105,11 @@ export default function JoinByInvitePage() {
       {circle.group_name && <p className="text-gray-500">{circle.group_name}</p>}
       <div className="text-sm text-gray-500 space-y-1">
         <p>📍 {circle.location}</p>
-        <p>🗓️ {new Date(circle.event_date).toLocaleString("id-ID")}</p>
+        <p>
+          🗓️ {new Date(circle.event_date).toLocaleString("id-ID")}
+          {circle.event_end_date &&
+            ` – ${new Date(circle.event_end_date).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`}
+        </p>
       </div>
 
       {alreadyMember ? (

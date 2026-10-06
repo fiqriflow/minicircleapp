@@ -56,6 +56,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Tidak bisa hapus super admin" }, { status: 403 });
   }
 
+  // Bersihkan file avatar milik user (storage tidak ikut kehapus otomatis). Best-effort.
+  try {
+    const { data: files } = await adminClient.storage.from("avatars").list(userId);
+    if (files && files.length > 0) {
+      await adminClient.storage.from("avatars").remove(files.map((f) => `${userId}/${f.name}`));
+    }
+  } catch {
+    /* abaikan: gagal bersihin file tidak boleh menggagalkan hapus akun */
+  }
+
   const { error } = await adminClient.auth.admin.deleteUser(userId);
 
   if (error) {

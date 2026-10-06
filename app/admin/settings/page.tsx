@@ -37,8 +37,14 @@ export default function AdminSettingsPage() {
     const next = !circlePlusEnabled;
     setSaving(true);
     setCirclePlusEnabled(next);
-    await supabase.from("app_settings").upsert({ key: "circle_plus_enabled", value: String(next) });
+    const { error } = await supabase.from("app_settings").upsert({ key: "circle_plus_enabled", value: String(next) });
     setSaving(false);
+    if (error) {
+      setCirclePlusEnabled(!next); // rollback tampilan
+      toast.error("Gagal mengubah Circle+: " + error.message);
+      return;
+    }
+    toast.success(next ? "Circle+ diaktifkan." : "Circle+ dinonaktifkan.");
   };
 
   const handleToggleMaintenance = async () => {

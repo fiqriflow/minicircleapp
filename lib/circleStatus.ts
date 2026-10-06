@@ -1,16 +1,19 @@
-const EVENT_DURATION_HOURS = 3; // asumsi durasi kegiatan, dipakai untuk status "Berlangsung"
+const EVENT_DURATION_HOURS = 3; // fallback durasi untuk circle lama yang belum punya jam selesai
 
 export type CircleDisplayStatus = "open" | "full" | "ongoing" | "completed" | "cancelled";
 
 export function getCircleDisplayStatus(
-  circle: { status: string; event_date: string; started_at?: string | null },
+  circle: { status: string; event_date: string; event_end_date?: string | null; started_at?: string | null },
   capacity?: { joined: number; max: number | null | undefined }
 ): CircleDisplayStatus {
   if (circle.status === "cancelled") return "cancelled";
   if (circle.status === "completed") return "completed";
 
   const start = new Date(circle.event_date);
-  const end = new Date(start.getTime() + EVENT_DURATION_HOURS * 60 * 60 * 1000);
+  // pakai jam selesai kalau ada; circle lama (tanpa jam selesai) pakai asumsi durasi
+  const end = circle.event_end_date
+    ? new Date(circle.event_end_date)
+    : new Date(start.getTime() + EVENT_DURATION_HOURS * 60 * 60 * 1000);
   const now = new Date();
 
   // host menandai mulai lebih awal -> langsung "Berlangsung"

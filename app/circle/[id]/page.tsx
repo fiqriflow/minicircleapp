@@ -1,5 +1,6 @@
 "use client";
 
+import { formatTimeRange } from "@/lib/dateTimeLocal";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2 } from "lucide-react";
@@ -674,7 +675,7 @@ export default function CircleDetailPage() {
                   year: "numeric",
                 })}
                 {" • "}
-                {new Date(circle.event_date).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
+                {formatTimeRange(circle.event_date, circle.event_end_date)}
               </p>
             </div>
           </div>

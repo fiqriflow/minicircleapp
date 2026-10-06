@@ -35,7 +35,7 @@ export default function ChooseCircleTypeModal({
           <Users className="text-primary shrink-0 mt-1" size={22} />
           <div>
             <p className="font-semibold">Circle</p>
-            <p className="text-sm text-gray-500">3-12 orang, tampil publik di Explore.</p>
+            <p className="text-sm text-gray-500">3-7 orang, tampil publik di Explore.</p>
           </div>
         </button>
 
@@ -50,7 +50,7 @@ export default function ChooseCircleTypeModal({
                 Circle+ {!circlePlusEnabled && <span className="text-xs text-gray-400 font-normal">(Segera Hadir)</span>}
               </p>
               <p className="text-sm text-gray-500">
-                Hingga 12 orang, custom cover, bisa privat/invite only, link undangan sendiri, dan pertanyaan saat join.
+                Hingga 32 orang, custom cover, bisa privat/invite only, link undangan sendiri, dan pertanyaan saat join.
               </p>
             </div>
           </div>

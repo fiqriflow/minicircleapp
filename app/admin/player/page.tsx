@@ -46,30 +46,6 @@ export default function AdminPlayerPage() {
     load();
   };
 
-  const handleDelete = async (player: any) => {
-    if (player.id === currentUserId) {
-      alert("Kamu tidak bisa menghapus akunmu sendiri.");
-      return;
-    }
-    if (
-      !confirm(
-        `Hapus data player "${player.full_name || player.nickname || player.id}" (Soft Delete)?\n\n` +
-          "Profil, keikutsertaan di circle, dan komentarnya akan ikut terhapus. " +
-          "Circle yang pernah dia buat tetap ada (host-nya jadi kosong). " +
-          "Akun Google-nya TIDAK ikut terhapus — kalau dia login lagi pakai akun yang sama, " +
-          "dia akan diarahkan isi ulang data dari awal seperti daftar baru."
-      )
-    )
-      return;
-    const { error } = await supabase.from("profiles").delete().eq("id", player.id);
-    if (error) {
-      alert("Gagal hapus user: " + error.message);
-      return;
-    }
-    toast.success("Player berhasil dihapus (soft delete).");
-    load();
-  };
-
   const handleHardDelete = async (player: any) => {
     if (player.id === currentUserId) {
       alert("Kamu tidak bisa menghapus akunmu sendiri.");
@@ -229,7 +205,6 @@ export default function AdminPlayerPage() {
                   <button onClick={() => handleSuspendPermanent(p)} className="text-red-600 font-medium py-2">Nonaktifkan Permanen</button>
                 </>
               )}
-              <button onClick={() => handleDelete(p)} className="text-red-500 font-medium py-2">Hapus (Soft)</button>
               <button onClick={() => handleHardDelete(p)} className="text-red-700 font-bold py-2">Hapus Permanen</button>
             </div>
           </div>
@@ -275,7 +250,6 @@ export default function AdminPlayerPage() {
                       <button onClick={() => handleSuspendPermanent(p)} className="text-red-600 underline">Ban</button>
                     </>
                   )}
-                  <button onClick={() => handleDelete(p)} className="text-red-500 underline">Hapus (Soft)</button>
                   <button onClick={() => handleHardDelete(p)} className="text-red-700 underline font-bold">Hapus Permanen</button>
                 </td>
               </tr>
