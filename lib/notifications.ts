@@ -8,7 +8,8 @@ export type NotificationType =
   | "slot_available"
   | "no_show_energy"
   | "co_host_appointed"
-  | "co_host_removed";
+  | "co_host_removed"
+  | "circle_announcement";
 
 export type AppNotification = {
   id: string;

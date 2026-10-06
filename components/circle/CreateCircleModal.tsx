@@ -16,11 +16,13 @@ const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Kulineran", "Ngop
 export default function CreateCircleModal({
   circleType,
   editCircle,
+  templateCircle,
   onClose,
   onCreated,
 }: {
   circleType?: "regular" | "plus";
   editCircle?: any;
+  templateCircle?: any; // salin circle lama sebagai template (mode buat baru, tanggal dikosongkan)
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -49,6 +51,23 @@ export default function CreateCircleModal({
           invite_code: editCircle.invite_code ?? "",
           join_question: editCircle.join_question ?? "",
           requires_approval: editCircle.requires_approval ?? false,
+        }
+      : templateCircle
+      ? {
+          name: templateCircle.name ?? "",
+          group_name: templateCircle.group_name ?? "",
+          max_participants: Math.min(templateCircle.max_participants ?? 5, slotLimit),
+          category: templateCircle.category ?? "",
+          city: templateCircle.city ?? "",
+          location: templateCircle.location ?? "",
+          event_day: "",
+          start_time: "",
+          description: templateCircle.description ?? "",
+          cover_url: "", // file cover disalin di effect bawah (jangan pakai URL yang sama)
+          is_private: templateCircle.is_private ?? false,
+          invite_code: "",
+          join_question: templateCircle.requires_approval ? templateCircle.join_question ?? "" : "",
+          requires_approval: templateCircle.requires_approval ?? false,
         }
       : {
           name: "",
@@ -117,6 +136,28 @@ export default function CreateCircleModal({
       }
     };
     loadHost();
+  }, []);
+
+  // Duplikat: salin FILE cover (bukan pakai URL yang sama), supaya hapus/ganti cover di circle lama
+  // tidak merusak circle baru, dan batal di sini tidak menghapus cover circle lama.
+  const coverCopied = useRef(false);
+  useEffect(() => {
+    if (isEdit || !isPlus || !templateCircle?.cover_url || coverCopied.current) return;
+    coverCopied.current = true;
+    (async () => {
+      const src = extractStoragePath(templateCircle.cover_url, "circle-covers");
+      if (!src) return;
+      setUploadingCover(true);
+      const ext = src.split(".").pop() || "jpg";
+      const dest = `${Date.now()}.${ext}`;
+      const { error: copyError } = await supabase.storage.from("circle-covers").copy(src, dest);
+      if (!copyError) {
+        const { data } = supabase.storage.from("circle-covers").getPublicUrl(dest);
+        setForm((f) => ({ ...f, cover_url: data.publicUrl }));
+      }
+      setUploadingCover(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -318,6 +359,9 @@ export default function CreateCircleModal({
         <div className="shrink-0 bg-white border-b px-6 pt-5 pb-3 flex items-center justify-between">
           <h2 className="font-bold text-lg">
             {isEdit ? "Edit Circle" : `Buat ${isPlus ? "Circle+" : "Circle"} Baru`}
+            {!isEdit && templateCircle && (
+              <span className="block text-xs font-normal text-gray-400">Salinan dari "{templateCircle.name}" — isi tanggal & jam baru</span>
+            )}
           </h2>
           <button
             type="button"

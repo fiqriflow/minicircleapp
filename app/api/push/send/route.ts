@@ -36,6 +36,7 @@ const TITLE_BY_TYPE: Record<string, string> = {
   slot_available: "Slot kosong tersedia",
   co_host_appointed: "Kamu jadi Co Host",
   co_host_removed: "Peran Co Host dicabut",
+  circle_announcement: "Pengumuman host",
 };
 
 export async function POST(request: Request) {

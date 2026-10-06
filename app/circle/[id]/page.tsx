@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2 } from "lucide-react";
+import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2, Megaphone, Copy } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
@@ -49,11 +49,29 @@ export default function CircleDetailPage() {
   const isJoined = myStatus === "joined";
   const isHost = !!(userId && circle && userId === circle.created_by);
   const [myIsCoHost, setMyIsCoHost] = useState(false);
+  const [announcement, setAnnouncement] = useState<any>(null);
+  const [announceText, setAnnounceText] = useState("");
+  const [showAnnounceForm, setShowAnnounceForm] = useState(false);
+  const [postingAnnouncement, setPostingAnnouncement] = useState(false);
+  const [showDuplicate, setShowDuplicate] = useState(false);
   const isCoHost = !isHost && myIsCoHost && !!circle?.is_circle_plus;
   const canManage = isHost || isCoHost; // host atau co host: approve/tolak, koreksi hadir
   const coHostCount = members.filter((m) => m.is_co_host).length;
   const displayStatus = circle ? getCircleDisplayStatus(circle, { joined: joinedCount, max: circle.max_participants }) : null;
   const isCommentLocked = displayStatus === "completed" || displayStatus === "cancelled";
+
+  // pengumuman ter-pin (RLS: hanya member joined / host yang bisa baca)
+  const loadAnnouncement = async () => {
+    const { data } = await supabase
+      .from("circle_announcements")
+      .select("id, message, created_at, author:profiles(nickname, full_name)")
+      .eq("circle_id", id)
+      .eq("is_pinned", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setAnnouncement(data ?? null);
+  };
 
   const load = async () => {
     const [{ data: { user } }, { data: c }] = await Promise.all([
@@ -94,6 +112,11 @@ export default function CircleDetailPage() {
     setJoinedCount(joined.length);
 
     setMyStatus(mine ? (mine.status as "joined" | "pending") : null);
+    if (mine?.status === "joined" || (c?.created_by && c.created_by === user?.id)) {
+      loadAnnouncement();
+    } else {
+      setAnnouncement(null);
+    }
 
     if (mine?.status === "joined") {
       const { data: cm } = await supabase
@@ -122,6 +145,7 @@ export default function CircleDetailPage() {
     if (!isJoined) return;
     const poll = async () => {
       if (typeof document !== "undefined" && document.hidden) return;
+      loadAnnouncement();
       const last = commentsRef.current[commentsRef.current.length - 1]?.created_at;
       let q = supabase
         .from("circle_comments")
@@ -250,6 +274,31 @@ export default function CircleDetailPage() {
       return;
     }
     load();
+  };
+
+  const handlePostAnnouncement = async () => {
+    const msg = announceText.trim();
+    if (!msg || postingAnnouncement) return;
+    setPostingAnnouncement(true);
+    const { error } = await supabase.rpc("post_circle_announcement", { p_circle_id: id, p_message: msg });
+    setPostingAnnouncement(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Pengumuman di-pin & dikirim ke semua member.");
+    setAnnounceText("");
+    setShowAnnounceForm(false);
+    loadAnnouncement();
+  };
+
+  const handleUnpinAnnouncement = async () => {
+    const { error } = await supabase.rpc("unpin_circle_announcement", { p_circle_id: id });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setAnnouncement(null);
   };
 
   const handleSendComment = async () => {
@@ -398,6 +447,15 @@ export default function CircleDetailPage() {
                   >
                     <Share2 size={14} /> Bagikan Circle
                   </button>
+                  <button
+                    onClick={() => {
+                      setShowHostMenu(false);
+                      setShowDuplicate(true);
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                  >
+                    <Copy size={14} /> Duplikat Circle
+                  </button>
                   {(displayStatus === "open" || displayStatus === "full") && (
                     <button
                       onClick={() => {
@@ -531,6 +589,18 @@ export default function CircleDetailPage() {
         />
       )}
 
+      {showDuplicate && (
+        <CreateCircleModal
+          templateCircle={circle}
+          circleType={circle.is_circle_plus ? "plus" : "regular"}
+          onClose={() => setShowDuplicate(false)}
+          onCreated={() => {
+            toast.success("Circle baru berhasil dibuat dari salinan.");
+            router.push("/my-circle");
+          }}
+        />
+      )}
+
       {confirmAction && (
         <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
           <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4">
@@ -640,6 +710,27 @@ export default function CircleDetailPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pengumuman ter-pin (host / co host) */}
+      {announcement && (isJoined || isHost) && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1">
+          <div className="flex items-center gap-2 text-xs font-semibold text-amber-700">
+            <Megaphone size={14} />
+            <span className="flex-1">
+              Pengumuman dari {announcement.author?.nickname || announcement.author?.full_name || "Host"}
+            </span>
+            {canManage && (
+              <button onClick={handleUnpinAnnouncement} className="font-medium underline">
+                Lepas pin
+              </button>
+            )}
+          </div>
+          <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{announcement.message}</p>
+          <p className="text-[11px] text-gray-400">
+            {new Date(announcement.created_at).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+          </p>
         </div>
       )}
 
@@ -818,6 +909,48 @@ export default function CircleDetailPage() {
         <div className="space-y-3">
           {isJoined ? (
             <>
+              {canManage && !isCommentLocked && (
+                <div className="border rounded-xl p-3 space-y-2">
+                  {showAnnounceForm ? (
+                    <>
+                      <textarea
+                        className="w-full border rounded-xl px-3 py-2 text-sm"
+                        rows={3}
+                        maxLength={300}
+                        placeholder="Mis. Kumpul pindah ke gerbang selatan"
+                        value={announceText}
+                        onChange={(e) => setAnnounceText(e.target.value)}
+                      />
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400 flex-1">{announceText.length}/300 · di-pin & dikirim push ke semua member</span>
+                        <button
+                          onClick={() => {
+                            setShowAnnounceForm(false);
+                            setAnnounceText("");
+                          }}
+                          className="text-sm text-gray-500 px-2"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          onClick={handlePostAnnouncement}
+                          disabled={!announceText.trim() || postingAnnouncement}
+                          className="text-sm bg-primary text-white px-4 py-1.5 rounded-xl disabled:opacity-50"
+                        >
+                          {postingAnnouncement ? "Mengirim..." : "Kirim & Pin"}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setShowAnnounceForm(true)}
+                      className="w-full flex items-center justify-center gap-2 text-sm font-medium text-primary"
+                    >
+                      <Megaphone size={16} /> Buat Pengumuman
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {comments.map((c) => {
                   const isMine = c.user_id === userId;
