@@ -32,6 +32,7 @@ const TITLE_BY_TYPE: Record<string, string> = {
   new_comment: "Komentar baru",
   circle_completed: "Circle selesai",
   circle_cancelled: "Circle dibatalkan",
+  circle_finish_reminder: "Jangan lupa tandai selesai",
   slot_available: "Slot kosong tersedia",
 };
 

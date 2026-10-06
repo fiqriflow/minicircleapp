@@ -20,7 +20,7 @@ export function fromDateTimeLocalValue(value: string): string {
   return new Date(value).toISOString();
 }
 
-// ===== Tanggal & jam dipisah (tanggal, jam mulai, jam selesai) =====
+// ===== Tanggal & jam mulai dipisah (input date + input time) =====
 
 /** ISO UTC -> "YYYY-MM-DD" (waktu lokal) untuk <input type="date"> */
 export function toDateValue(iso?: string | null): string {
@@ -39,19 +39,4 @@ export function combineDateTime(date: string, time: string): string {
   if (!date || !time) return "";
   const d = new Date(`${date}T${time}`);
   return isNaN(d.getTime()) ? "" : d.toISOString();
-}
-
-/** Tambah menit ke "HH:mm"; null kalau lewat tengah malam (supaya tetap di tanggal yang sama). */
-export function addMinutesToTime(time: string, minutes: number): string | null {
-  const m = /^(\d{2}):(\d{2})$/.exec(time);
-  if (!m) return null;
-  const total = Number(m[1]) * 60 + Number(m[2]) + minutes;
-  if (total >= 24 * 60) return null;
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
-}
-
-/** "06.00 – 08.00" (kalau jam selesai kosong: "06.00") */
-export function formatTimeRange(startIso: string, endIso?: string | null): string {
-  const fmt = (iso: string) => new Date(iso).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-  return endIso ? `${fmt(startIso)} – ${fmt(endIso)}` : fmt(startIso);
 }

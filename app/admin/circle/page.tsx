@@ -1,6 +1,5 @@
 "use client";
 
-import { formatTimeRange } from "@/lib/dateTimeLocal";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
@@ -179,7 +178,7 @@ export default function AdminCirclePage() {
                         year: "numeric",
                       }) +
                       " • " +
-                      formatTimeRange(viewing.event_date, viewing.event_end_date)
+                      new Date(viewing.event_date).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })
                     : "-",
                 ],
                 ["Status", viewing.status],

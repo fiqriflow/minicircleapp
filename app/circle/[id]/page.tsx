@@ -1,6 +1,5 @@
 "use client";
 
-import { formatTimeRange } from "@/lib/dateTimeLocal";
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2 } from "lucide-react";
@@ -675,7 +674,7 @@ export default function CircleDetailPage() {
                   year: "numeric",
                 })}
                 {" • "}
-                {formatTimeRange(circle.event_date, circle.event_end_date)}
+                {new Date(circle.event_date).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
               </p>
             </div>
           </div>
@@ -722,7 +721,8 @@ export default function CircleDetailPage() {
             </p>
           )}
           {members.map((m) => {
-            const canSelfCheckin = displayStatus === "ongoing" && m.user_id === userId && !m.checked_in;
+            const checkinOpen = Date.now() <= new Date(circle.event_date).getTime() + 24 * 60 * 60 * 1000; // sama dengan policy DB
+            const canSelfCheckin = displayStatus === "ongoing" && checkinOpen && m.user_id === userId && !m.checked_in;
             const canHostOverride = isHost && displayStatus === "completed";
             return (
               <div

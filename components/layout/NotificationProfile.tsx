@@ -11,7 +11,7 @@ import {
   getNotifications,
   markAllAsRead,
   markAsRead,
-  refreshCompletedCircles,
+  refreshFinishReminders,
 } from "@/lib/notifications";
 
 const POLL_MS = 45000; // polling notif; penutupan circle dilakukan pg_cron (0037), bukan per-user
@@ -47,7 +47,7 @@ export default function NotificationProfile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-      await refreshCompletedCircles(supabase); // tutup circle yg waktunya lewat + notif host
+      await refreshFinishReminders(supabase); // pengingat ke host yg lupa tandai selesai
       await load(user.id);
     };
     init();

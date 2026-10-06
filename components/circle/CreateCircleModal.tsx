@@ -7,7 +7,7 @@ import { X } from "lucide-react";
 import { generateInviteCode } from "@/lib/inviteCode";
 import { extractStoragePath } from "@/lib/storagePath";
 import { compressImage, LONG_CACHE } from "@/lib/imageCompress";
-import { toDateValue, toTimeValue, combineDateTime, addMinutesToTime } from "@/lib/dateTimeLocal";
+import { toDateValue, toTimeValue, combineDateTime } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/ui/LocationInput";
 import { ENERGY_COST, getMyEnergy, mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
 
@@ -32,13 +32,6 @@ export default function CreateCircleModal({
   const slotLimit = isPlus ? 32 : 7;
   const maxP = isEdit ? Math.max(slotLimit, editCircle.max_participants ?? 0) : slotLimit;
 
-  // Circle lama belum punya jam selesai -> isi otomatis dari asumsi lama (mulai + 3 jam), kalau masih di hari yang sama
-  const initialEndTime = () => {
-    if (!isEdit) return "";
-    if (editCircle.event_end_date) return toTimeValue(editCircle.event_end_date);
-    return addMinutesToTime(toTimeValue(editCircle.event_date), 180) ?? "23:59";
-  };
-
   const [form, setForm] = useState(() =>
     isEdit
       ? {
@@ -50,7 +43,6 @@ export default function CreateCircleModal({
           location: editCircle.location ?? "",
           event_day: toDateValue(editCircle.event_date),
           start_time: toTimeValue(editCircle.event_date),
-          end_time: initialEndTime(),
           description: editCircle.description ?? "",
           cover_url: editCircle.cover_url ?? "",
           is_private: editCircle.is_private ?? false,
@@ -66,7 +58,6 @@ export default function CreateCircleModal({
           location: "",
           event_day: "",
           start_time: "",
-          end_time: "",
           description: "",
           cover_url: "",
           is_private: false,
@@ -173,7 +164,6 @@ export default function CreateCircleModal({
       { key: "location", label: "Titik Kumpul", ok: !!form.location.trim() },
       { key: "event_date", label: "Tanggal", ok: !!form.event_day },
       { key: "start_time", label: "Jam Mulai", ok: !!form.start_time },
-      { key: "end_time", label: "Jam Selesai", ok: !!form.end_time },
       { key: "description", label: "Rundown / Detail Kegiatan", ok: !!form.description.trim() },
     ];
     const missing = requiredFields.filter((f) => !f.ok);
@@ -187,14 +177,8 @@ export default function CreateCircleModal({
     }
     setFieldErrors({});
     const startIso = combineDateTime(form.event_day, form.start_time);
-    const endIso = combineDateTime(form.event_day, form.end_time);
-    if (!startIso || !endIso) {
+    if (!startIso) {
       setError("Tanggal & jam tidak valid.");
-      return;
-    }
-    if (new Date(endIso) <= new Date(startIso)) {
-      setFieldErrors({ end_time: true });
-      setError("Jam selesai harus setelah jam mulai.");
       return;
     }
     if (!isEdit && new Date(startIso) < new Date()) {
@@ -225,7 +209,6 @@ export default function CreateCircleModal({
       city: form.city,
       location: form.location,
       event_date: startIso,
-      event_end_date: endIso,
       description: form.description,
     };
 
@@ -524,39 +507,19 @@ export default function CreateCircleModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div ref={(el) => { fieldRefs.current.start_time = el; }}>
-              <label className="text-sm text-gray-500">
-                Jam Mulai{fieldErrors.start_time && <span className="text-red-500 font-medium"> — Wajib</span>}
-              </label>
-              <input
-                type="time"
-                className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.start_time ? "border-red-500" : ""}`}
-                value={form.start_time}
-                onChange={(e) => {
-                  const start = e.target.value;
-                  // jam selesai kosong -> isi otomatis 2 jam setelah jam mulai (masih bisa diubah)
-                  const autoEnd = !form.end_time && start ? addMinutesToTime(start, 120) : null;
-                  setForm({ ...form, start_time: start, end_time: autoEnd ?? form.end_time });
-                  if (fieldErrors.start_time || fieldErrors.end_time)
-                    setFieldErrors({ ...fieldErrors, start_time: false, end_time: false });
-                }}
-              />
-            </div>
-            <div ref={(el) => { fieldRefs.current.end_time = el; }}>
-              <label className="text-sm text-gray-500">
-                Jam Selesai{fieldErrors.end_time && <span className="text-red-500 font-medium"> — Wajib</span>}
-              </label>
-              <input
-                type="time"
-                className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.end_time ? "border-red-500" : ""}`}
-                value={form.end_time}
-                onChange={(e) => {
-                  setForm({ ...form, end_time: e.target.value });
-                  if (fieldErrors.end_time) setFieldErrors({ ...fieldErrors, end_time: false });
-                }}
-              />
-            </div>
+          <div ref={(el) => { fieldRefs.current.start_time = el; }}>
+            <label className="text-sm text-gray-500">
+              Jam Mulai{fieldErrors.start_time && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+            </label>
+            <input
+              type="time"
+              className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.start_time ? "border-red-500" : ""}`}
+              value={form.start_time}
+              onChange={(e) => {
+                setForm({ ...form, start_time: e.target.value });
+                if (fieldErrors.start_time) setFieldErrors({ ...fieldErrors, start_time: false });
+              }}
+            />
           </div>
         </div>
 

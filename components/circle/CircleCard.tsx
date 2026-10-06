@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { MapPin, Tag, Crosshair, CalendarDays } from "lucide-react";
 import { getCircleDisplayStatus, STATUS_LABEL } from "@/lib/circleStatus";
-import { formatTimeRange } from "@/lib/dateTimeLocal";
 
 export type Circle = {
   id: string;
@@ -13,7 +12,6 @@ export type Circle = {
   city?: string | null;
   location: string;
   event_date: string;
-  event_end_date?: string | null;
   cover_url: string | null;
   status: string;
   max_participants?: number | null;
@@ -93,7 +91,7 @@ export default function CircleCard({
         <CalendarDays size={14} className="shrink-0" />
         {new Date(circle.event_date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
         {" • "}
-        {formatTimeRange(circle.event_date, circle.event_end_date)}
+        {new Date(circle.event_date).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
       </div>
 
       {max && (
