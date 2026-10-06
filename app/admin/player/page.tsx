@@ -46,30 +46,6 @@ export default function AdminPlayerPage() {
     load();
   };
 
-  const handleDelete = async (player: any) => {
-    if (player.id === currentUserId) {
-      alert("Kamu tidak bisa menghapus akunmu sendiri.");
-      return;
-    }
-    if (
-      !confirm(
-        `Hapus data player "${player.full_name || player.nickname || player.id}" (Soft Delete)?\n\n` +
-          "Profil, keikutsertaan di circle, dan komentarnya akan ikut terhapus. " +
-          "Circle yang pernah dia buat tetap ada (host-nya jadi kosong). " +
-          "Akun Google-nya TIDAK ikut terhapus — kalau dia login lagi pakai akun yang sama, " +
-          "dia akan diarahkan isi ulang data dari awal seperti daftar baru."
-      )
-    )
-      return;
-    const { error } = await supabase.from("profiles").delete().eq("id", player.id);
-    if (error) {
-      alert("Gagal hapus user: " + error.message);
-      return;
-    }
-    toast.success("Player berhasil dihapus (soft delete).");
-    load();
-  };
-
   const handleHardDelete = async (player: any) => {
     if (player.id === currentUserId) {
       alert("Kamu tidak bisa menghapus akunmu sendiri.");
@@ -198,7 +174,7 @@ export default function AdminPlayerPage() {
         {displayedPlayers.map((p) => (
           <div key={p.id} className="bg-white rounded-2xl border p-4 space-y-2">
             <div className="flex items-center gap-3">
-              <img
+              <img loading="lazy" decoding="async"
                 src={p.avatar_url || "https://ui-avatars.com/api/?name=" + (p.full_name || "U")}
                 alt=""
                 className="w-12 h-12 rounded-full object-cover border"
@@ -229,7 +205,6 @@ export default function AdminPlayerPage() {
                   <button onClick={() => handleSuspendPermanent(p)} className="text-red-600 font-medium py-2">Nonaktifkan Permanen</button>
                 </>
               )}
-              <button onClick={() => handleDelete(p)} className="text-red-500 font-medium py-2">Hapus (Soft)</button>
               <button onClick={() => handleHardDelete(p)} className="text-red-700 font-bold py-2">Hapus Permanen</button>
             </div>
           </div>
@@ -275,7 +250,6 @@ export default function AdminPlayerPage() {
                       <button onClick={() => handleSuspendPermanent(p)} className="text-red-600 underline">Ban</button>
                     </>
                   )}
-                  <button onClick={() => handleDelete(p)} className="text-red-500 underline">Hapus (Soft)</button>
                   <button onClick={() => handleHardDelete(p)} className="text-red-700 underline font-bold">Hapus Permanen</button>
                 </td>
               </tr>
@@ -289,7 +263,7 @@ export default function AdminPlayerPage() {
         <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
           <div className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center gap-3">
-              <img
+              <img loading="lazy" decoding="async"
                 src={viewing.avatar_url || "https://ui-avatars.com/api/?name=" + (viewing.full_name || "U")}
                 alt=""
                 className="w-14 h-14 rounded-full object-cover border"

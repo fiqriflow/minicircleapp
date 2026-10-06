@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { X, Flag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getCircleDisplayStatus } from "@/lib/circleStatus";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
 
@@ -86,7 +87,10 @@ export default function MemberProfileModal({
             alt=""
             className="w-20 h-20 rounded-full object-cover border"
           />
-          <h3 className="font-bold text-lg">{profile.nickname || profile.full_name}</h3>
+          <h3 className="font-bold text-lg">
+            {profile.nickname || profile.full_name}
+            <VerifiedBadge show={profile.is_verified} size={18} />
+          </h3>
           {profile.full_name && profile.nickname && (
             <p className="text-sm text-gray-400">{profile.full_name}</p>
           )}

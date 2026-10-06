@@ -25,7 +25,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Belum login" }, { status: 401 });
   }
 
-  const { data: caller } = await supabase
+  // Kolom is_super_admin tidak bisa dibaca client (0036) -> cek pakai service role.
+  const { data: caller } = await createAdminClient()
     .from("profiles")
     .select("is_super_admin")
     .eq("id", user.id)
@@ -44,6 +45,27 @@ export async function POST(request: Request) {
   //    references auth.users(id) on delete cascade), tanpa perlu hapus
   //    profiles secara manual.
   const adminClient = createAdminClient();
+
+  // Jangan izinkan hapus sesama super admin lewat endpoint ini.
+  const { data: target } = await adminClient
+    .from("profiles")
+    .select("is_super_admin")
+    .eq("id", userId)
+    .maybeSingle();
+  if (target?.is_super_admin) {
+    return NextResponse.json({ error: "Tidak bisa hapus super admin" }, { status: 403 });
+  }
+
+  // Bersihkan file avatar milik user (storage tidak ikut kehapus otomatis). Best-effort.
+  try {
+    const { data: files } = await adminClient.storage.from("avatars").list(userId);
+    if (files && files.length > 0) {
+      await adminClient.storage.from("avatars").remove(files.map((f) => `${userId}/${f.name}`));
+    }
+  } catch {
+    /* abaikan: gagal bersihin file tidak boleh menggagalkan hapus akun */
+  }
+
   const { error } = await adminClient.auth.admin.deleteUser(userId);
 
   if (error) {

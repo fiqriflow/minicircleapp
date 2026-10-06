@@ -4,8 +4,14 @@ export type NotificationType =
   | "new_comment"
   | "circle_completed"
   | "circle_cancelled"
+  | "circle_finish_reminder"
   | "slot_available"
-  | "no_show_energy";
+  | "no_show_energy"
+  | "co_host_appointed"
+  | "co_host_removed"
+  | "circle_announcement"
+  | "verification_approved"
+  | "verification_rejected";
 
 export type AppNotification = {
   id: string;
@@ -56,8 +62,8 @@ export async function deleteNotification(supabase: any, notificationId: string) 
   await supabase.from("notifications").delete().eq("id", notificationId);
 }
 
-// Panggil ini tiap kali komponen notif dibuka/mount: nutup circle yg waktunya udah lewat + bikin notif "selesai" ke host.
-// Aman dipanggil berkali-kali (idempotent di sisi DB).
-export async function refreshCompletedCircles(supabase: any) {
-  await supabase.rpc("mark_completed_circles");
+// Panggil ini tiap kali komponen notif dibuka/mount: kirim notif pengingat ke host yang lupa "Tandai Selesai"
+// (esok hari setelah acara, mulai jam 08.00 WIB). Aman dipanggil berkali-kali (idempotent di sisi DB).
+export async function refreshFinishReminders(supabase: any) {
+  await supabase.rpc("remind_unfinished_circles");
 }

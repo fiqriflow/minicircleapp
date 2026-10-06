@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import LocationInput from "@/components/ui/LocationInput";
 import AvatarCropModal from "@/components/profile/AvatarCropModal";
 import PolicyModal from "@/components/profile/PolicyModal";
+import AvatarPresetPicker from "@/components/profile/AvatarPresetPicker";
 import { saveProfile } from "@/lib/profile";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
@@ -67,7 +68,8 @@ export default function OnboardingPage() {
     if (step === 1) return !!profile?.full_name && !!profile?.nickname;
     if (step === 2) return (profile?.categories?.length ?? 0) > 0 && !!profile?.location;
     if (step === 3) return !!profile?.birth_date && !!profile?.gender;
-    if (step === 4) return !profile.instagram || profile.instagram.startsWith("@");
+    // foto profil & Instagram wajib
+    if (step === 4) return !!profile?.avatar_url && !!profile?.instagram && profile.instagram.startsWith("@") && profile.instagram.length > 1;
     return true;
   };
 
@@ -285,7 +287,7 @@ export default function OnboardingPage() {
                   className="w-20 h-20 rounded-full object-cover border"
                 />
                 <label className="text-sm text-primary font-medium cursor-pointer">
-                  {uploadingAvatar ? "Mengunggah..." : "Pilih Foto"}
+                  {uploadingAvatar ? "Mengunggah..." : "Upload Foto Sendiri"}
                   <input
                     type="file"
                     accept="image/*"
@@ -300,8 +302,14 @@ export default function OnboardingPage() {
                 </label>
               </div>
 
+              <AvatarPresetPicker
+                selectedUrl={profile.avatar_url}
+                onSelect={(url) => setProfile((p: any) => ({ ...p, avatar_url: url }))}
+              />
+              {!profile.avatar_url && <p className="text-xs text-red-500">Foto profil wajib dipilih (upload atau pilih avatar).</p>}
+
               <div>
-                <label className="text-sm text-gray-500">Instagram</label>
+                <label className="text-sm text-gray-500">Instagram (wajib)</label>
                 <input
                   className="w-full border rounded-xl px-4 py-2"
                   placeholder="@username"

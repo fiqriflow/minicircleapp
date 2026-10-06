@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2 } from "lucide-react";
+import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2, Megaphone, Copy } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
@@ -15,7 +15,9 @@ import { extractStoragePath } from "@/lib/storagePath";
 import { getJoinedCounts } from "@/lib/circleMembers";
 import { markCommentNotifRead } from "@/lib/notifications";
 import CreateCircleModal from "@/components/circle/CreateCircleModal";
-import { PUBLIC_PROFILE_COLUMNS } from "@/lib/profile";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import { hasJoinFilters, yearRangeLabel } from "@/lib/joinFilters";
+import { PUBLIC_PROFILE_COLUMNS, isProfileIncompleteError } from "@/lib/profile";
 
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -48,32 +50,59 @@ export default function CircleDetailPage() {
 
   const isJoined = myStatus === "joined";
   const isHost = !!(userId && circle && userId === circle.created_by);
+  const [myIsCoHost, setMyIsCoHost] = useState(false);
+  const [announcement, setAnnouncement] = useState<any>(null);
+  const [announceText, setAnnounceText] = useState("");
+  const [showAnnounceForm, setShowAnnounceForm] = useState(false);
+  const [postingAnnouncement, setPostingAnnouncement] = useState(false);
+  const [showDuplicate, setShowDuplicate] = useState(false);
+  const isCoHost = !isHost && myIsCoHost && !!circle?.is_circle_plus;
+  const canManage = isHost || isCoHost; // host atau co host: approve/tolak, koreksi hadir
+  const coHostCount = members.filter((m) => m.is_co_host).length;
   const displayStatus = circle ? getCircleDisplayStatus(circle, { joined: joinedCount, max: circle.max_participants }) : null;
   const isCommentLocked = displayStatus === "completed" || displayStatus === "cancelled";
 
-  const load = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setUserId(user?.id ?? null);
+  // pengumuman ter-pin (RLS: hanya member joined / host yang bisa baca)
+  const loadAnnouncement = async () => {
+    const { data } = await supabase
+      .from("circle_announcements")
+      .select("id, message, created_at, author:profiles(nickname, full_name)")
+      .eq("circle_id", id)
+      .eq("is_pinned", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setAnnouncement(data ?? null);
+  };
 
-    const { data: c } = await supabase.from("circles").select("*").eq("id", id).single();
+  const load = async () => {
+    const [{ data: { user } }, { data: c }] = await Promise.all([
+      supabase.auth.getUser(),
+      supabase.from("circles").select("*").eq("id", id).single(),
+    ]);
+    setUserId(user?.id ?? null);
     setCircle(c);
 
-    if (c?.created_by) {
-      const { data: h } = await supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", c.created_by).single();
-      setHost(h);
-    }
-
-    const { data: allMembers } = await supabase
-      .from("circle_members")
-      // join_answer sengaja tidak di-select (dicabut dari client, lihat migration 0030) -> host ambil lewat RPC
-      .select(`id, circle_id, user_id, status, joined_at, checked_in, checked_in_at, energy_penalized, profile:profiles(${PUBLIC_PROFILE_COLUMNS})`)
-      .eq("circle_id", id);
+    const [hostRes, { data: allMembers }] = await Promise.all([
+      c?.created_by
+        ? supabase.from("profiles").select(PUBLIC_PROFILE_COLUMNS).eq("id", c.created_by).single()
+        : Promise.resolve({ data: null }),
+      supabase
+        .from("circle_members")
+        // join_answer sengaja tidak di-select (dicabut dari client, lihat migration 0030) -> host ambil lewat RPC
+        .select(`id, circle_id, user_id, status, joined_at, checked_in, checked_in_at, energy_penalized, is_co_host, profile:profiles(${PUBLIC_PROFILE_COLUMNS})`)
+        .eq("circle_id", id),
+    ]);
+    if (c?.created_by) setHost(hostRes.data);
 
     const joined = (allMembers ?? []).filter((m) => m.status === "joined");
     let pending = (allMembers ?? []).filter((m) => m.status === "pending");
 
     // jawaban pertanyaan join cuma boleh dibaca host
-    if (c?.created_by && c.created_by === user?.id && pending.length > 0) {
+    const mine = allMembers?.find((m) => m.user_id === user?.id);
+    const iAmCoHost = !!(mine?.status === "joined" && mine?.is_co_host && c?.is_circle_plus);
+    setMyIsCoHost(iAmCoHost);
+    if (c?.created_by && (c.created_by === user?.id || iAmCoHost) && pending.length > 0) {
       const { data: answers } = await supabase.rpc("get_circle_join_answers", { p_circle_id: id });
       const answerMap = new Map<string, string | null>(
         (answers ?? []).map((a: any) => [a.member_id, a.join_answer] as [string, string | null])
@@ -84,8 +113,12 @@ export default function CircleDetailPage() {
     setPendingMembers(pending);
     setJoinedCount(joined.length);
 
-    const mine = allMembers?.find((m) => m.user_id === user?.id);
     setMyStatus(mine ? (mine.status as "joined" | "pending") : null);
+    if (mine?.status === "joined" || (c?.created_by && c.created_by === user?.id)) {
+      loadAnnouncement();
+    } else {
+      setAnnouncement(null);
+    }
 
     if (mine?.status === "joined") {
       const { data: cm } = await supabase
@@ -103,23 +136,45 @@ export default function CircleDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  // polling komen baru tiap 8 detik (kalau sudah join)
+  // polling komen baru tiap 10 detik (kalau sudah join): hanya ambil yang LEBIH BARU dari komen terakhir,
+  // dan berhenti saat tab tidak terlihat.
+  const commentsRef = useRef<any[]>([]);
+  useEffect(() => {
+    commentsRef.current = comments;
+  }, [comments]);
+
   useEffect(() => {
     if (!isJoined) return;
-    const interval = setInterval(async () => {
-      const { data: cm } = await supabase
+    const poll = async () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      loadAnnouncement();
+      const last = commentsRef.current[commentsRef.current.length - 1]?.created_at;
+      let q = supabase
         .from("circle_comments")
         .select("*, profile:profiles(full_name, avatar_url)")
         .eq("circle_id", id)
         .order("created_at", { ascending: true });
-      if (cm) {
+      if (last) q = q.gt("created_at", last);
+      const { data: fresh } = await q;
+      if (fresh && fresh.length > 0) {
         setComments((prev) => {
-          if (cm.length > prev.length && tab !== "chat") setHasNewComment(true);
-          return cm;
+          const seen = new Set(prev.map((c) => c.id));
+          const add = fresh.filter((c: any) => !seen.has(c.id));
+          if (add.length === 0) return prev;
+          if (tab !== "chat") setHasNewComment(true);
+          return [...prev, ...add];
         });
       }
-    }, 8000);
-    return () => clearInterval(interval);
+    };
+    const interval = setInterval(poll, 10000);
+    const onVisible = () => {
+      if (!document.hidden) poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [isJoined, tab, id]);
 
   const doJoin = async (answer?: string) => {
@@ -142,6 +197,11 @@ export default function CircleDetailPage() {
       join_answer: answer ?? null,
     });
     if (joinError) {
+      if (isProfileIncompleteError(joinError.message)) {
+        toast.error(joinError.message);
+        router.push("/profile/data-user");
+        return;
+      }
       toast.error(mapEnergyError(joinError.message) ?? joinError.message);
       return;
     }
@@ -198,6 +258,19 @@ export default function CircleDetailPage() {
     load();
   };
 
+  const handleToggleCoHost = async (m: any) => {
+    const next = !m.is_co_host;
+    const name = m.profile?.nickname || m.profile?.full_name || "member ini";
+    if (!window.confirm(next ? `Jadikan ${name} co host? Dia bisa terima/tolak permintaan join dan koreksi kehadiran.` : `Cabut peran co host ${name}?`)) return;
+    const { error } = await supabase.rpc("set_circle_co_host", { p_member_row_id: m.id, p_value: next });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(next ? "Co host ditunjuk." : "Co host dicabut.");
+    load();
+  };
+
   const handleToggleCheckinHost = async (m: any) => {
     const { error } = await supabase.rpc("host_set_checkin", {
       p_member_row_id: m.id,
@@ -208,6 +281,31 @@ export default function CircleDetailPage() {
       return;
     }
     load();
+  };
+
+  const handlePostAnnouncement = async () => {
+    const msg = announceText.trim();
+    if (!msg || postingAnnouncement) return;
+    setPostingAnnouncement(true);
+    const { error } = await supabase.rpc("post_circle_announcement", { p_circle_id: id, p_message: msg });
+    setPostingAnnouncement(false);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success("Pengumuman di-pin & dikirim ke semua member.");
+    setAnnounceText("");
+    setShowAnnounceForm(false);
+    loadAnnouncement();
+  };
+
+  const handleUnpinAnnouncement = async () => {
+    const { error } = await supabase.rpc("unpin_circle_announcement", { p_circle_id: id });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setAnnouncement(null);
   };
 
   const handleSendComment = async () => {
@@ -356,6 +454,15 @@ export default function CircleDetailPage() {
                   >
                     <Share2 size={14} /> Bagikan Circle
                   </button>
+                  <button
+                    onClick={() => {
+                      setShowHostMenu(false);
+                      setShowDuplicate(true);
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                  >
+                    <Copy size={14} /> Duplikat Circle
+                  </button>
                   {(displayStatus === "open" || displayStatus === "full") && (
                     <button
                       onClick={() => {
@@ -489,6 +596,18 @@ export default function CircleDetailPage() {
         />
       )}
 
+      {showDuplicate && (
+        <CreateCircleModal
+          templateCircle={circle}
+          circleType={circle.is_circle_plus ? "plus" : "regular"}
+          onClose={() => setShowDuplicate(false)}
+          onCreated={() => {
+            toast.success("Circle baru berhasil dibuat dari salinan.");
+            router.push("/my-circle");
+          }}
+        />
+      )}
+
       {confirmAction && (
         <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
           <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4">
@@ -577,8 +696,8 @@ export default function CircleDetailPage() {
         />
       )}
 
-      {/* Approval requests untuk host */}
-      {isHost && pendingMembers.length > 0 && (
+      {/* Approval requests untuk host / co host */}
+      {canManage && pendingMembers.length > 0 && (
         <div className="space-y-2">
           <h3 className="font-semibold text-sm text-gray-700">Menunggu Persetujuan ({pendingMembers.length})</h3>
           {pendingMembers.map((m) => (
@@ -589,7 +708,10 @@ export default function CircleDetailPage() {
                   className="w-10 h-10 rounded-full object-cover"
                   alt=""
                 />
-                <p className="flex-1 font-medium">{m.profile?.nickname || m.profile?.full_name}</p>
+                <p className="flex-1 font-medium">
+                  {m.profile?.nickname || m.profile?.full_name}
+                  <VerifiedBadge show={m.profile?.is_verified} />
+                </p>
                 <button onClick={() => handleApprove(m.id)} className="text-primary text-sm font-medium">Terima</button>
                 <button onClick={() => handleReject(m.id)} className="text-red-500 text-sm font-medium">Tolak</button>
               </div>
@@ -598,6 +720,27 @@ export default function CircleDetailPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pengumuman ter-pin (host / co host) */}
+      {announcement && (isJoined || isHost) && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-1">
+          <div className="flex items-center gap-2 text-xs font-semibold text-amber-700">
+            <Megaphone size={14} />
+            <span className="flex-1">
+              Pengumuman dari {announcement.author?.nickname || announcement.author?.full_name || "Host"}
+            </span>
+            {canManage && (
+              <button onClick={handleUnpinAnnouncement} className="font-medium underline">
+                Lepas pin
+              </button>
+            )}
+          </div>
+          <p className="text-sm text-gray-800 whitespace-pre-wrap break-words">{announcement.message}</p>
+          <p className="text-[11px] text-gray-400">
+            {new Date(announcement.created_at).toLocaleString("id-ID", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+          </p>
         </div>
       )}
 
@@ -666,7 +809,10 @@ export default function CircleDetailPage() {
                 />
                 <div className="min-w-0">
                   <p className="font-semibold text-sm">Dibuat oleh</p>
-                  <p className="text-sm text-gray-500 truncate">{host.nickname || host.full_name}</p>
+                  <p className="text-sm text-gray-500 truncate">
+                  {host.nickname || host.full_name}
+                  <VerifiedBadge show={host.is_verified} />
+                </p>
                 </div>
               </div>
             )}
@@ -680,6 +826,30 @@ export default function CircleDetailPage() {
               </div>
             )}
           </div>
+
+          {hasJoinFilters(circle) && (
+            <div>
+              <p className="font-semibold mb-1">Syarat peserta</p>
+              <div className="flex flex-wrap gap-2">
+                {circle.join_gender && (
+                  <span className="text-xs bg-pink-50 text-pink-600 px-3 py-1 rounded-full">
+                    {circle.join_gender === "female" ? "Khusus perempuan" : "Khusus laki-laki"}
+                  </span>
+                )}
+                {(circle.join_birth_year_min != null || circle.join_birth_year_max != null) && (
+                  <span className="text-xs bg-purple-50 text-purple-600 px-3 py-1 rounded-full">
+                    {yearRangeLabel(circle.join_birth_year_min, circle.join_birth_year_max)}
+                  </span>
+                )}
+                {circle.join_verified_only && (
+                  <span className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full inline-flex items-center">
+                    Akun terverifikasi
+                    <VerifiedBadge show size={12} />
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {circle.description && (
             <div>
@@ -698,8 +868,12 @@ export default function CircleDetailPage() {
             </p>
           )}
           {members.map((m) => {
-            const canSelfCheckin = displayStatus === "ongoing" && m.user_id === userId && !m.checked_in;
-            const canHostOverride = isHost && displayStatus === "completed";
+            const checkinOpen = Date.now() <= new Date(circle.event_date).getTime() + 24 * 60 * 60 * 1000; // sama dengan policy DB
+            const canSelfCheckin = displayStatus === "ongoing" && checkinOpen && m.user_id === userId && !m.checked_in;
+            const canHostOverride = canManage && displayStatus === "completed";
+            const canSetCoHost =
+              isHost && !!circle.is_circle_plus && displayStatus !== "completed" && displayStatus !== "cancelled" &&
+              m.user_id !== circle.created_by && (m.is_co_host || coHostCount < 2);
             return (
               <div
                 key={m.id}
@@ -715,7 +889,15 @@ export default function CircleDetailPage() {
                     alt=""
                   />
                   <div className="min-w-0">
-                    <p className="font-medium truncate">{m.profile?.nickname || m.profile?.full_name}</p>
+                    <p className="font-medium truncate">
+                      {m.profile?.nickname || m.profile?.full_name}
+                      <VerifiedBadge show={m.profile?.is_verified} />
+                      {m.is_co_host && (
+                        <span className="ml-2 align-middle text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                          Co Host
+                        </span>
+                      )}
+                    </p>
                     {isJoined && <p className="text-xs text-gray-400">Lihat profil</p>}
                   </div>
                 </button>
@@ -733,6 +915,15 @@ export default function CircleDetailPage() {
                       className="text-xs font-semibold text-white bg-primary px-3 py-1.5 rounded-full"
                     >
                       Check-in
+                    </button>
+                  )}
+
+                  {canSetCoHost && (
+                    <button
+                      onClick={() => handleToggleCoHost(m)}
+                      className="text-xs text-primary underline whitespace-nowrap"
+                    >
+                      {m.is_co_host ? "Cabut Co Host" : "Jadikan Co Host"}
                     </button>
                   )}
 
@@ -756,6 +947,48 @@ export default function CircleDetailPage() {
         <div className="space-y-3">
           {isJoined ? (
             <>
+              {canManage && !isCommentLocked && (
+                <div className="border rounded-xl p-3 space-y-2">
+                  {showAnnounceForm ? (
+                    <>
+                      <textarea
+                        className="w-full border rounded-xl px-3 py-2 text-sm"
+                        rows={3}
+                        maxLength={300}
+                        placeholder="Mis. Kumpul pindah ke gerbang selatan"
+                        value={announceText}
+                        onChange={(e) => setAnnounceText(e.target.value)}
+                      />
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-400 flex-1">{announceText.length}/300 · di-pin & dikirim push ke semua member</span>
+                        <button
+                          onClick={() => {
+                            setShowAnnounceForm(false);
+                            setAnnounceText("");
+                          }}
+                          className="text-sm text-gray-500 px-2"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          onClick={handlePostAnnouncement}
+                          disabled={!announceText.trim() || postingAnnouncement}
+                          className="text-sm bg-primary text-white px-4 py-1.5 rounded-xl disabled:opacity-50"
+                        >
+                          {postingAnnouncement ? "Mengirim..." : "Kirim & Pin"}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setShowAnnounceForm(true)}
+                      className="w-full flex items-center justify-center gap-2 text-sm font-medium text-primary"
+                    >
+                      <Megaphone size={16} /> Buat Pengumuman
+                    </button>
+                  )}
+                </div>
+              )}
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {comments.map((c) => {
                   const isMine = c.user_id === userId;

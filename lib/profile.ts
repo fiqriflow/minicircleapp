@@ -3,7 +3,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 // Kolom profil yang boleh dibaca user lain. birth_date, lat, lng, suspension_reason
 // sengaja TIDAK ada (lihat migration 0028) -> jangan pakai select("*") ke tabel profiles.
 export const PUBLIC_PROFILE_COLUMNS =
-  "id, full_name, nickname, username, avatar_url, gender, instagram, categories, location, created_at";
+  "id, full_name, nickname, username, avatar_url, gender, instagram, categories, location, created_at, is_verified";
+
+// Pesan error dari DB (migration 0045) kalau foto profil / Instagram belum diisi saat join / buat circle.
+const PROFILE_INCOMPLETE_HINT = "Lengkapi foto profil & Instagram";
+export function isProfileIncompleteError(message?: string | null) {
+  return !!message && message.includes(PROFILE_INCOMPLETE_HINT);
+}
 
 // Simpan profil sendiri. Pakai UPDATE dulu, baru INSERT kalau barisnya belum ada.
 // (upsert / ON CONFLICT butuh hak baca semua kolom, yang sudah dicabut di 0028.)

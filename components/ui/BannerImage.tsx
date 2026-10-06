@@ -15,6 +15,6 @@ export default function BannerImage({ src, alt }: { src: string | null; alt: str
 
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} className="w-full h-full object-cover" onError={() => setError(true)} />
+    <img src={src} alt={alt} fetchPriority="high" decoding="async" className="w-full h-full object-cover" onError={() => setError(true)} />
   );
 }

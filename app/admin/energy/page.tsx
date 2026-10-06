@@ -129,7 +129,7 @@ export default function AdminEnergyPage() {
         {displayed.map((p) => (
           <div key={p.id} className="bg-white rounded-2xl border p-4 space-y-3">
             <div className="flex items-center gap-3">
-              <img
+              <img loading="lazy" decoding="async"
                 src={p.avatar_url || "https://ui-avatars.com/api/?name=" + (p.full_name || "U")}
                 alt=""
                 className="w-10 h-10 rounded-full object-cover border"
@@ -165,7 +165,7 @@ export default function AdminEnergyPage() {
               <tr key={p.id} className="border-t align-top">
                 <td className="p-3">
                   <div className="flex items-center gap-2">
-                    <img
+                    <img loading="lazy" decoding="async"
                       src={p.avatar_url || "https://ui-avatars.com/api/?name=" + (p.full_name || "U")}
                       alt=""
                       className="w-8 h-8 rounded-full object-cover border"

@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { GENERATIONS, generationKey } from "@/lib/joinFilters";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { X } from "lucide-react";
 import { generateInviteCode } from "@/lib/inviteCode";
 import { extractStoragePath } from "@/lib/storagePath";
 import { compressImage, LONG_CACHE } from "@/lib/imageCompress";
-import { toDateTimeLocalValue, fromDateTimeLocalValue } from "@/lib/dateTimeLocal";
+import { toDateValue, toTimeValue, combineDateTime } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/ui/LocationInput";
 import { ENERGY_COST, getMyEnergy, mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
 
@@ -15,11 +17,13 @@ const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Kulineran", "Ngop
 export default function CreateCircleModal({
   circleType,
   editCircle,
+  templateCircle,
   onClose,
   onCreated,
 }: {
   circleType?: "regular" | "plus";
   editCircle?: any;
+  templateCircle?: any; // salin circle lama sebagai template (mode buat baru, tanggal dikosongkan)
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -27,7 +31,9 @@ export default function CreateCircleModal({
   const isEdit = !!editCircle;
   const isPlus = isEdit ? !!editCircle.is_circle_plus : circleType === "plus";
   const minP = 3;
-  const maxP = isPlus ? 20 : 12;
+  // Circle maks 7 orang, Circle+ maks 32 orang. Circle lama yang slotnya lebih besar tetap boleh diedit.
+  const slotLimit = isPlus ? 32 : 7;
+  const maxP = isEdit ? Math.max(slotLimit, editCircle.max_participants ?? 0) : slotLimit;
 
   const [form, setForm] = useState(() =>
     isEdit
@@ -38,12 +44,39 @@ export default function CreateCircleModal({
           category: editCircle.category ?? "",
           city: editCircle.city ?? "",
           location: editCircle.location ?? "",
-          event_date: editCircle.event_date ?? "",
+          event_day: toDateValue(editCircle.event_date),
+          start_time: toTimeValue(editCircle.event_date),
           description: editCircle.description ?? "",
           cover_url: editCircle.cover_url ?? "",
           is_private: editCircle.is_private ?? false,
           invite_code: editCircle.invite_code ?? "",
           join_question: editCircle.join_question ?? "",
+          requires_approval: editCircle.requires_approval ?? false,
+          join_gender: editCircle.join_gender ?? "",
+          join_birth_year_min: editCircle.join_birth_year_min ?? null,
+          join_birth_year_max: editCircle.join_birth_year_max ?? null,
+          join_verified_only: editCircle.join_verified_only ?? false,
+        }
+      : templateCircle
+      ? {
+          name: templateCircle.name ?? "",
+          group_name: templateCircle.group_name ?? "",
+          max_participants: Math.min(templateCircle.max_participants ?? 5, slotLimit),
+          category: templateCircle.category ?? "",
+          city: templateCircle.city ?? "",
+          location: templateCircle.location ?? "",
+          event_day: "",
+          start_time: "",
+          description: templateCircle.description ?? "",
+          cover_url: "", // file cover disalin di effect bawah (jangan pakai URL yang sama)
+          is_private: templateCircle.is_private ?? false,
+          invite_code: "",
+          join_question: templateCircle.requires_approval ? templateCircle.join_question ?? "" : "",
+          requires_approval: templateCircle.requires_approval ?? false,
+          join_gender: templateCircle.join_gender ?? "",
+          join_birth_year_min: templateCircle.join_birth_year_min ?? null,
+          join_birth_year_max: templateCircle.join_birth_year_max ?? null,
+          join_verified_only: templateCircle.join_verified_only ?? false,
         }
       : {
           name: "",
@@ -52,12 +85,18 @@ export default function CreateCircleModal({
           category: "",
           city: "",
           location: "",
-          event_date: "",
+          event_day: "",
+          start_time: "",
           description: "",
           cover_url: "",
           is_private: false,
           invite_code: "",
           join_question: "",
+          requires_approval: false,
+          join_gender: "",
+          join_birth_year_min: null,
+          join_birth_year_max: null,
+          join_verified_only: false,
         }
   );
   const [saving, setSaving] = useState(false);
@@ -112,6 +151,28 @@ export default function CreateCircleModal({
     loadHost();
   }, []);
 
+  // Duplikat: salin FILE cover (bukan pakai URL yang sama), supaya hapus/ganti cover di circle lama
+  // tidak merusak circle baru, dan batal di sini tidak menghapus cover circle lama.
+  const coverCopied = useRef(false);
+  useEffect(() => {
+    if (isEdit || !isPlus || !templateCircle?.cover_url || coverCopied.current) return;
+    coverCopied.current = true;
+    (async () => {
+      const src = extractStoragePath(templateCircle.cover_url, "circle-covers");
+      if (!src) return;
+      setUploadingCover(true);
+      const ext = src.split(".").pop() || "jpg";
+      const dest = `${Date.now()}.${ext}`;
+      const { error: copyError } = await supabase.storage.from("circle-covers").copy(src, dest);
+      if (!copyError) {
+        const { data } = supabase.storage.from("circle-covers").getPublicUrl(dest);
+        setForm((f) => ({ ...f, cover_url: data.publicUrl }));
+      }
+      setUploadingCover(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -143,6 +204,18 @@ export default function CreateCircleModal({
     }
   };
 
+  // Hapus cover: kosongkan -> saat disimpan otomatis pakai cover default sesuai aktivitas.
+  // File yang baru diupload sesi ini langsung dihapus; cover asli dihapus dari storage setelah Simpan berhasil.
+  const handleRemoveCover = async () => {
+    const originalCoverUrl = editCircle?.cover_url ?? "";
+    if (form.cover_url && form.cover_url !== originalCoverUrl) {
+      const path = extractStoragePath(form.cover_url, "circle-covers");
+      if (path) await supabase.storage.from("circle-covers").remove([path]);
+    }
+    setForm((f) => ({ ...f, cover_url: "" }));
+    setCoverError(false);
+  };
+
   const handleSave = async () => {
     if (missingInstagram || missingAvatar) {
       setError("Lengkapi foto profil (wajah jelas) & Instagram dulu.");
@@ -157,7 +230,8 @@ export default function CreateCircleModal({
       { key: "category", label: "Aktivitas Circle", ok: !!form.category },
       { key: "city", label: "Lokasi / Domisili", ok: !!form.city.trim() },
       { key: "location", label: "Titik Kumpul", ok: !!form.location.trim() },
-      { key: "event_date", label: "Tanggal & Jam", ok: !!form.event_date },
+      { key: "event_date", label: "Tanggal", ok: !!form.event_day },
+      { key: "start_time", label: "Jam Mulai", ok: !!form.start_time },
       { key: "description", label: "Rundown / Detail Kegiatan", ok: !!form.description.trim() },
     ];
     const missing = requiredFields.filter((f) => !f.ok);
@@ -170,8 +244,14 @@ export default function CreateCircleModal({
       return;
     }
     setFieldErrors({});
-    if (!isEdit && new Date(form.event_date) < new Date()) {
-      setError("Tanggal & jam tidak boleh yang sudah lewat. Pilih waktu di masa depan.");
+    const startIso = combineDateTime(form.event_day, form.start_time);
+    if (!startIso) {
+      setError("Tanggal & jam tidak valid.");
+      return;
+    }
+    if (!isEdit && new Date(startIso) < new Date()) {
+      setFieldErrors({ start_time: true });
+      setError("Tanggal & jam mulai tidak boleh yang sudah lewat. Pilih waktu di masa depan.");
       return;
     }
     // kode undangan buatan sendiri: min 6 karakter, hanya A-Z 0-9 - _ (aman dipakai di URL)
@@ -196,7 +276,7 @@ export default function CreateCircleModal({
       category: form.category,
       city: form.city,
       location: form.location,
-      event_date: form.event_date,
+      event_date: startIso,
       description: form.description,
     };
 
@@ -204,7 +284,14 @@ export default function CreateCircleModal({
       payload.cover_url = form.cover_url || null;
       payload.is_private = form.is_private;
       payload.invite_code = (form.invite_code.trim() || generateInviteCode()).toUpperCase();
-      payload.join_question = form.join_question.trim() || null;
+      // pertanyaan join hanya berlaku kalau approval aktif (dijaga juga di DB, migration 0043)
+      payload.requires_approval = form.requires_approval;
+      // filter peserta (juga dijaga di DB, migration 0047)
+      payload.join_gender = form.join_gender || null;
+      payload.join_birth_year_min = form.join_birth_year_min;
+      payload.join_birth_year_max = form.join_birth_year_max;
+      payload.join_verified_only = form.join_verified_only;
+      payload.join_question = form.requires_approval ? form.join_question.trim().slice(0, 200) || null : null;
     }
 
     if (isEdit) {
@@ -217,6 +304,12 @@ export default function CreateCircleModal({
             : updateError.message
         );
         return;
+      }
+      // cover asli sudah diganti/dihapus -> bersihkan file lamanya
+      const originalCover = editCircle?.cover_url ?? "";
+      if (isPlus && originalCover && form.cover_url !== originalCover) {
+        const oldPath = extractStoragePath(originalCover, "circle-covers");
+        if (oldPath) await supabase.storage.from("circle-covers").remove([oldPath]);
       }
       toast.success("Perubahan circle berhasil disimpan!");
       onCreated();
@@ -280,14 +373,25 @@ export default function CreateCircleModal({
       className="fixed inset-x-0 top-0 bg-black/40 flex items-end justify-center z-50"
       style={{ height: viewportHeight ? `${viewportHeight}px` : "100vh" }}
     >
-      <div
-        className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-3 max-h-[90%] overflow-y-auto"
-        onFocusCapture={handleFieldFocus}
-      >
-        <h2 className="font-bold text-lg">
-          {isEdit ? "Edit Circle" : `Buat ${isPlus ? "Circle+" : "Circle"} Baru`}
-        </h2>
+      <div className="bg-white rounded-t-2xl w-full max-w-md max-h-[90%] flex flex-col overflow-hidden">
+        <div className="shrink-0 bg-white border-b px-6 pt-5 pb-3 flex items-center justify-between">
+          <h2 className="font-bold text-lg">
+            {isEdit ? "Edit Circle" : `Buat ${isPlus ? "Circle+" : "Circle"} Baru`}
+            {!isEdit && templateCircle && (
+              <span className="block text-xs font-normal text-gray-400">Salinan dari "{templateCircle.name}" — isi tanggal & jam baru</span>
+            )}
+          </h2>
+          <button
+            type="button"
+            onClick={handleCancel}
+            aria-label="Tutup"
+            className="p-1.5 -mr-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
+        <div className="flex-1 overflow-y-auto overscroll-contain p-6 pt-4 space-y-3" onFocusCapture={handleFieldFocus}>
         {profileIncomplete ? (
           <div className="space-y-4 py-2">
             <p className="text-sm text-gray-600">
@@ -363,13 +467,28 @@ export default function CreateCircleModal({
                   onError={() => setCoverError(true)}
                 />
               ) : (
-                <span className="text-gray-400 text-sm">Cover belum diatur</span>
+                <span className="text-gray-400 text-sm text-center px-4">Pakai cover default sesuai aktivitas</span>
               )}
             </div>
-            <label className="text-sm text-primary font-medium cursor-pointer inline-block">
-              {uploadingCover ? "Mengunggah..." : "Upload Cover"}
-              <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
-            </label>
+            <div className="flex items-center gap-4">
+              <label className="text-sm text-primary font-medium cursor-pointer inline-block">
+                {uploadingCover ? "Mengunggah..." : form.cover_url ? "Ganti Cover" : "Upload Cover"}
+                <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
+              </label>
+              {form.cover_url && (
+                <button
+                  type="button"
+                  onClick={handleRemoveCover}
+                  disabled={uploadingCover}
+                  className="text-sm text-red-500 font-medium disabled:opacity-40"
+                >
+                  Hapus
+                </button>
+              )}
+            </div>
+            {!form.cover_url && (
+              <p className="text-xs text-gray-400">Tanpa custom cover, otomatis dipakai cover default sesuai aktivitas.</p>
+            )}
           </div>
         )}
 
@@ -468,21 +587,37 @@ export default function CreateCircleModal({
           />
         </div>
 
-        <div ref={(el) => { fieldRefs.current.event_date = el; }}>
-          <label className="text-sm text-gray-500">
-            Tanggal & Jam{fieldErrors.event_date && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
-          </label>
-          <input
-            type="datetime-local"
-            min={toDateTimeLocalValue(new Date().toISOString())}
-            className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.event_date ? "border-red-500" : ""}`}
-            value={toDateTimeLocalValue(form.event_date)}
-            onChange={(e) => {
-              const v = e.target.value;
-              setForm({ ...form, event_date: v ? fromDateTimeLocalValue(v) : "" });
-              if (fieldErrors.event_date) setFieldErrors({ ...fieldErrors, event_date: false });
-            }}
-          />
+        <div ref={(el) => { fieldRefs.current.event_date = el; }} className="space-y-3">
+          <div>
+            <label className="text-sm text-gray-500">
+              Tanggal{fieldErrors.event_date && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+            </label>
+            <input
+              type="date"
+              min={isEdit ? undefined : toDateValue(new Date().toISOString())}
+              className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.event_date ? "border-red-500" : ""}`}
+              value={form.event_day}
+              onChange={(e) => {
+                setForm({ ...form, event_day: e.target.value });
+                if (fieldErrors.event_date) setFieldErrors({ ...fieldErrors, event_date: false });
+              }}
+            />
+          </div>
+
+          <div ref={(el) => { fieldRefs.current.start_time = el; }}>
+            <label className="text-sm text-gray-500">
+              Jam Mulai{fieldErrors.start_time && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+            </label>
+            <input
+              type="time"
+              className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.start_time ? "border-red-500" : ""}`}
+              value={form.start_time}
+              onChange={(e) => {
+                setForm({ ...form, start_time: e.target.value });
+                if (fieldErrors.start_time) setFieldErrors({ ...fieldErrors, start_time: false });
+              }}
+            />
+          </div>
         </div>
 
         <div ref={(el) => { fieldRefs.current.description = el; }}>
@@ -526,15 +661,69 @@ export default function CreateCircleModal({
               </div>
             </div>
 
-            <div>
-              <label className="text-sm text-gray-500">Pertanyaan saat Join (opsional)</label>
-              <input
-                className="w-full border rounded-xl px-3 py-2"
-                placeholder="Mis. Sudah pernah gowes berapa km?"
-                value={form.join_question}
-                onChange={(e) => setForm({ ...form, join_question: e.target.value })}
-              />
+            <div className="space-y-2">
+              <p className="text-sm text-gray-500">Batasi peserta (opsional)</p>
+              <select
+                className="w-full border rounded-xl px-3 py-2 bg-white"
+                value={form.join_gender}
+                onChange={(e) => setForm({ ...form, join_gender: e.target.value })}
+              >
+                <option value="">Semua gender</option>
+                <option value="female">Khusus perempuan</option>
+                <option value="male">Khusus laki-laki</option>
+              </select>
+              <select
+                className="w-full border rounded-xl px-3 py-2 bg-white"
+                value={generationKey(form.join_birth_year_min, form.join_birth_year_max)}
+                onChange={(e) => {
+                  const g = GENERATIONS.find((x) => x.key === e.target.value);
+                  if (e.target.value === "custom") return;
+                  setForm({ ...form, join_birth_year_min: g?.min ?? null, join_birth_year_max: g?.max ?? null });
+                }}
+              >
+                <option value="">Semua usia</option>
+                {GENERATIONS.map((g) => (
+                  <option key={g.key} value={g.key}>
+                    {g.label}
+                  </option>
+                ))}
+                {generationKey(form.join_birth_year_min, form.join_birth_year_max) === "custom" && (
+                  <option value="custom">
+                    Rentang khusus ({form.join_birth_year_min ?? "…"}–{form.join_birth_year_max ?? "…"})
+                  </option>
+                )}
+              </select>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.join_verified_only}
+                  onChange={(e) => setForm({ ...form, join_verified_only: e.target.checked })}
+                />
+                Hanya akun terverifikasi (centang biru)
+              </label>
             </div>
+
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.requires_approval}
+                onChange={(e) => setForm({ ...form, requires_approval: e.target.checked })}
+              />
+              Perlu approval host untuk join
+            </label>
+
+            {form.requires_approval && (
+              <div>
+                <label className="text-sm text-gray-500">Pertanyaan saat Join (opsional, wajib dijawab pelamar)</label>
+                <input
+                  className="w-full border rounded-xl px-3 py-2"
+                  placeholder="Mis. Sudah pernah gowes berapa km?"
+                  value={form.join_question}
+                  onChange={(e) => setForm({ ...form, join_question: e.target.value })}
+                  maxLength={200}
+                />
+              </div>
+            )}
           </>
         )}
 
@@ -554,6 +743,7 @@ export default function CreateCircleModal({
         </div>
         </>
         )}
+        </div>
       </div>
     </div>
   );

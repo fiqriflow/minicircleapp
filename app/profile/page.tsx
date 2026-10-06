@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, HelpCircle, Info, ShieldCheck, LogOut, ChevronRight, BarChart3, MessageSquarePlus, FileText, Scale, Users2 } from "lucide-react";
+import { User, HelpCircle, Info, ShieldCheck, LogOut, ChevronRight, BarChart3, MessageSquarePlus, FileText, Scale, Users2, BadgeCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { unsubscribeFromPush } from "@/lib/push";
 
@@ -16,8 +16,8 @@ export default function AccountMenuPage() {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("is_super_admin").eq("id", user.id).single();
-      setIsSuperAdmin(!!data?.is_super_admin);
+      const { data } = await supabase.rpc("get_my_profile").maybeSingle();
+      setIsSuperAdmin(!!(data as { is_super_admin?: boolean } | null)?.is_super_admin);
     };
     load();
   }, []);
@@ -41,6 +41,11 @@ export default function AccountMenuPage() {
           <Link href="/profile/data-user" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
             <User size={18} className="text-gray-400" />
             <span className="flex-1 text-sm font-medium">Data User</span>
+            <ChevronRight size={16} className="text-gray-300" />
+          </Link>
+          <Link href="/profile/verifikasi" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+            <BadgeCheck size={18} className="text-gray-400" />
+            <span className="flex-1 text-sm font-medium">Verifikasi Akun</span>
             <ChevronRight size={16} className="text-gray-300" />
           </Link>
           <Link href="/profile/statistik" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">

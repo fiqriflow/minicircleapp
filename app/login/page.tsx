@@ -24,7 +24,7 @@ function LoginPageContent() {
     // dilempar balik ke sini tanpa pesan apa pun -> user cuma lihat halaman
     // login lagi (kelihatan kayak "loop"). Sekarang dikasih tau jelas.
     if (notice === "auth-failed") {
-      const reason = searchParams.get("reason");
+      const reason = searchParams.get("reason")?.slice(0, 120);
       toast.error("Gagal masuk dengan Google", {
         description: reason
           ? `Penyebab: ${reason}. Coba lagi, atau pakai browser lain kalau masih gagal.`

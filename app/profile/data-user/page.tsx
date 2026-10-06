@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import LocationInput from "@/components/ui/LocationInput";
 import AvatarCropModal from "@/components/profile/AvatarCropModal";
 import DeleteAccountModal from "@/components/profile/DeleteAccountModal";
+import AvatarPresetPicker from "@/components/profile/AvatarPresetPicker";
 import { saveProfile } from "@/lib/profile";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
@@ -27,6 +28,7 @@ export default function DataUserPage() {
   const [uploading, setUploading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
+  const [showPresets, setShowPresets] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
@@ -71,9 +73,27 @@ export default function DataUserPage() {
     setUploading(false);
   };
 
+  const handlePickPreset = async (url: string) => {
+    if (!profile?.id || uploading) return;
+    setUploading(true);
+    const { error } = await saveProfile(supabase, { ...profile, avatar_url: url });
+    setUploading(false);
+    if (error) {
+      toast.error("Gagal menyimpan avatar: " + error.message);
+      return;
+    }
+    setProfile((p: any) => ({ ...p, avatar_url: url }));
+    setShowPresets(false);
+    toast.success("Avatar diperbarui!");
+  };
+
   const handleSave = async () => {
-    if (profile.instagram && !profile.instagram.startsWith("@")) {
-      toast.error("Akun Instagram harus diawali dengan @, contoh: @username");
+    if (!profile.instagram || !profile.instagram.startsWith("@") || profile.instagram.length < 2) {
+      toast.error("Instagram wajib diisi dan diawali @, contoh: @username");
+      return;
+    }
+    if (!profile.avatar_url) {
+      toast.error("Foto profil wajib diisi.");
       return;
     }
     setSaving(true);
@@ -157,7 +177,7 @@ export default function DataUserPage() {
           className="w-24 h-24 rounded-full object-cover border"
         />
         <label className="text-sm text-primary font-medium cursor-pointer">
-          {uploading ? "Mengunggah..." : "Edit Photo"}
+          {uploading ? "Mengunggah..." : "Ganti Foto"}
           <input
             type="file"
             accept="image/*"
@@ -170,6 +190,17 @@ export default function DataUserPage() {
             disabled={uploading}
           />
         </label>
+        <button
+          type="button"
+          onClick={() => setShowPresets((v) => !v)}
+          disabled={uploading}
+          className="text-sm text-primary font-medium"
+        >
+          {showPresets ? "Tutup Pilihan Avatar" : "Pilih Avatar"}
+        </button>
+        {showPresets && (
+          <AvatarPresetPicker selectedUrl={profile.avatar_url} onSelect={handlePickPreset} />
+        )}
       </div>
 
       {cropFile && (
@@ -305,7 +336,7 @@ export default function DataUserPage() {
           </div>
 
           <div>
-            <label className="text-sm text-gray-500">Instagram</label>
+            <label className="text-sm text-gray-500">Instagram (wajib)</label>
             <input
               className="w-full border rounded-xl px-4 py-2"
               placeholder="@username"

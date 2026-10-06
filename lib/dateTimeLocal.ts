@@ -19,3 +19,24 @@ export function toDateTimeLocalValue(iso?: string | null): string {
 export function fromDateTimeLocalValue(value: string): string {
   return new Date(value).toISOString();
 }
+
+// ===== Tanggal & jam mulai dipisah (input date + input time) =====
+
+/** ISO UTC -> "YYYY-MM-DD" (waktu lokal) untuk <input type="date"> */
+export function toDateValue(iso?: string | null): string {
+  const v = toDateTimeLocalValue(iso);
+  return v ? v.slice(0, 10) : "";
+}
+
+/** ISO UTC -> "HH:mm" (waktu lokal) untuk <input type="time"> */
+export function toTimeValue(iso?: string | null): string {
+  const v = toDateTimeLocalValue(iso);
+  return v ? v.slice(11, 16) : "";
+}
+
+/** "YYYY-MM-DD" + "HH:mm" (waktu lokal) -> ISO UTC. String kosong kalau salah satu kosong/tidak valid. */
+export function combineDateTime(date: string, time: string): string {
+  if (!date || !time) return "";
+  const d = new Date(`${date}T${time}`);
+  return isNaN(d.getTime()) ? "" : d.toISOString();
+}

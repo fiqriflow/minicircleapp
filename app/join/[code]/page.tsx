@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
 import { createClient } from "@/lib/supabase/client";
+import { isProfileIncompleteError } from "@/lib/profile";
 import JoinQuestionModal from "@/components/circle/JoinQuestionModal";
 import { getDefaultCoverMap, resolveCircleCover } from "@/lib/appSettings";
 
@@ -58,6 +59,11 @@ export default function JoinByInvitePage() {
       p_code: code as string,
       p_answer: answer ?? null,
     });
+    if (error && isProfileIncompleteError(error.message)) {
+      toast.error(error.message);
+      router.push("/profile/data-user");
+      return;
+    }
     if (error || !data) {
       toast.error((error && mapEnergyError(error.message)) ?? error?.message ?? "Kode undangan tidak valid.");
       return;

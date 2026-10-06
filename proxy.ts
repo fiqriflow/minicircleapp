@@ -8,15 +8,27 @@ const CSP_HEADER =
     ? "Content-Security-Policy-Report-Only"
     : "Content-Security-Policy";
 
+// Batasi ke host project Supabase sendiri (bukan semua *.supabase.co).
+// Fallback ke wildcard kalau env tidak terbaca.
+const SUPABASE_HOST = (() => {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").host;
+  } catch {
+    return "";
+  }
+})();
+const SB_HTTP = SUPABASE_HOST ? `https://${SUPABASE_HOST}` : "https://*.supabase.co";
+const SB_WS = SUPABASE_HOST ? `wss://${SUPABASE_HOST}` : "wss://*.supabase.co";
+
 function buildCsp(nonce: string) {
   const isDev = process.env.NODE_ENV !== "production";
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://ui-avatars.com https://www.google.com",
+    `img-src 'self' data: blob: ${SB_HTTP} https://lh3.googleusercontent.com https://ui-avatars.com https://www.google.com`,
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    `connect-src 'self' ${SB_HTTP} ${SB_WS}`,
     "frame-src 'self'",
     "worker-src 'self'",
     "manifest-src 'self'",
@@ -25,6 +37,17 @@ function buildCsp(nonce: string) {
     "form-action 'self'",
     "frame-ancestors 'self'",
   ].join("; ");
+}
+
+// Cache flag maintenance 15 detik per instance (hemat 1 query di tiap request).
+let maintenanceCache: { value: boolean; at: number } | null = null;
+async function getMaintenanceFlag(supabase: any): Promise<boolean> {
+  const now = Date.now();
+  if (maintenanceCache && now - maintenanceCache.at < 15_000) return maintenanceCache.value;
+  const { data } = await supabase.from("app_settings").select("value").eq("key", "maintenance_mode").maybeSingle();
+  const value = data?.value === "true";
+  maintenanceCache = { value, at: now };
+  return value;
 }
 
 export async function proxy(request: NextRequest) {
@@ -101,32 +124,25 @@ export async function proxy(request: NextRequest) {
     path === "/profile/kebijakan-privasi" ||
     path === "/profile/panduan-komunitas";
 
-  let profile: {
+  type ProfileGate = {
     is_super_admin?: boolean;
     onboarding_completed?: boolean;
     is_banned?: boolean;
     suspended_until?: string | null;
-  } | null = null;
+  };
+  let profile = null as ProfileGate | null;
 
-  if (user) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("is_super_admin, onboarding_completed, is_banned, suspended_until")
-      .eq("id", user.id)
-      .single();
-    profile = data;
-  }
+  // Profil & flag maintenance dibaca PARALEL (sebelumnya berurutan = 1 round-trip ekstra per navigasi).
+  // Kolom is_super_admin/is_banned/suspended_until tidak bisa dibaca langsung (0036) -> pakai RPC.
+  const [profileRes, maintenanceOn] = await Promise.all([
+    user ? supabase.rpc("get_my_profile").maybeSingle() : Promise.resolve({ data: null }),
+    getMaintenanceFlag(supabase),
+  ]);
+  if (user) profile = (profileRes.data as unknown as ProfileGate | null) ?? null;
 
   // ================= Maintenance mode =================
   // Kalau nyala, semua orang (kecuali super admin) diarahkan ke halaman
   // maintenance. Halaman login/auth tetap bisa diakses biar admin bisa login.
-  const { data: maintenanceSetting } = await supabase
-    .from("app_settings")
-    .select("value")
-    .eq("key", "maintenance_mode")
-    .maybeSingle();
-  const maintenanceOn = maintenanceSetting?.value === "true";
-
   if (maintenanceOn && !profile?.is_super_admin && !isMaintenancePage && !isAuthPage) {
     return redirect("/maintenance");
   }
