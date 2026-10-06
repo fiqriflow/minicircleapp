@@ -8,15 +8,27 @@ const CSP_HEADER =
     ? "Content-Security-Policy-Report-Only"
     : "Content-Security-Policy";
 
+// Batasi ke host project Supabase sendiri (bukan semua *.supabase.co).
+// Fallback ke wildcard kalau env tidak terbaca.
+const SUPABASE_HOST = (() => {
+  try {
+    return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").host;
+  } catch {
+    return "";
+  }
+})();
+const SB_HTTP = SUPABASE_HOST ? `https://${SUPABASE_HOST}` : "https://*.supabase.co";
+const SB_WS = SUPABASE_HOST ? `wss://${SUPABASE_HOST}` : "wss://*.supabase.co";
+
 function buildCsp(nonce: string) {
   const isDev = process.env.NODE_ENV !== "production";
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com https://ui-avatars.com https://www.google.com",
+    `img-src 'self' data: blob: ${SB_HTTP} https://lh3.googleusercontent.com https://ui-avatars.com https://www.google.com`,
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    `connect-src 'self' ${SB_HTTP} ${SB_WS}`,
     "frame-src 'self'",
     "worker-src 'self'",
     "manifest-src 'self'",

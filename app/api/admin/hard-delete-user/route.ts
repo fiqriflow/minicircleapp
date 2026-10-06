@@ -44,6 +44,17 @@ export async function POST(request: Request) {
   //    references auth.users(id) on delete cascade), tanpa perlu hapus
   //    profiles secara manual.
   const adminClient = createAdminClient();
+
+  // Jangan izinkan hapus sesama super admin lewat endpoint ini.
+  const { data: target } = await adminClient
+    .from("profiles")
+    .select("is_super_admin")
+    .eq("id", userId)
+    .maybeSingle();
+  if (target?.is_super_admin) {
+    return NextResponse.json({ error: "Tidak bisa hapus super admin" }, { status: 403 });
+  }
+
   const { error } = await adminClient.auth.admin.deleteUser(userId);
 
   if (error) {
