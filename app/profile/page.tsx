@@ -17,7 +17,7 @@ export default function AccountMenuPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { data } = await supabase.rpc("get_my_profile").maybeSingle();
-      setIsSuperAdmin(!!data?.is_super_admin);
+      setIsSuperAdmin(!!(data as { is_super_admin?: boolean } | null)?.is_super_admin);
     };
     load();
   }, []);

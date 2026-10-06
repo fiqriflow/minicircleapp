@@ -113,17 +113,18 @@ export async function proxy(request: NextRequest) {
     path === "/profile/kebijakan-privasi" ||
     path === "/profile/panduan-komunitas";
 
-  let profile: {
+  type ProfileGate = {
     is_super_admin?: boolean;
     onboarding_completed?: boolean;
     is_banned?: boolean;
     suspended_until?: string | null;
-  } | null = null;
+  };
+  let profile = null as ProfileGate | null;
 
   if (user) {
     // Kolom is_super_admin/is_banned/suspended_until tidak bisa dibaca langsung (0036) -> pakai RPC.
     const { data } = await supabase.rpc("get_my_profile").maybeSingle();
-    profile = data as typeof profile;
+    profile = (data as ProfileGate | null) ?? null;
   }
 
   // ================= Maintenance mode =================
