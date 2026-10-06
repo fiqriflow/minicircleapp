@@ -156,8 +156,20 @@ export default function AdminAvatarPage() {
       <div>
         <h1 className="text-2xl font-bold">Avatar</h1>
         <p className="text-sm text-gray-500">
-          Avatar preset yang bisa dipilih user saat onboarding. Gambar otomatis di-crop persegi 256×256.
+          Avatar preset yang bisa dipilih user saat onboarding.
         </p>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-sm text-blue-900 space-y-1">
+        <p className="font-semibold">Rekomendasi gambar</p>
+        <ul className="list-disc pl-5 space-y-0.5">
+          <li>Rasio <b>1:1 (persegi)</b>, ukuran ideal <b>512×512 px</b> (minimal 256×256 px)</li>
+          <li>Format JPG, PNG, atau WebP; ukuran file asli disarankan di bawah 2 MB</li>
+          <li>Objek di tengah gambar, karena tampil dalam bingkai <b>lingkaran</b> (sudut gambar terpotong)</li>
+          <li>Latar polos/solid; PNG transparan akan jadi latar hitam setelah crop</li>
+          <li>Hasil akhir otomatis di-crop & dikompres ke 256×256 px JPG (sekitar 15–40 KB)</li>
+          <li>Nama maks 40 karakter; urutan kecil tampil lebih dulu; avatar nonaktif disembunyikan dari user</li>
+        </ul>
       </div>
 
       {/* TAMBAH */}
