@@ -121,12 +121,9 @@ export async function proxy(request: NextRequest) {
   } | null = null;
 
   if (user) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("is_super_admin, onboarding_completed, is_banned, suspended_until")
-      .eq("id", user.id)
-      .single();
-    profile = data;
+    // Kolom is_super_admin/is_banned/suspended_until tidak bisa dibaca langsung (0036) -> pakai RPC.
+    const { data } = await supabase.rpc("get_my_profile").maybeSingle();
+    profile = data as typeof profile;
   }
 
   // ================= Maintenance mode =================

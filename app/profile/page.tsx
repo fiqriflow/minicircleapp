@@ -16,7 +16,7 @@ export default function AccountMenuPage() {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("is_super_admin").eq("id", user.id).single();
+      const { data } = await supabase.rpc("get_my_profile").maybeSingle();
       setIsSuperAdmin(!!data?.is_super_admin);
     };
     load();

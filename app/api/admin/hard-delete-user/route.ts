@@ -25,7 +25,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Belum login" }, { status: 401 });
   }
 
-  const { data: caller } = await supabase
+  // Kolom is_super_admin tidak bisa dibaca client (0036) -> cek pakai service role.
+  const { data: caller } = await createAdminClient()
     .from("profiles")
     .select("is_super_admin")
     .eq("id", user.id)
