@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import LocationInput from "@/components/ui/LocationInput";
 import AvatarCropModal from "@/components/profile/AvatarCropModal";
 import DeleteAccountModal from "@/components/profile/DeleteAccountModal";
+import AvatarPresetPicker from "@/components/profile/AvatarPresetPicker";
 import { saveProfile } from "@/lib/profile";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
@@ -27,6 +28,7 @@ export default function DataUserPage() {
   const [uploading, setUploading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [cropFile, setCropFile] = useState<File | null>(null);
+  const [showPresets, setShowPresets] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
@@ -69,6 +71,20 @@ export default function DataUserPage() {
     setProfile((p: any) => ({ ...p, avatar_url }));
     await saveProfile(supabase, { ...profile, avatar_url });
     setUploading(false);
+  };
+
+  const handlePickPreset = async (url: string) => {
+    if (!profile?.id || uploading) return;
+    setUploading(true);
+    const { error } = await saveProfile(supabase, { ...profile, avatar_url: url });
+    setUploading(false);
+    if (error) {
+      toast.error("Gagal menyimpan avatar: " + error.message);
+      return;
+    }
+    setProfile((p: any) => ({ ...p, avatar_url: url }));
+    setShowPresets(false);
+    toast.success("Avatar diperbarui!");
   };
 
   const handleSave = async () => {
@@ -170,6 +186,17 @@ export default function DataUserPage() {
             disabled={uploading}
           />
         </label>
+        <button
+          type="button"
+          onClick={() => setShowPresets((v) => !v)}
+          disabled={uploading}
+          className="text-sm text-primary font-medium"
+        >
+          {showPresets ? "Tutup Pilihan Avatar" : "Pilih Avatar"}
+        </button>
+        {showPresets && (
+          <AvatarPresetPicker selectedUrl={profile.avatar_url} onSelect={handlePickPreset} />
+        )}
       </div>
 
       {cropFile && (
