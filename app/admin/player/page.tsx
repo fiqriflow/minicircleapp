@@ -198,7 +198,7 @@ export default function AdminPlayerPage() {
         {displayedPlayers.map((p) => (
           <div key={p.id} className="bg-white rounded-2xl border p-4 space-y-2">
             <div className="flex items-center gap-3">
-              <img
+              <img loading="lazy" decoding="async"
                 src={p.avatar_url || "https://ui-avatars.com/api/?name=" + (p.full_name || "U")}
                 alt=""
                 className="w-12 h-12 rounded-full object-cover border"
@@ -289,7 +289,7 @@ export default function AdminPlayerPage() {
         <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
           <div className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center gap-3">
-              <img
+              <img loading="lazy" decoding="async"
                 src={viewing.avatar_url || "https://ui-avatars.com/api/?name=" + (viewing.full_name || "U")}
                 alt=""
                 className="w-14 h-14 rounded-full object-cover border"
