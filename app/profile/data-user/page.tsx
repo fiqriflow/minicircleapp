@@ -173,7 +173,7 @@ export default function DataUserPage() {
           className="w-24 h-24 rounded-full object-cover border"
         />
         <label className="text-sm text-primary font-medium cursor-pointer">
-          {uploading ? "Mengunggah..." : "Edit Photo"}
+          {uploading ? "Mengunggah..." : "Ganti Foto"}
           <input
             type="file"
             accept="image/*"

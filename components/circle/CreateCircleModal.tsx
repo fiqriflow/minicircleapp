@@ -148,6 +148,18 @@ export default function CreateCircleModal({
     }
   };
 
+  // Hapus cover: kosongkan -> saat disimpan otomatis pakai cover default sesuai aktivitas.
+  // File yang baru diupload sesi ini langsung dihapus; cover asli dihapus dari storage setelah Simpan berhasil.
+  const handleRemoveCover = async () => {
+    const originalCoverUrl = editCircle?.cover_url ?? "";
+    if (form.cover_url && form.cover_url !== originalCoverUrl) {
+      const path = extractStoragePath(form.cover_url, "circle-covers");
+      if (path) await supabase.storage.from("circle-covers").remove([path]);
+    }
+    setForm((f) => ({ ...f, cover_url: "" }));
+    setCoverError(false);
+  };
+
   const handleSave = async () => {
     if (missingInstagram || missingAvatar) {
       setError("Lengkapi foto profil (wajah jelas) & Instagram dulu.");
@@ -230,6 +242,12 @@ export default function CreateCircleModal({
         );
         return;
       }
+      // cover asli sudah diganti/dihapus -> bersihkan file lamanya
+      const originalCover = editCircle?.cover_url ?? "";
+      if (isPlus && originalCover && form.cover_url !== originalCover) {
+        const oldPath = extractStoragePath(originalCover, "circle-covers");
+        if (oldPath) await supabase.storage.from("circle-covers").remove([oldPath]);
+      }
       toast.success("Perubahan circle berhasil disimpan!");
       onCreated();
       onClose();
@@ -292,11 +310,8 @@ export default function CreateCircleModal({
       className="fixed inset-x-0 top-0 bg-black/40 flex items-end justify-center z-50"
       style={{ height: viewportHeight ? `${viewportHeight}px` : "100vh" }}
     >
-      <div
-        className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-3 max-h-[90%] overflow-y-auto"
-        onFocusCapture={handleFieldFocus}
-      >
-        <div className="sticky top-0 z-10 bg-white -mx-6 -mt-6 px-6 pt-6 pb-2 flex items-center justify-between">
+      <div className="bg-white rounded-t-2xl w-full max-w-md max-h-[90%] flex flex-col overflow-hidden">
+        <div className="shrink-0 bg-white border-b px-6 pt-5 pb-3 flex items-center justify-between">
           <h2 className="font-bold text-lg">
             {isEdit ? "Edit Circle" : `Buat ${isPlus ? "Circle+" : "Circle"} Baru`}
           </h2>
@@ -310,6 +325,7 @@ export default function CreateCircleModal({
           </button>
         </div>
 
+        <div className="flex-1 overflow-y-auto overscroll-contain p-6 pt-4 space-y-3" onFocusCapture={handleFieldFocus}>
         {profileIncomplete ? (
           <div className="space-y-4 py-2">
             <p className="text-sm text-gray-600">
@@ -385,13 +401,28 @@ export default function CreateCircleModal({
                   onError={() => setCoverError(true)}
                 />
               ) : (
-                <span className="text-gray-400 text-sm">Cover belum diatur</span>
+                <span className="text-gray-400 text-sm text-center px-4">Pakai cover default sesuai aktivitas</span>
               )}
             </div>
-            <label className="text-sm text-primary font-medium cursor-pointer inline-block">
-              {uploadingCover ? "Mengunggah..." : "Upload Cover"}
-              <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
-            </label>
+            <div className="flex items-center gap-4">
+              <label className="text-sm text-primary font-medium cursor-pointer inline-block">
+                {uploadingCover ? "Mengunggah..." : form.cover_url ? "Ganti Cover" : "Upload Cover"}
+                <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
+              </label>
+              {form.cover_url && (
+                <button
+                  type="button"
+                  onClick={handleRemoveCover}
+                  disabled={uploadingCover}
+                  className="text-sm text-red-500 font-medium disabled:opacity-40"
+                >
+                  Hapus
+                </button>
+              )}
+            </div>
+            {!form.cover_url && (
+              <p className="text-xs text-gray-400">Tanpa custom cover, otomatis dipakai cover default sesuai aktivitas.</p>
+            )}
           </div>
         )}
 
@@ -592,6 +623,7 @@ export default function CreateCircleModal({
         </div>
         </>
         )}
+        </div>
       </div>
     </div>
   );
