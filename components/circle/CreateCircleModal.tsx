@@ -49,7 +49,7 @@ export default function CreateCircleModal({
           description: editCircle.description ?? "",
           cover_url: editCircle.cover_url ?? "",
           is_private: editCircle.is_private ?? false,
-          invite_code: editCircle.invite_code ?? "",
+          invite_code: "", // diisi dari rpc get_circle_invite_code (kolom tidak terbaca client, migration 0048)
           join_question: editCircle.join_question ?? "",
           requires_approval: editCircle.requires_approval ?? false,
           join_gender: editCircle.join_gender ?? "",
@@ -100,6 +100,18 @@ export default function CreateCircleModal({
         }
   );
   const [saving, setSaving] = useState(false);
+  const [originalInviteCode, setOriginalInviteCode] = useState("");
+  const [inviteLoaded, setInviteLoaded] = useState(!(isEdit && isPlus));
+  useEffect(() => {
+    if (!(isEdit && isPlus)) return;
+    supabase.rpc("get_circle_invite_code", { p_circle_id: editCircle.id }).then(({ data }: any) => {
+      const code = (data as string | null) ?? "";
+      setOriginalInviteCode(code);
+      setForm((f: any) => ({ ...f, invite_code: code }));
+      setInviteLoaded(true);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [coverError, setCoverError] = useState(false);
   const [error, setError] = useState("");
@@ -256,7 +268,7 @@ export default function CreateCircleModal({
     }
     // kode undangan buatan sendiri: min 6 karakter, hanya A-Z 0-9 - _ (aman dipakai di URL)
     const customCode = form.invite_code.trim().toUpperCase();
-    if (isPlus && customCode && customCode !== (editCircle?.invite_code ?? "").toUpperCase()) {
+    if (isPlus && customCode && customCode !== originalInviteCode.toUpperCase()) {
       if (customCode.length < 6) {
         setError("Kode undangan minimal 6 karakter biar tidak mudah ditebak.");
         return;
@@ -265,6 +277,10 @@ export default function CreateCircleModal({
         setError("Kode undangan hanya boleh huruf, angka, tanda - dan _.");
         return;
       }
+    }
+    if (!inviteLoaded) {
+      setError("Memuat kode undangan, coba lagi sebentar.");
+      return;
     }
     setSaving(true);
     setError("");

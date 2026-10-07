@@ -16,14 +16,14 @@ export default function AdminEnergyPage() {
 
   const load = async () => {
     const { data, error } = await supabase
-      .from("admin_player_view")
+      .rpc("admin_get_players")
       .select("id, full_name, nickname, email, avatar_url, energy, energy_reset_at")
       .order("full_name", { ascending: true });
     if (error) {
       toast.error("Gagal memuat data energy: " + error.message);
       return;
     }
-    setPlayers(data ?? []);
+    setPlayers((data as any[]) ?? []);
   };
 
   useEffect(() => {

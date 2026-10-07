@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus, Search } from "lucide-react";
+import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
 import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/circle/CircleCard";
 import CreateCircleModal from "@/components/circle/CreateCircleModal";
@@ -73,7 +74,7 @@ function ExploreContent() {
     setLoading(true);
     let query = supabase
       .from("circles")
-      .select("*")
+      .select(CIRCLE_COLUMNS)
       .eq("status", "active")
       .eq("is_private", false)
       .gte("event_date", new Date().toISOString());

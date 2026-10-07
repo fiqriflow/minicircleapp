@@ -18,6 +18,7 @@ import CreateCircleModal from "@/components/circle/CreateCircleModal";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { hasJoinFilters, yearRangeLabel } from "@/lib/joinFilters";
 import { PUBLIC_PROFILE_COLUMNS, isProfileIncompleteError } from "@/lib/profile";
+import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
 
 export default function CircleDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -78,7 +79,7 @@ export default function CircleDetailPage() {
   const load = async () => {
     const [{ data: { user } }, { data: c }] = await Promise.all([
       supabase.auth.getUser(),
-      supabase.from("circles").select("*").eq("id", id).single(),
+      supabase.from("circles").select(CIRCLE_COLUMNS).eq("id", id).single(),
     ]);
     setUserId(user?.id ?? null);
     setCircle(c);
@@ -341,8 +342,14 @@ export default function CircleDetailPage() {
     load();
   };
 
-  const handleCopyInvite = () => {
-    const url = `${location.origin}/join/${circle.invite_code}`;
+  const handleCopyInvite = async () => {
+    const { data: code, error } = await supabase.rpc("get_circle_invite_code", { p_circle_id: id });
+    if (error || !code) {
+      toast.error("Kode undangan tidak tersedia.");
+      setShowHostMenu(false);
+      return;
+    }
+    const url = `${location.origin}/join/${code}`;
     navigator.clipboard.writeText(url);
     alert("Link undangan disalin: " + url);
     setShowHostMenu(false);
@@ -502,7 +509,7 @@ export default function CircleDetailPage() {
                       {circle.requires_approval ? "Matikan" : "Aktifkan"} Perlu Approval Join
                     </button>
                   )}
-                  {circle.invite_code && (
+                  {circle.is_circle_plus && (
                     <button
                       onClick={handleCopyInvite}
                       className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 border-b"

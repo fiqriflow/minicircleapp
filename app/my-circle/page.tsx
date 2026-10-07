@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/circle/CircleCard";
@@ -42,10 +43,10 @@ function MyCircleContent() {
       setCurrentUserId(user.id);
 
       const [{ data: hostedCircles }, { data: memberships }] = await Promise.all([
-        supabase.from("circles").select("*").eq("created_by", user.id),
+        supabase.from("circles").select(CIRCLE_COLUMNS).eq("created_by", user.id),
         supabase
           .from("circle_members")
-          .select("circle:circles(*)")
+          .select(`circle:circles(${CIRCLE_COLUMNS})`)
           .eq("user_id", user.id)
           .eq("status", "joined"),
       ]);

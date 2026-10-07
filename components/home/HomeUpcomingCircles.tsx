@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
 import { getDefaultCoverMap } from "@/lib/appSettings";
 import { getJoinedCounts } from "@/lib/circleMembers";
 import UpcomingCirclesSection from "@/components/home/UpcomingCirclesSection";
@@ -31,7 +32,7 @@ export default async function HomeUpcomingCircles() {
   if (joinedCircleIds.length) {
     const { data } = await supabase
       .from("circles")
-      .select("*")
+      .select(CIRCLE_COLUMNS)
       .eq("status", "active")
       .in("id", joinedCircleIds)
       .gte("event_date", now.toISOString())

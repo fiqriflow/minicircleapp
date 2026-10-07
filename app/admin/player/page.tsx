@@ -19,14 +19,14 @@ export default function AdminPlayerPage() {
 
   const load = async () => {
     const { data, error } = await supabase
-      .from("admin_player_view")
+      .rpc("admin_get_players")
       .select("*")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Gagal memuat data player: " + error.message);
       return;
     }
-    setPlayers(data ?? []);
+    setPlayers((data as any[]) ?? []);
   };
 
   useEffect(() => {

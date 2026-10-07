@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { extractStoragePath } from "@/lib/storagePath";
@@ -22,7 +23,7 @@ export default function AdminCirclePage() {
   const load = async () => {
     const { data } = await supabase
       .from("circles")
-      .select("*, host:profiles!circles_created_by_fkey(nickname, full_name)")
+      .select(`${CIRCLE_COLUMNS}, host:profiles!circles_created_by_fkey(nickname, full_name)`)
       .order("event_date", { ascending: false });
     setCircles(data ?? []);
   };
@@ -41,7 +42,7 @@ export default function AdminCirclePage() {
     setViewing({ ...circle, loadingExtra: true });
     const [{ data: host }, { count }] = await Promise.all([
       circle.created_by
-        ? supabase.from("admin_player_view").select("full_name, nickname, email").eq("id", circle.created_by).maybeSingle()
+        ? supabase.rpc("admin_get_players").select("full_name, nickname, email").eq("id", circle.created_by).maybeSingle()
         : Promise.resolve({ data: null }),
       supabase
         .from("circle_members")
