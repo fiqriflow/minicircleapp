@@ -139,6 +139,8 @@ export async function proxy(request: NextRequest) {
     getMaintenanceFlag(supabase),
   ]);
   if (user) profile = (profileRes.data as unknown as ProfileGate | null) ?? null;
+  // Gagal baca profil (error jaringan/DB) != profil kosong. Jangan paksa redirect ke onboarding/admin-denied.
+  const profileFailed = !!user && !!(profileRes as any).error;
 
   // ================= Maintenance mode =================
   // Kalau nyala, semua orang (kecuali super admin) diarahkan ke halaman
@@ -159,11 +161,19 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
-  if (!user && !isAuthPage) {
+  // Halaman kebijakan harus bisa dibuka tanpa login (link di /login + syarat verifikasi OAuth Google)
+  if (!user && !isAuthPage && !isPublicPolicyPage) {
+    // API: balas 401 JSON, bukan redirect HTML ke /login
+    if (path.startsWith("/api/")) {
+      return NextResponse.json({ error: "Belum login" }, { status: 401 });
+    }
     return redirect("/login");
   }
 
   if (user && !isAuthPage) {
+    // fail-safe: profil gagal dibaca -> admin tetap ditolak, halaman lain lanjut (RLS tetap jaga data)
+    if (profileFailed) return isAdminPage ? redirect("/") : response;
+
     const isSuspendedNow =
       profile?.is_banned || (profile?.suspended_until && new Date(profile.suspended_until) > new Date());
 
