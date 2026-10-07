@@ -87,20 +87,34 @@ self.addEventListener("push", (event) => {
 // Klik notif -> buka/fokus tab app, arahkan ke url terkait
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || "/";
+  // Normalisasi ke path same-origin (cegah URL luar / format aneh)
+  let target = new URL("/", self.location.origin);
+  try {
+    const u = new URL(event.notification.data?.url || "/", self.location.origin);
+    if (u.origin === self.location.origin) target = u;
+  } catch {}
 
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (clientList) => {
+      // 1) tab yang sudah di halaman tujuan -> fokus saja
       for (const client of clientList) {
-        if (client.url.includes(targetUrl) && "focus" in client) {
-          return client.focus();
+        const cu = new URL(client.url);
+        if (cu.pathname === target.pathname && "focus" in client) return client.focus();
+      }
+      // 2) ada tab app lain -> arahkan ke tujuan, lalu fokus
+      for (const client of clientList) {
+        if (new URL(client.url).origin === self.location.origin && "navigate" in client) {
+          try {
+            const nav = await client.navigate(target.href);
+            if (nav && "focus" in nav) return nav.focus();
+            return client.focus();
+          } catch {
+            break;
+          }
         }
       }
-      if (clientList.length > 0 && "focus" in clientList[0]) {
-        clientList[0].navigate(targetUrl);
-        return clientList[0].focus();
-      }
-      return self.clients.openWindow(targetUrl);
+      // 3) tidak ada tab -> buka baru
+      return self.clients.openWindow(target.href);
     })
   );
 });
