@@ -26,7 +26,7 @@ export default function AdminPlayerPage() {
       toast.error("Gagal memuat data player: " + error.message);
       return;
     }
-    setPlayers(data ?? []);
+    setPlayers((data as any[]) ?? []);
   };
 
   useEffect(() => {

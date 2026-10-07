@@ -23,7 +23,7 @@ export default function AdminEnergyPage() {
       toast.error("Gagal memuat data energy: " + error.message);
       return;
     }
-    setPlayers(data ?? []);
+    setPlayers((data as any[]) ?? []);
   };
 
   useEffect(() => {
