@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2, Megaphone, Copy } from "lucide-react";
+import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2, Megaphone, Copy, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
@@ -414,7 +414,19 @@ export default function CircleDetailPage() {
   };
 
   const handleShareCircle = async () => {
-    const url = `${location.origin}/circle/${id}`;
+    let url = `${location.origin}/circle/${id}`;
+    // Circle private tidak terlihat oleh non-member -> yang dibagikan harus link undangan
+    // (kode hanya bisa diambil host / co host / admin).
+    if (circle.is_private) {
+      const { data: code, error } = await supabase.rpc("get_circle_invite_code", { p_circle_id: id });
+      if (error || !code) {
+        toast.error("Circle private hanya bisa dibagikan lewat link undangan oleh host / co host.");
+        setShowHostMenu(false);
+        setShowViewerMenu(false);
+        return;
+      }
+      url = `${location.origin}/join/${code}`;
+    }
     if (navigator.share) {
       try {
         await navigator.share({ title: circle.name, text: `Yuk gabung circle "${circle.name}"!`, url });
@@ -422,8 +434,12 @@ export default function CircleDetailPage() {
         // user batal share, gak apa-apa
       }
     } else {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link circle disalin!");
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success(circle.is_private ? "Link undangan disalin!" : "Link circle disalin!");
+      } catch {
+        window.prompt("Salin link ini:", url);
+      }
     }
     setShowHostMenu(false);
     setShowViewerMenu(false);
@@ -502,6 +518,15 @@ export default function CircleDetailPage() {
               <h1 className="text-2xl font-bold break-words">{circle.name}</h1>
               {circle.is_circle_plus && (
                 <span className="text-xs bg-primary text-white px-2 py-1 rounded-full shrink-0">Circle+</span>
+              )}
+              {circle.is_private && (
+                <span
+                  title="Circle private"
+                  aria-label="Circle private"
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-500 shrink-0"
+                >
+                  <Lock size={12} />
+                </span>
               )}
             </div>
             {circle.group_name && <p className="text-sm text-gray-400">{circle.group_name}</p>}
@@ -613,12 +638,14 @@ export default function CircleDetailPage() {
               </button>
               {showViewerMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-white border rounded-xl shadow-lg overflow-hidden z-50">
-                  <button
-                    onClick={handleShareCircle}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
-                  >
-                    <Share2 size={14} /> Bagikan Circle
-                  </button>
+                  {(!circle.is_private || canManage) && (
+                    <button
+                      onClick={handleShareCircle}
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                    >
+                      <Share2 size={14} /> Bagikan Circle
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setShowViewerMenu(false);

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Tag, Crosshair, CalendarDays } from "lucide-react";
+import { MapPin, Tag, Crosshair, CalendarDays, Lock } from "lucide-react";
 import { getCircleDisplayStatus, STATUS_LABEL } from "@/lib/circleStatus";
 
 export type Circle = {
@@ -16,6 +16,7 @@ export type Circle = {
   status: string;
   max_participants?: number | null;
   created_by?: string | null;
+  is_private?: boolean | null;
 };
 
 export default function CircleCard({
@@ -45,8 +46,17 @@ export default function CircleCard({
       className="block bg-white rounded-2xl border p-4 space-y-2 hover:shadow-md transition"
     >
       <div className="flex items-start justify-between gap-2">
-        <h3 className="min-w-0 flex-1 font-semibold">
-          <span className="break-words line-clamp-2">{circle.name}</span>
+        <h3 className="min-w-0 flex-1 font-semibold flex items-start gap-1.5">
+          {circle.is_private && (
+            <span
+              title="Circle private"
+              aria-label="Circle private"
+              className="inline-flex items-center justify-center w-5 h-5 mt-0.5 rounded-full bg-gray-100 text-gray-500 shrink-0"
+            >
+              <Lock size={11} />
+            </span>
+          )}
+          <span className="min-w-0 break-words line-clamp-2">{circle.name}</span>
         </h3>
         <span
           className={`shrink-0 text-xs font-medium px-2 py-1 rounded-full ${statusInfo.className}`}
