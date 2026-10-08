@@ -66,6 +66,17 @@ export async function POST(request: Request) {
     /* abaikan: gagal bersihin file tidak boleh menggagalkan hapus akun */
   }
 
+  // Bersihkan file cover circle milik user (bucket circle-covers, dicari lewat owner). Best-effort.
+  try {
+    const { data: covers } = await adminClient.rpc("admin_list_user_cover_paths", { p_user_id: userId });
+    const paths = ((covers ?? []) as { name: string }[]).map((c) => c.name);
+    for (let i = 0; i < paths.length; i += 100) {
+      await adminClient.storage.from("circle-covers").remove(paths.slice(i, i + 100));
+    }
+  } catch {
+    /* abaikan */
+  }
+
   const { error } = await adminClient.auth.admin.deleteUser(userId);
 
   if (error) {
