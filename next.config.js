@@ -2,11 +2,11 @@
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // App memakai <img> biasa (tidak pakai next/image). Optimizer dimatikan supaya /_next/image
+  // tidak bisa dipakai orang lain untuk menghabiskan kuota Image Optimization Vercel.
   images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "**.supabase.co" },
-      { protocol: "https", hostname: "lh3.googleusercontent.com" },
-    ],
+    unoptimized: true,
+    remotePatterns: [],
   },
   async headers() {
     return [
