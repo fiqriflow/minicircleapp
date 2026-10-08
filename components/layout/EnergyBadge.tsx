@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { ENERGY_COST, WEEKLY_ENERGY_BONUS, getMyEnergy, getNextBonusLabel } from "@/lib/energy";
+import { ENERGY_COST, DAILY_ENERGY_BONUS, getMyEnergy, getNextBonusLabel } from "@/lib/energy";
 
 export default function EnergyBadge() {
   const supabase = createClient();
@@ -60,7 +60,7 @@ export default function EnergyBadge() {
             <li>Buat circle plus: -{ENERGY_COST.createPlus}</li>
           </ul>
           <p>
-            Bonus +{WEEKLY_ENERGY_BONUS} energy tiap Senin 00.00 (berikutnya {getNextBonusLabel()}), dan menumpuk.
+            Bonus +{DAILY_ENERGY_BONUS} energy tiap hari 00.00 (berikutnya {getNextBonusLabel()}), dan menumpuk.
           </p>
           {isLow && (
             <p className="text-red-500 font-medium">Energy habis. Hubungi admin untuk menambah energy.</p>

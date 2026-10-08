@@ -42,7 +42,7 @@ export default function AdminAppearancePage() {
 
     let up;
     try {
-      up = await compressImage(file, { maxSize: 1600, quality: 0.8 });
+      up = await compressImage(file, { maxSize: 1200, quality: 0.8 });
     } catch {
       alert("Gagal memproses gambar");
       setBannerUploading(false);
@@ -100,7 +100,7 @@ export default function AdminAppearancePage() {
 
     let up;
     try {
-      up = await compressImage(file, { maxSize: 1280, quality: 0.8 });
+      up = await compressImage(file, { maxSize: 960, quality: 0.8 });
     } catch {
       alert("Gagal memproses gambar");
       setUploadingKey(null);

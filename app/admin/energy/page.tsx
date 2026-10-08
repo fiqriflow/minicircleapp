@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { ENERGY_COST, WEEKLY_ENERGY_BONUS, getNextBonusLabel } from "@/lib/energy";
+import { ENERGY_COST, DAILY_ENERGY_BONUS, getNextBonusLabel } from "@/lib/energy";
 
 const QUICK_ADD = [10, 100, 1000];
 
@@ -111,7 +111,7 @@ export default function AdminEnergyPage() {
           <h1 className="text-xl font-bold">Energy</h1>
           <p className="text-sm text-gray-500">
             Energy = saldo kredit. Join circle -{ENERGY_COST.join}, buat circle -{ENERGY_COST.create}, buat circle plus -
-            {ENERGY_COST.createPlus}. Bonus +{WEEKLY_ENERGY_BONUS} tiap Senin 00.00 WIB (menumpuk), berikutnya{" "}
+            {ENERGY_COST.createPlus}. Bonus +{DAILY_ENERGY_BONUS} tiap hari 00.00 WIB (menumpuk), berikutnya{" "}
             <span className="font-medium">{getNextBonusLabel()}</span>. User yang kehabisan energy minta tambahan ke admin.
           </p>
         </div>
