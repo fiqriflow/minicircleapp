@@ -12,6 +12,9 @@ import { saveProfile } from "@/lib/profile";
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
 const TOTAL_STEPS = 5;
 
+// Harus sama dengan validasi di DB (migration 0050)
+const IG_REGEX = /^@[A-Za-z0-9._]{1,30}$/;
+
 export default function OnboardingPage() {
   const supabase = createClient();
   const router = useRouter();
@@ -69,7 +72,7 @@ export default function OnboardingPage() {
     if (step === 2) return (profile?.categories?.length ?? 0) > 0 && !!profile?.location;
     if (step === 3) return !!profile?.birth_date && !!profile?.gender;
     // foto profil & Instagram wajib
-    if (step === 4) return !!profile?.avatar_url && !!profile?.instagram && profile.instagram.startsWith("@") && profile.instagram.length > 1;
+    if (step === 4) return !!profile?.avatar_url && !!profile?.instagram && IG_REGEX.test(profile.instagram);
     return true;
   };
 
@@ -316,8 +319,8 @@ export default function OnboardingPage() {
                   value={profile.instagram ?? ""}
                   onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
                 />
-                {profile.instagram && !profile.instagram.startsWith("@") && (
-                  <p className="text-xs text-red-500 mt-1">Harus diawali dengan @, contoh: @username</p>
+                {profile.instagram && !IG_REGEX.test(profile.instagram) && (
+                  <p className="text-xs text-red-500 mt-1">Format: @username (huruf, angka, titik, underscore; maks 30)</p>
                 )}
               </div>
             </>

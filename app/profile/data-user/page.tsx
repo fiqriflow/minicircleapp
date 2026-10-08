@@ -20,6 +20,9 @@ function getMissingOptionalFields(profile: any) {
   return missing;
 }
 
+// Harus sama dengan validasi di DB (migration 0050)
+const IG_REGEX = /^@[A-Za-z0-9._]{1,30}$/;
+
 export default function DataUserPage() {
   const supabase = createClient();
   const router = useRouter();
@@ -27,6 +30,8 @@ export default function DataUserPage() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  // gender & tanggal lahir hanya boleh diisi sekali (dikunci di DB, migration 0050)
+  const [locked, setLocked] = useState({ gender: false, birth: false });
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [showPresets, setShowPresets] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -37,6 +42,7 @@ export default function DataUserPage() {
       if (!user) return;
       const { data } = await supabase.rpc("get_my_profile").maybeSingle();
       setProfile(data ?? { id: user.id });
+      setLocked({ gender: !!(data as any)?.gender, birth: !!(data as any)?.birth_date });
     };
     load();
   }, []);
@@ -88,8 +94,8 @@ export default function DataUserPage() {
   };
 
   const handleSave = async () => {
-    if (!profile.instagram || !profile.instagram.startsWith("@") || profile.instagram.length < 2) {
-      toast.error("Instagram wajib diisi dan diawali @, contoh: @username");
+    if (!profile.instagram || !IG_REGEX.test(profile.instagram)) {
+      toast.error("Instagram wajib diisi dengan format @username (huruf, angka, titik, underscore; maks 30).");
       return;
     }
     if (!profile.avatar_url) {
@@ -103,6 +109,7 @@ export default function DataUserPage() {
       toast.error("Gagal menyimpan profil: " + error.message);
       return;
     }
+    setLocked({ gender: !!profile.gender, birth: !!profile.birth_date });
     setEditMode(false);
     toast.success("Profil berhasil disimpan!");
   };
@@ -288,8 +295,12 @@ export default function DataUserPage() {
               type="date"
               className="w-full border rounded-xl px-4 py-2"
               value={profile.birth_date ?? ""}
+              disabled={locked.birth}
               onChange={(e) => setProfile({ ...profile, birth_date: e.target.value })}
             />
+            {locked.birth && (
+              <p className="text-xs text-gray-400 mt-1">Tidak bisa diubah. Hubungi admin kalau salah input.</p>
+            )}
           </div>
 
           <div>
@@ -327,12 +338,16 @@ export default function DataUserPage() {
             <select
               className="w-full border rounded-xl px-4 py-2"
               value={profile.gender ?? ""}
+              disabled={locked.gender}
               onChange={(e) => setProfile({ ...profile, gender: e.target.value })}
             >
               <option value="">Pilih</option>
               <option value="male">Pria</option>
               <option value="female">Wanita</option>
             </select>
+            {locked.gender && (
+              <p className="text-xs text-gray-400 mt-1">Tidak bisa diubah. Hubungi admin kalau salah input.</p>
+            )}
           </div>
 
           <div>
@@ -343,8 +358,8 @@ export default function DataUserPage() {
               value={profile.instagram ?? ""}
               onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
             />
-            {profile.instagram && !profile.instagram.startsWith("@") && (
-              <p className="text-xs text-red-500 mt-1">Harus diawali dengan @, contoh: @username</p>
+            {profile.instagram && !IG_REGEX.test(profile.instagram) && (
+              <p className="text-xs text-red-500 mt-1">Format: @username (huruf, angka, titik, underscore; maks 30)</p>
             )}
           </div>
 
