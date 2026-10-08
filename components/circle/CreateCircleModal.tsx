@@ -191,7 +191,7 @@ export default function CreateCircleModal({
     setUploadingCover(true);
     let up;
     try {
-      up = await compressImage(file, { maxSize: 1280, quality: 0.8 });
+      up = await compressImage(file, { maxSize: 960, quality: 0.8 });
     } catch {
       alert("Gagal memproses gambar");
       setUploadingCover(false);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, Suspense } from "react";
+import { useEffect, useState, useCallback, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus, Search } from "lucide-react";
 import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
@@ -16,6 +16,7 @@ import { getJoinedCounts } from "@/lib/circleMembers";
 const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
 const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const DAYS_SHOWN = 14;
+const PAGE_SIZE = 30;
 
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -32,6 +33,11 @@ function ExploreContent() {
   const [location, setLocation] = useState("");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [eventDays, setEventDays] = useState<Set<string>>(new Set());
+  const requestId = useRef(0);
   const [showChooser, setShowChooser] = useState(false);
   const [createType, setCreateType] = useState<"regular" | "plus" | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -52,47 +58,129 @@ function ExploreContent() {
   }, []);
 
   useEffect(() => {
-    const loadUserLocation = async () => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    const loadUserData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setCurrentUserId(user.id);
-      const { data } = await supabase.from("profiles").select("location").eq("id", user.id).single();
+      // profil & memberships tidak saling bergantung -> paralel
+      const [{ data }, { data: memberships }] = await Promise.all([
+        supabase.from("profiles").select("location").eq("id", user.id).single(),
+        supabase.from("circle_members").select("circle_id").eq("user_id", user.id).eq("status", "joined"),
+      ]);
       if (data?.location) setLocation((prev) => prev || data.location);
-
-      const { data: memberships } = await supabase
-        .from("circle_members")
-        .select("circle_id")
-        .eq("user_id", user.id)
-        .eq("status", "joined");
       setJoinedIds(new Set((memberships ?? []).map((m) => m.circle_id)));
     };
-    loadUserLocation();
+    loadUserData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Query dasar: semua filter dikerjakan di DB (bukan filter client atas data yang sudah ditarik semua).
+  const buildQuery = useCallback(
+    (columns: string, withCount = false) => {
+      const now = new Date();
+      let from = now;
+      let to: Date | null = null;
+      if (selectedDate) {
+        const dayStart = new Date(selectedDate);
+        dayStart.setHours(0, 0, 0, 0);
+        to = new Date(dayStart);
+        to.setDate(to.getDate() + 1);
+        if (dayStart > now) from = dayStart;
+      }
+      let q = supabase
+        .from("circles")
+        .select(columns, withCount ? { count: "exact" } : undefined)
+        .eq("status", "active")
+        .eq("is_private", false)
+        .gte("event_date", from.toISOString());
+      if (to) q = q.lt("event_date", to.toISOString());
+      if (category !== "Semua") q = q.eq("category", category);
+      if (location.trim()) q = q.ilike("city", `%${location.trim()}%`);
+      if (debouncedSearch) {
+        const esc = debouncedSearch.replace(/[\\%_]/g, (m) => "\\" + m);
+        q = q.ilike("name", `%${esc}%`);
+      }
+      return q.order("event_date", { ascending: true });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [category, location, debouncedSearch, selectedDate]
+  );
+
   const fetchCircles = useCallback(async () => {
+    const myRequest = ++requestId.current;
     setLoading(true);
-    let query = supabase
-      .from("circles")
-      .select(CIRCLE_COLUMNS)
-      .eq("status", "active")
-      .eq("is_private", false)
-      .gte("event_date", new Date().toISOString());
-
-    if (category !== "Semua") query = query.eq("category", category);
-    if (location.trim()) query = query.ilike("city", `%${location.trim()}%`);
-
-    const { data } = await query.order("event_date", { ascending: true });
-    setCircles((data as Circle[]) ?? []);
+    const { data, count } = await buildQuery(CIRCLE_COLUMNS, true).range(0, PAGE_SIZE - 1);
+    if (myRequest !== requestId.current) return; // ada request lebih baru -> abaikan hasil lama
+    const rows = (data as unknown as Circle[]) ?? [];
+    setCircles(rows);
+    setTotalCount(count ?? rows.length);
     setLoading(false);
 
-    const counts = await getJoinedCounts(supabase, (data ?? []).map((c: any) => c.id));
+    const counts = await getJoinedCounts(supabase, rows.map((c) => c.id));
+    if (myRequest !== requestId.current) return;
     setJoinedCounts(counts);
-  }, [category, location]);
+  }, [buildQuery]);
+
+  const loadMore = async () => {
+    if (loadingMore || loading) return;
+    const myRequest = requestId.current;
+    setLoadingMore(true);
+    const { data } = await buildQuery(CIRCLE_COLUMNS).range(circles.length, circles.length + PAGE_SIZE - 1);
+    if (myRequest !== requestId.current) {
+      setLoadingMore(false);
+      return;
+    }
+    const rows = (data as unknown as Circle[]) ?? [];
+    const counts = await getJoinedCounts(supabase, rows.map((c) => c.id));
+    if (myRequest !== requestId.current) {
+      setLoadingMore(false);
+      return;
+    }
+    setCircles((prev) => {
+      const seen = new Set(prev.map((c) => c.id));
+      return [...prev, ...rows.filter((c) => !seen.has(c.id))];
+    });
+    setJoinedCounts((prev) => ({ ...prev, ...counts }));
+    setLoadingMore(false);
+  };
 
   useEffect(() => {
     fetchCircles();
   }, [fetchCircles]);
+
+  // Titik penanda tanggal di date strip: query ringan (hanya event_date, 14 hari ke depan),
+  // supaya tetap akurat walau daftar circle dipaginasi.
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      const start = new Date();
+      const end = new Date();
+      end.setHours(0, 0, 0, 0);
+      end.setDate(end.getDate() + DAYS_SHOWN);
+      let q = supabase
+        .from("circles")
+        .select("event_date")
+        .eq("status", "active")
+        .eq("is_private", false)
+        .gte("event_date", start.toISOString())
+        .lt("event_date", end.toISOString());
+      if (category !== "Semua") q = q.eq("category", category);
+      if (location.trim()) q = q.ilike("city", `%${location.trim()}%`);
+      const { data } = await q.limit(500);
+      if (cancelled) return;
+      setEventDays(new Set((data ?? []).map((r: any) => new Date(r.event_date).toDateString())));
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category, location]);
 
   const dateStrip = useMemo(() => {
     const today = new Date();
@@ -100,17 +188,11 @@ function ExploreContent() {
     return Array.from({ length: DAYS_SHOWN }).map((_, i) => {
       const d = new Date(today);
       d.setDate(d.getDate() + i);
-      const hasEvent = circles.some((c) => isSameDay(new Date(c.event_date), d));
-      return { date: d, hasEvent };
+      return { date: d, hasEvent: eventDays.has(d.toDateString()) };
     });
-  }, [circles]);
+  }, [eventDays]);
 
-  const filteredCircles = useMemo(() => {
-    const bySearch = search.trim()
-      ? circles.filter((c) => c.name.toLowerCase().includes(search.trim().toLowerCase()))
-      : circles;
-    return selectedDate === null ? bySearch : bySearch.filter((c) => isSameDay(new Date(c.event_date), selectedDate));
-  }, [circles, selectedDate, search]);
+  const filteredCircles = circles;
 
   const monthLabel = selectedDate ? selectedDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" }) : "";
 
@@ -191,7 +273,7 @@ function ExploreContent() {
 
       {/* Jumlah circle ditemukan */}
       <p className="text-sm text-gray-500">
-        <span className="font-semibold text-gray-700">{filteredCircles.length}</span> circle ditemukan
+        <span className="font-semibold text-gray-700">{totalCount}</span> circle ditemukan
       </p>
 
       {/* Grid */}
@@ -205,12 +287,21 @@ function ExploreContent() {
             ))
           ) : (
             <p className="text-gray-400 text-sm">
-              {search.trim()
+              {debouncedSearch
                 ? "Tidak ada circle dengan nama tersebut."
                 : selectedDate === null
                 ? "Tidak ada circle yang cocok."
                 : "Tidak ada circle di tanggal ini."}
             </p>
+          )}
+          {circles.length < totalCount && (
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="w-full border rounded-xl py-2 text-sm font-medium text-primary disabled:opacity-50"
+            >
+              {loadingMore ? "Memuat..." : "Muat lebih banyak"}
+            </button>
           )}
         </div>
       )}
