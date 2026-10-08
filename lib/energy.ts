@@ -1,7 +1,7 @@
 // Sistem energy = saldo kredit. Angka ini HARUS sama dengan yang di migration 0032
 // (DB yang menegakkan; konstanta ini cuma untuk tampilan & pengecekan awal di UI).
 export const INITIAL_ENERGY = 1000;
-export const WEEKLY_ENERGY_BONUS = 10;
+export const DAILY_ENERGY_BONUS = 50;
 export const ENERGY_COST = {
   join: 1,
   create: 10,
@@ -13,7 +13,7 @@ export type EnergyInfo = {
   energyResetAt: string | null;
 };
 
-/** Ambil energy TERKINI milik user yang login (sekalian hitung bonus mingguan yang tertunda). */
+/** Ambil energy TERKINI milik user yang login (sekalian hitung bonus harian yang tertunda). */
 export async function getMyEnergy(supabase: any): Promise<EnergyInfo> {
   const { data, error } = await supabase.rpc("get_my_energy").single();
   // gagal baca -> jangan blokir UI; DB tetap yang menolak kalau energy memang kurang
@@ -21,17 +21,13 @@ export async function getMyEnergy(supabase: any): Promise<EnergyInfo> {
   return { energy: data.energy ?? INITIAL_ENERGY, energyResetAt: data.energy_reset_at ?? null };
 }
 
-/** Label "Senin, 14 September" untuk bonus mingguan berikutnya (WIB, UTC+7 tetap). */
+/** Label "Kamis, 9 Oktober" untuk bonus harian berikutnya (00.00 WIB, UTC+7 tetap). */
 export function getNextBonusLabel(): string {
   const now = new Date();
   const wibNow = new Date(now.getTime() + 7 * 60 * 60 * 1000); // geser ke WIB
-  const dow = wibNow.getUTCDay(); // 0=Minggu..6=Sabtu (pakai getUTC* krn sudah digeser manual)
-  const daysUntilMonday = dow === 1 ? 7 : (8 - dow) % 7 || 7;
-  const nextMondayWib = new Date(
-    Date.UTC(wibNow.getUTCFullYear(), wibNow.getUTCMonth(), wibNow.getUTCDate() + daysUntilMonday, 0, 0, 0)
-  );
-  const nextMondayUtc = new Date(nextMondayWib.getTime() - 7 * 60 * 60 * 1000);
-  return nextMondayUtc.toLocaleDateString("id-ID", {
+  const tomorrowWib = Date.UTC(wibNow.getUTCFullYear(), wibNow.getUTCMonth(), wibNow.getUTCDate() + 1, 0, 0, 0);
+  const tomorrowUtc = new Date(tomorrowWib - 7 * 60 * 60 * 1000);
+  return tomorrowUtc.toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
     month: "long",
