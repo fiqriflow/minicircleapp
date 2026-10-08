@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Tag, Crosshair, CalendarDays, Lock } from "lucide-react";
+import { MapPin, Tag, Crosshair, CalendarDays, Lock, UserCheck } from "lucide-react";
 import { getCircleDisplayStatus, STATUS_LABEL } from "@/lib/circleStatus";
 
 export type Circle = {
@@ -17,6 +17,7 @@ export type Circle = {
   max_participants?: number | null;
   created_by?: string | null;
   is_private?: boolean | null;
+  requires_approval?: boolean | null;
 };
 
 export default function CircleCard({
@@ -65,15 +66,20 @@ export default function CircleCard({
         </span>
       </div>
 
-      {(isMyHost || isJoined) && (
-        <div>
+      {(isMyHost || isJoined || circle.requires_approval) && (
+        <div className="flex flex-wrap items-center gap-1.5">
           {isMyHost ? (
             <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
               Host
             </span>
-          ) : (
+          ) : isJoined ? (
             <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
               Diikuti
+            </span>
+          ) : null}
+          {circle.requires_approval && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">
+              <UserCheck size={11} /> Perlu approval
             </span>
           )}
         </div>

@@ -942,7 +942,11 @@ export default function CircleDetailPage() {
               <p className="font-semibold mb-1">Syarat peserta</p>
               <div className="flex flex-wrap gap-2">
                 {circle.join_gender && (
-                  <span className="text-xs bg-pink-50 text-pink-600 px-3 py-1 rounded-full">
+                  <span
+                    className={`text-xs px-3 py-1 rounded-full ${
+                      circle.join_gender === "female" ? "bg-pink-50 text-pink-600" : "bg-sky-50 text-sky-600"
+                    }`}
+                  >
                     {circle.join_gender === "female" ? "Khusus perempuan" : "Khusus laki-laki"}
                   </span>
                 )}
