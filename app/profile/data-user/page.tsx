@@ -66,7 +66,7 @@ export default function DataUserPage() {
       .upload(path, blob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
 
     if (uploadError) {
-      alert("Gagal upload foto: " + uploadError.message);
+      toast.error("Gagal upload foto: " + uploadError.message);
       setUploading(false);
       return;
     }
@@ -74,9 +74,14 @@ export default function DataUserPage() {
     const { data } = supabase.storage.from("avatars").getPublicUrl(path);
     const avatar_url = `${data.publicUrl}?t=${Date.now()}`;
 
-    setProfile((p: any) => ({ ...p, avatar_url }));
-    await saveProfile(supabase, { ...profile, avatar_url });
+    const { error: saveError } = await saveProfile(supabase, { ...profile, avatar_url });
     setUploading(false);
+    if (saveError) {
+      toast.error("Gagal menyimpan foto: " + saveError.message);
+      return;
+    }
+    setProfile((p: any) => ({ ...p, avatar_url }));
+    toast.success("Foto profil diperbarui!");
   };
 
   const handlePickPreset = async (url: string) => {

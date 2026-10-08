@@ -502,6 +502,9 @@ export default function CreateCircleModal({
                 </button>
               )}
             </div>
+            <p className="text-xs text-gray-400">
+              Ukuran ideal: <span className="font-medium text-gray-500">800 x 450 px</span> (rasio 16:9), format JPG/PNG, maks 1MB.
+            </p>
             {!form.cover_url && (
               <p className="text-xs text-gray-400">Tanpa custom cover, otomatis dipakai cover default sesuai aktivitas.</p>
             )}
