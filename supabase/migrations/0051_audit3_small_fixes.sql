@@ -11,7 +11,7 @@
 create or replace function public.app_storage_public_base()
 returns text
 language sql immutable
-as $$ select 'https://wduwfjatblkewctsycie.supabase.co/storage/v1/object/public/'::text $$;
+as $$ select 'https://REF.supabase.co/storage/v1/object/public/'::text $$;
 
 do $$
 begin
