@@ -46,7 +46,10 @@ export async function subscribeToPush() {
 export async function unsubscribeFromPush() {
   if (!(await isPushSupported())) return;
 
-  const registration = await navigator.serviceWorker.ready;
+  // JANGAN pakai serviceWorker.ready: kalau SW belum terdaftar, Promise itu tidak pernah selesai
+  // dan logout ikut menggantung.
+  const registration = await navigator.serviceWorker.getRegistration();
+  if (!registration) return;
   const subscription = await registration.pushManager.getSubscription();
   if (!subscription) return;
 

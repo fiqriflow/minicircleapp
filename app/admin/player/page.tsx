@@ -35,10 +35,13 @@ export default function AdminPlayerPage() {
   }, []);
 
   const handleSave = async () => {
-    const { id, created_at, email, ...fields } = editing;
+    // Kirim HANYA kolom yang ada di form. Sebelumnya seluruh baris (energy, is_banned,
+    // suspended_until, is_verified, dst) ikut dikirim sehingga perubahan lain menimpa nilai lama.
+    const { id, full_name, nickname, birth_date, categories, location, gender, instagram, is_super_admin } = editing;
+    const fields = { full_name, nickname, birth_date, categories, location, gender, instagram, is_super_admin };
     const { error } = await supabase.from("profiles").update(fields).eq("id", id);
     if (error) {
-      alert("Gagal simpan perubahan: " + error.message);
+      toast.error("Gagal simpan perubahan: " + error.message);
       return;
     }
     setEditing(null);
@@ -48,7 +51,7 @@ export default function AdminPlayerPage() {
 
   const handleHardDelete = async (player: any) => {
     if (player.id === currentUserId) {
-      alert("Kamu tidak bisa menghapus akunmu sendiri.");
+      toast.error("Kamu tidak bisa menghapus akunmu sendiri.");
       return;
     }
     if (
@@ -62,7 +65,7 @@ export default function AdminPlayerPage() {
       return;
     const confirmText = prompt('Ketik "HAPUS" untuk konfirmasi hapus permanen:');
     if (confirmText !== "HAPUS") {
-      if (confirmText !== null) alert("Konfirmasi tidak sesuai, dibatalkan.");
+      if (confirmText !== null) toast.error("Konfirmasi tidak sesuai, dibatalkan.");
       return;
     }
     const res = await fetch("/api/admin/hard-delete-user", {
@@ -72,7 +75,7 @@ export default function AdminPlayerPage() {
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      alert("Gagal hapus permanen: " + (json.error || res.statusText));
+      toast.error("Gagal hapus permanen: " + (json.error || res.statusText));
       return;
     }
     toast.success("Akun berhasil dihapus permanen.");
@@ -81,7 +84,7 @@ export default function AdminPlayerPage() {
 
   const handleSuspendTemporary = async (player: any) => {
     if (player.id === currentUserId) {
-      alert("Kamu tidak bisa menonaktifkan akunmu sendiri.");
+      toast.error("Kamu tidak bisa menonaktifkan akunmu sendiri.");
       return;
     }
     const daysInput = prompt(
@@ -91,7 +94,7 @@ export default function AdminPlayerPage() {
     if (!daysInput) return;
     const days = Number(daysInput);
     if (!Number.isFinite(days) || days <= 0) {
-      alert("Jumlah hari tidak valid.");
+      toast.error("Jumlah hari tidak valid.");
       return;
     }
     const reason = prompt("Alasan penonaktifan (opsional):", "") ?? "";
@@ -101,7 +104,7 @@ export default function AdminPlayerPage() {
       .update({ suspended_until: suspendedUntil, is_banned: false, suspension_reason: reason || null })
       .eq("id", player.id);
     if (error) {
-      alert("Gagal menonaktifkan user: " + error.message);
+      toast.error("Gagal menonaktifkan user: " + error.message);
       return;
     }
     toast.success(`Akun dinonaktifkan sementara selama ${days} hari.`);
@@ -110,7 +113,7 @@ export default function AdminPlayerPage() {
 
   const handleSuspendPermanent = async (player: any) => {
     if (player.id === currentUserId) {
-      alert("Kamu tidak bisa menonaktifkan akunmu sendiri.");
+      toast.error("Kamu tidak bisa menonaktifkan akunmu sendiri.");
       return;
     }
     if (!confirm(`Nonaktifkan PERMANEN akun "${player.full_name || player.nickname}"? Aksi ini bisa dibatalkan lagi lewat "Aktifkan Kembali".`))
@@ -121,7 +124,7 @@ export default function AdminPlayerPage() {
       .update({ is_banned: true, suspended_until: null, suspension_reason: reason || null })
       .eq("id", player.id);
     if (error) {
-      alert("Gagal menonaktifkan user: " + error.message);
+      toast.error("Gagal menonaktifkan user: " + error.message);
       return;
     }
     toast.success("Akun dinonaktifkan permanen.");
@@ -134,7 +137,7 @@ export default function AdminPlayerPage() {
       .update({ is_banned: false, suspended_until: null, suspension_reason: null })
       .eq("id", player.id);
     if (error) {
-      alert("Gagal mengaktifkan kembali user: " + error.message);
+      toast.error("Gagal mengaktifkan kembali user: " + error.message);
       return;
     }
     toast.success("Akun diaktifkan kembali.");

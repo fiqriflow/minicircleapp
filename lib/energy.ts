@@ -11,13 +11,15 @@ export const ENERGY_COST = {
 export type EnergyInfo = {
   energy: number;
   energyResetAt: string | null;
+  /** true = gagal baca saldo dari DB; `energy` hanya nilai default, jangan ditampilkan sebagai saldo asli */
+  failed?: boolean;
 };
 
 /** Ambil energy TERKINI milik user yang login (sekalian hitung bonus harian yang tertunda). */
 export async function getMyEnergy(supabase: any): Promise<EnergyInfo> {
   const { data, error } = await supabase.rpc("get_my_energy").single();
   // gagal baca -> jangan blokir UI; DB tetap yang menolak kalau energy memang kurang
-  if (error || !data) return { energy: INITIAL_ENERGY, energyResetAt: null };
+  if (error || !data) return { energy: INITIAL_ENERGY, energyResetAt: null, failed: true };
   return { energy: data.energy ?? INITIAL_ENERGY, energyResetAt: data.energy_reset_at ?? null };
 }
 
