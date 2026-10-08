@@ -24,7 +24,11 @@ export default function AccountMenuPage() {
 
   const handleLogout = async () => {
     if (!confirm("Yakin mau keluar?")) return;
-    await unsubscribeFromPush().catch(() => {});
+    // batas 3 detik: logout tidak boleh tertahan urusan push
+    await Promise.race([
+      unsubscribeFromPush().catch(() => {}),
+      new Promise((resolve) => setTimeout(resolve, 3000)),
+    ]);
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();

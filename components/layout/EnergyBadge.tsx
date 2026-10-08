@@ -16,7 +16,8 @@ export default function EnergyBadge() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const info = await getMyEnergy(supabase);
-      setEnergy(info.energy);
+      // gagal baca -> jangan tampilkan angka default sebagai saldo asli
+      if (!info.failed) setEnergy(info.energy);
     };
     load();
     // saldo dibaca ulang setelah join / buat circle

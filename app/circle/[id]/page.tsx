@@ -44,6 +44,9 @@ export default function CircleDetailPage() {
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [hasNewComment, setHasNewComment] = useState(false);
   const [joinedCount, setJoinedCount] = useState(0);
+  const [notFound, setNotFound] = useState(false);
+  const [sendingComment, setSendingComment] = useState(false);
+  const chatBoxRef = useRef<HTMLDivElement>(null);
   const [showViewerMenu, setShowViewerMenu] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: "circle" | "user"; name?: string; userId?: string } | null>(
     null
@@ -82,6 +85,11 @@ export default function CircleDetailPage() {
       supabase.from("circles").select(CIRCLE_COLUMNS).eq("id", id).single(),
     ]);
     setUserId(user?.id ?? null);
+    if (!c) {
+      setNotFound(true);
+      return;
+    }
+    setNotFound(false);
     setCircle(c);
 
     const [hostRes, { data: allMembers }] = await Promise.all([
@@ -128,6 +136,8 @@ export default function CircleDetailPage() {
         .eq("circle_id", id)
         .order("created_at", { ascending: true });
       setComments(cm ?? []);
+    } else {
+      setComments([]);
     }
   };
 
@@ -143,6 +153,13 @@ export default function CircleDetailPage() {
   useEffect(() => {
     commentsRef.current = comments;
   }, [comments]);
+
+  // komen terbaru selalu terlihat: scroll kotak chat ke bawah saat tab dibuka / ada komen baru
+  useEffect(() => {
+    if (tab !== "chat") return;
+    const el = chatBoxRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [comments.length, tab]);
 
   useEffect(() => {
     if (!isJoined) return;
@@ -187,7 +204,7 @@ export default function CircleDetailPage() {
       .eq("circle_id", id)
       .eq("status", "joined");
     if (isCircleFull(count ?? 0, circle.max_participants)) {
-      alert("Slot circle ini sudah penuh.");
+      toast.error("Slot circle ini sudah penuh.");
       load();
       return;
     }
@@ -214,7 +231,7 @@ export default function CircleDetailPage() {
   const handleJoinToggle = () => {
     if (!userId) return;
     if (!myStatus && isCircleFull(joinedCount, circle.max_participants)) {
-      alert("Slot circle ini sudah penuh.");
+      toast.error("Slot circle ini sudah penuh.");
       return;
     }
     setConfirmAction(myStatus ? "leave" : "join");
@@ -231,28 +248,56 @@ export default function CircleDetailPage() {
 
   const confirmLeave = async () => {
     setConfirmAction(null);
-    await supabase.from("circle_members").delete().eq("circle_id", id).eq("user_id", userId);
-    toast.success("Berhasil batal join circle.");
+    const wasPending = myStatus === "pending";
+    const { data, error } = await supabase
+      .from("circle_members")
+      .delete()
+      .eq("circle_id", id)
+      .eq("user_id", userId)
+      .select("id");
+    if (error || !data || data.length === 0) {
+      toast.error(error?.message ?? "Tidak bisa batal join: circle sudah berlangsung atau selesai.");
+      load();
+      return;
+    }
+    toast.success(wasPending ? "Permintaan join dibatalkan." : "Berhasil batal join circle.");
     load();
   };
 
   const handleApprove = async (memberId: string) => {
-    await supabase.from("circle_members").update({ status: "joined" }).eq("id", memberId);
+    const { data, error } = await supabase
+      .from("circle_members")
+      .update({ status: "joined" })
+      .eq("id", memberId)
+      .select("id");
+    if (error || !data || data.length === 0) {
+      toast.error(error?.message ?? "Gagal menerima permintaan join.");
+    } else {
+      toast.success("Permintaan join diterima.");
+    }
     load();
   };
 
   const handleReject = async (memberId: string) => {
-    await supabase.from("circle_members").delete().eq("id", memberId);
+    const { data, error } = await supabase.from("circle_members").delete().eq("id", memberId).select("id");
+    if (error || !data || data.length === 0) {
+      toast.error(error?.message ?? "Gagal menolak permintaan join.");
+    } else {
+      toast.success("Permintaan join ditolak.");
+    }
     load();
   };
 
   const handleCheckin = async (memberRowId: string) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("circle_members")
       .update({ checked_in: true, checked_in_at: new Date().toISOString() })
-      .eq("id", memberRowId);
-    if (error) {
-      toast.error("Gagal check-in: " + error.message);
+      .eq("id", memberRowId)
+      .select("id");
+    // RLS yang menolak UPDATE tidak memberi error, hanya 0 baris -> jangan klaim sukses
+    if (error || !data || data.length === 0) {
+      toast.error("Gagal check-in" + (error ? ": " + error.message : ". Check-in belum dibuka atau circle sudah selesai."));
+      load();
       return;
     }
     toast.success("Check-in berhasil!");
@@ -310,14 +355,22 @@ export default function CircleDetailPage() {
   };
 
   const handleSendComment = async () => {
-    if (!newComment.trim() || !userId || isCommentLocked) return;
-    await supabase.from("circle_comments").insert({
-      circle_id: id,
-      user_id: userId,
-      message: newComment.trim(),
-    });
+    const message = newComment.trim();
+    if (!message || !userId || isCommentLocked || sendingComment) return;
+    setSendingComment(true);
+    const { data, error } = await supabase
+      .from("circle_comments")
+      .insert({ circle_id: id, user_id: userId, message })
+      .select("*, profile:profiles(full_name, avatar_url)")
+      .single();
+    setSendingComment(false);
+    if (error) {
+      // input tidak dikosongkan supaya pesan tidak hilang
+      toast.error(error.message || "Gagal mengirim komentar.");
+      return;
+    }
     setNewComment("");
-    load();
+    if (data) setComments((prev) => (prev.some((c) => c.id === data.id) ? prev : [...prev, data]));
   };
 
   const handleSetStatus = async (status: string) => {
@@ -337,7 +390,8 @@ export default function CircleDetailPage() {
   };
 
   const handleToggleApproval = async () => {
-    await supabase.from("circles").update({ requires_approval: !circle.requires_approval }).eq("id", id);
+    const { error } = await supabase.from("circles").update({ requires_approval: !circle.requires_approval }).eq("id", id);
+    if (error) toast.error(error.message);
     setShowHostMenu(false);
     load();
   };
@@ -350,8 +404,12 @@ export default function CircleDetailPage() {
       return;
     }
     const url = `${location.origin}/join/${code}`;
-    navigator.clipboard.writeText(url);
-    alert("Link undangan disalin: " + url);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link undangan disalin.");
+    } catch {
+      window.prompt("Salin link undangan ini:", url);
+    }
     setShowHostMenu(false);
   };
 
@@ -376,7 +434,11 @@ export default function CircleDetailPage() {
       return;
     }
     const coverPath = extractStoragePath(circle.cover_url, "circle-covers");
-    await supabase.from("circles").delete().eq("id", id);
+    const { data: deleted, error: delError } = await supabase.from("circles").delete().eq("id", id).select("id");
+    if (delError || !deleted || deleted.length === 0) {
+      toast.error("Gagal hapus circle" + (delError ? ": " + delError.message : "."));
+      return;
+    }
     if (coverPath) {
       await supabase.storage.from("circle-covers").remove([coverPath]);
     }
@@ -384,6 +446,16 @@ export default function CircleDetailPage() {
     router.push("/my-circle");
   };
 
+  if (notFound) {
+    return (
+      <div className="p-6 text-center space-y-3">
+        <p className="text-gray-500">Circle tidak ditemukan, sudah dihapus, atau tidak bisa kamu akses.</p>
+        <button onClick={() => router.push("/")} className="text-primary font-medium">
+          Ke Beranda
+        </button>
+      </div>
+    );
+  }
   if (!circle) return <p className="p-6 text-gray-400">Memuat...</p>;
 
   return (
@@ -492,15 +564,17 @@ export default function CircleDetailPage() {
                       Tandai Selesai
                     </button>
                   )}
-                  <button
-                    onClick={() => {
-                      setShowHostMenu(false);
-                      setConfirmStatusAction("cancelled");
-                    }}
-                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 border-b"
-                  >
-                    Batalkan Circle
-                  </button>
+                  {displayStatus !== "completed" && displayStatus !== "cancelled" && (
+                    <button
+                      onClick={() => {
+                        setShowHostMenu(false);
+                        setConfirmStatusAction("cancelled");
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 border-b"
+                    >
+                      Batalkan Circle
+                    </button>
+                  )}
                   {circle.is_circle_plus && (
                     <button
                       onClick={handleToggleApproval}
@@ -624,6 +698,8 @@ export default function CircleDetailPage() {
             <p className="text-sm text-gray-600">
               {confirmAction === "join"
                 ? `Dengan join circle "${circle.name}", saya berkomitmen untuk hadir dan berpartisipasi sesuai jadwal yang sudah ditentukan. Kalau berhalangan, saya akan membatalkan join lebih awal supaya slot bisa diisi orang lain.`
+                : myStatus === "pending"
+                ? `Batalkan permintaan join ke circle "${circle.name}"?`
                 : `Kamu yakin mau batal join circle "${circle.name}"? Slot kamu akan dilepas dan bisa diisi peserta lain.`}
             </p>
             <div className="flex gap-2">
@@ -996,7 +1072,7 @@ export default function CircleDetailPage() {
                   )}
                 </div>
               )}
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div ref={chatBoxRef} className="space-y-2 max-h-96 overflow-y-auto">
                 {comments.map((c) => {
                   const isMine = c.user_id === userId;
                   return (
@@ -1029,10 +1105,14 @@ export default function CircleDetailPage() {
                     placeholder="Tulis komentar..."
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSendComment()}
+                    onKeyDown={(e) => e.key === "Enter" && !e.nativeEvent.isComposing && handleSendComment()}
                   />
-                  <button onClick={handleSendComment} className="bg-primary text-white px-4 rounded-xl">
-                    Kirim
+                  <button
+                    onClick={handleSendComment}
+                    disabled={sendingComment}
+                    className="bg-primary text-white px-4 rounded-xl disabled:opacity-50"
+                  >
+                    {sendingComment ? "..." : "Kirim"}
                   </button>
                 </div>
               )}
@@ -1088,20 +1168,33 @@ export default function CircleDetailPage() {
               Slot Penuh
             </button>
           );
+        } else if (!myStatus && displayStatus === "ongoing" && Date.now() > new Date(circle.event_date).getTime() + 3 * 60 * 60 * 1000) {
+          // sama dengan guard DB (0035): join ditutup 3 jam setelah jam mulai
+          content = (
+            <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+              Pendaftaran Ditutup
+            </button>
+          );
+        } else if (myStatus === "joined" && displayStatus === "ongoing") {
+          // sama dengan policy DB (0054): tidak bisa batal join setelah circle dimulai
+          content = (
+            <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+              Circle Sedang Berlangsung
+            </button>
+          );
         } else {
           content = (
             <button
               onClick={handleJoinToggle}
-              disabled={myStatus === "pending"}
               className={`w-full rounded-xl py-3 font-medium ${
                 myStatus === "joined"
                   ? "bg-red-50 text-red-600 border border-red-300"
                   : myStatus === "pending"
-                  ? "bg-gray-100 text-gray-400"
+                  ? "bg-gray-100 text-gray-600 border border-gray-300"
                   : "bg-primary text-white"
               }`}
             >
-              {myStatus === "joined" ? "Batal Join" : myStatus === "pending" ? "Menunggu Persetujuan" : "Join Circle"}
+              {myStatus === "joined" ? "Batal Join" : myStatus === "pending" ? "Batalkan Permintaan" : "Join Circle"}
             </button>
           );
         }
