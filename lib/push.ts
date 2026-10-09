@@ -7,6 +7,22 @@ function urlBase64ToUint8Array(base64String: string) {
   return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
 }
 
+// Opt-out per device: user matikan notif dari menu Profil -> jangan auto-subscribe lagi saat app dibuka.
+const OPT_OUT_KEY = "push_opt_out";
+export function isPushOptedOut() {
+  try {
+    return localStorage.getItem(OPT_OUT_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+export function setPushOptOut(value: boolean) {
+  try {
+    if (value) localStorage.setItem(OPT_OUT_KEY, "1");
+    else localStorage.removeItem(OPT_OUT_KEY);
+  } catch {}
+}
+
 export async function isPushSupported() {
   return typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window;
 }

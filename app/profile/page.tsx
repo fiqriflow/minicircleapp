@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { User, HelpCircle, Info, ShieldCheck, LogOut, ChevronRight, BarChart3, MessageSquarePlus, FileText, Scale, Users2, BadgeCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { unsubscribeFromPush } from "@/lib/push";
+import PushToggleRow from "@/components/profile/PushToggleRow";
 
 export default function AccountMenuPage() {
   const supabase = createClient();
@@ -57,6 +58,7 @@ export default function AccountMenuPage() {
             <span className="flex-1 text-sm font-medium">Statistik</span>
             <ChevronRight size={16} className="text-gray-300" />
           </Link>
+          <PushToggleRow />
         </div>
       </div>
 
