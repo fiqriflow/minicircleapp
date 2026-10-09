@@ -54,7 +54,7 @@ export default function AvatarCropModal({
     canvas.height = 400;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    try {
+try {
       ctx.drawImage(img, sx, sy, size, size, 0, 0, 400, 400);
     } catch {
       toast.error("Foto tidak bisa diproses. Coba foto lain.");
