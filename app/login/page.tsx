@@ -74,7 +74,7 @@ function LoginPageContent() {
         />
         <LottieMascot
           src="/login.json"
-          className="absolute bottom-0 left-0 w-[62%] max-w-[300px] translate-y-[6%]"
+          className="absolute bottom-0 left-0 w-[62%] max-w-[300px] aspect-[489/314] translate-y-[6%]"
         />
       </div>
 

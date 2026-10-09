@@ -23,7 +23,7 @@ export default function LottieMascot({ src, className }: { src: string; classNam
         path: src,
         rendererSettings: { preserveAspectRatio: "xMidYMax meet" },
       });
-    })().catch(() => {});
+    })().catch((err) => console.error("Lottie gagal dimuat:", err));
 
     return () => {
       cancelled = true;
