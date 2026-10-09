@@ -21,6 +21,8 @@ export default function JoinByInvitePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [defaultCoverMap, setDefaultCoverMap] = useState<Record<string, string>>({});
   const [coverError, setCoverError] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -29,11 +31,13 @@ export default function JoinByInvitePage() {
       getDefaultCoverMap(supabase).then(setDefaultCoverMap);
 
       // circle private disembunyikan oleh RLS -> cari lewat RPC pakai kode undangan
-      const { data: rows } = await supabase.rpc("get_circle_by_invite", { p_code: code as string });
+      const { data: rows, error: rpcError } = await supabase.rpc("get_circle_by_invite", { p_code: code as string });
       const c = Array.isArray(rows) ? rows[0] : rows;
 
       if (!c) {
-        setNotFound(true);
+        // error RPC (jaringan / batas percobaan) BUKAN "link tidak valid"
+        if (rpcError) setLoadError(rpcError.message || "Gagal memuat undangan.");
+        else setNotFound(true);
         return;
       }
       setCircle(c);
@@ -53,12 +57,14 @@ export default function JoinByInvitePage() {
   }, [code]);
 
   const doJoin = async (answer?: string) => {
-    if (!userId || !circle) return;
+    if (!userId || !circle || joining) return;
+    setJoining(true);
     // join lewat RPC (cek kode undangan di DB), bukan insert langsung
     const { data, error } = await supabase.rpc("join_circle_by_invite", {
       p_code: code as string,
       p_answer: answer ?? null,
     });
+    setJoining(false);
     if (error && isProfileIncompleteError(error.message)) {
       toast.error(error.message);
       router.push("/profile/data-user");
@@ -79,6 +85,17 @@ export default function JoinByInvitePage() {
     }
     doJoin();
   };
+
+  if (loadError) {
+    return (
+      <div className="p-6 text-center space-y-3">
+        <p className="text-gray-500">{loadError}</p>
+        <button onClick={() => window.location.reload()} className="text-primary font-medium">
+          Coba lagi
+        </button>
+      </div>
+    );
+  }
 
   if (notFound) {
     return (
@@ -122,8 +139,12 @@ export default function JoinByInvitePage() {
           Buka Circle
         </button>
       ) : (
-        <button onClick={handleJoinClick} className="w-full bg-primary text-white rounded-xl py-3 font-medium">
-          Gabung Circle Ini
+        <button
+          onClick={handleJoinClick}
+          disabled={joining}
+          className="w-full bg-primary text-white rounded-xl py-3 font-medium disabled:opacity-50"
+        >
+          {joining ? "Memproses..." : "Gabung Circle Ini"}
         </button>
       )}
 

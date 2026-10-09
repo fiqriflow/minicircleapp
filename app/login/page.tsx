@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { safeNext } from "@/lib/safeNext";
 
 function LoginPageContent() {
   const supabase = createClient();
@@ -13,11 +14,13 @@ function LoginPageContent() {
 
   useEffect(() => {
     const notice = searchParams.get("notice");
+    const keepNext = safeNext(searchParams.get("next"));
+    const loginUrl = keepNext ? `/login?next=${encodeURIComponent(keepNext)}` : "/login";
     if (notice === "already-registered") {
       toast.error("Email ini sudah terdaftar", {
         description: "Silakan klik \"Masuk dengan Google\" untuk login.",
       });
-      router.replace("/login");
+      router.replace(loginUrl);
     }
     // FIX: sebelumnya kegagalan proses login/daftar (mis. tukar kode gagal,
     // cookie diblokir browser tertentu, user cancel consent) diam-diam
@@ -30,16 +33,17 @@ function LoginPageContent() {
           ? `Penyebab: ${reason}. Coba lagi, atau pakai browser lain kalau masih gagal.`
           : "Coba lagi ya. Kalau masih gagal, coba pakai browser lain (Chrome/Safari) dan pastikan cookie tidak diblokir.",
       });
-      router.replace("/login");
+      router.replace(loginUrl);
     }
   }, [searchParams, router]);
 
   const handleGoogleAuth = async (intent: "login" | "signup") => {
     setLoading(intent);
+    const next = safeNext(searchParams.get("next"));
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${location.origin}/auth/callback?intent=${intent}`,
+        redirectTo: `${location.origin}/auth/callback?intent=${intent}${next ? `&next=${encodeURIComponent(next)}` : ""}`,
       },
     });
     // FIX: kalau signInWithOAuth sendiri gagal (mis. gagal simpen cookie

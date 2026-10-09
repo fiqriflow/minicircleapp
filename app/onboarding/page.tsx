@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { safeNext } from "@/lib/safeNext";
 import LocationInput from "@/components/ui/LocationInput";
 import AvatarCropModal from "@/components/profile/AvatarCropModal";
 import PolicyModal from "@/components/profile/PolicyModal";
@@ -124,7 +125,8 @@ export default function OnboardingPage() {
     try {
       sessionStorage.setItem("mincle_show_welcome", profile?.nickname || profile?.full_name || "");
     } catch {}
-    router.push("/");
+    // balik ke tujuan awal (mis. link undangan circle) kalau ada
+    router.push(safeNext(new URLSearchParams(window.location.search).get("next")) ?? "/");
     router.refresh();
   };
 

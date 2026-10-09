@@ -104,7 +104,8 @@ export default function CreateCircleModal({
   const [inviteLoaded, setInviteLoaded] = useState(!(isEdit && isPlus));
   useEffect(() => {
     if (!(isEdit && isPlus)) return;
-    supabase.rpc("get_circle_invite_code", { p_circle_id: editCircle.id }).then(({ data }: any) => {
+    supabase.rpc("get_circle_invite_code", { p_circle_id: editCircle.id }).then(({ data, error }: any) => {
+      if (error) toast.error("Kode undangan gagal dimuat. Kode yang lama tidak akan diubah.");
       const code = (data as string | null) ?? "";
       setOriginalInviteCode(code);
       setForm((f: any) => ({ ...f, invite_code: code }));
@@ -260,6 +261,11 @@ export default function CreateCircleModal({
       return;
     }
     setFieldErrors({});
+    const slots = Number(form.max_participants);
+    if (!Number.isInteger(slots) || slots < minP || slots > maxP) {
+      setError(`Jumlah peserta harus ${minP}–${maxP} orang.`);
+      return;
+    }
     const startIso = combineDateTime(form.event_day, form.start_time);
     if (!startIso) {
       setError("Tanggal & jam tidak valid.");
@@ -303,7 +309,13 @@ export default function CreateCircleModal({
     if (isPlus) {
       payload.cover_url = form.cover_url || null;
       payload.is_private = form.is_private;
-      payload.invite_code = (form.invite_code.trim() || generateInviteCode()).toUpperCase();
+      if (isEdit) {
+        // Edit: kirim kode HANYA kalau memang diubah. Dulu kode kosong (mis. gagal dimuat) diganti kode acak
+        // -> link undangan yang sudah dibagikan mati diam-diam.
+        if (customCode && customCode !== originalInviteCode.toUpperCase()) payload.invite_code = customCode;
+      } else {
+        payload.invite_code = (form.invite_code.trim() || generateInviteCode()).toUpperCase();
+      }
       // pertanyaan join hanya berlaku kalau approval aktif (dijaga juga di DB, migration 0043)
       payload.requires_approval = form.requires_approval;
       // filter peserta (juga dijaga di DB, migration 0047)
@@ -405,6 +417,7 @@ export default function CreateCircleModal({
           <button
             type="button"
             onClick={handleCancel}
+            disabled={saving}
             aria-label="Tutup"
             className="p-1.5 -mr-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >
@@ -460,7 +473,7 @@ export default function CreateCircleModal({
         {host && !isEdit && (
           <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
             <img
-              src={host.avatar_url || "https://ui-avatars.com/api/?name=" + (host.full_name || "U")}
+              src={host.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(host.full_name || "U")}
               className="w-8 h-8 rounded-full object-cover"
               alt=""
             />

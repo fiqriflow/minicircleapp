@@ -1,12 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { getRegistrationLimit } from "@/lib/appSettings";
 import { NextResponse } from "next/server";
+import { safeNext } from "@/lib/safeNext";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const intent = searchParams.get("intent"); // "signup" | "login" | null
+  const next = safeNext(searchParams.get("next")); // tujuan awal sebelum login (mis. link undangan)
 
   // Google/Supabase bisa balikin error langsung di query (misal user cancel
   // consent, atau provider error) tanpa "code" sama sekali. Sebelumnya ini
@@ -76,5 +78,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(`${origin}/`);
+  return NextResponse.redirect(`${origin}${next ?? "/"}`);
 }

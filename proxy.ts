@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeNext } from "./lib/safeNext";
 
 // CSP dibuat per-request dengan nonce (tanpa 'unsafe-inline' di script-src).
 // Set CSP_REPORT_ONLY=1 di Vercel untuk tes tanpa memblokir apa pun.
@@ -112,6 +113,12 @@ export async function proxy(request: NextRequest) {
     return redirectResponse;
   };
 
+  // Simpan tujuan awal (mis. /join/KODE atau /circle/ID dari link yang dibagikan) lewat login & onboarding.
+  const withNext = (base: string) => {
+    const n = safeNext(request.nextUrl.pathname + request.nextUrl.search);
+    return n ? `${base}?next=${encodeURIComponent(n)}` : base;
+  };
+
   const { data: { user } } = await supabase.auth.getUser();
 
   const isAuthPage = path === "/login" || path.startsWith("/auth") || path === "/pendaftaran-ditutup";
@@ -167,7 +174,7 @@ export async function proxy(request: NextRequest) {
     if (path.startsWith("/api/")) {
       return NextResponse.json({ error: "Belum login" }, { status: 401 });
     }
-    return redirect("/login");
+    return redirect(withNext("/login"));
   }
 
   if (user && !isAuthPage) {
@@ -194,7 +201,7 @@ export async function proxy(request: NextRequest) {
     }
 
     if (!profile?.onboarding_completed && !isOnboardingPage) {
-      return redirect("/onboarding");
+      return redirect(withNext("/onboarding"));
     }
 
     if (profile?.onboarding_completed && isOnboardingPage) {
