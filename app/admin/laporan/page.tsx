@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Flag, ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import Pagination, { usePagination } from "@/components/ui/Pagination";
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { toast } from "sonner";
 
 const STATUS_LABEL: Record<string, { label: string; className: string }> = {
@@ -30,12 +32,15 @@ export default function AdminLaporanPage() {
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const load = async () => {
-    const { data } = await supabase
+    const { data, error } = await fetchAllPages((a, b) => supabase
       .from("reports")
       .select(
         "*, reporter:profiles!reports_reporter_id_fkey(full_name, nickname), target_circle:circles(id, name), target_user:profiles!reports_target_user_id_fkey(id, full_name, nickname)"
       )
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(a, b));
+    if (error) toast.error("Gagal memuat laporan: " + error.message);
     setItems(data ?? []);
     setLoading(false);
   };
@@ -66,6 +71,8 @@ export default function AdminLaporanPage() {
     if (filterType !== "all" && i.target_type !== filterType) return false;
     return true;
   });
+
+  const { pageItems: paged, pagination } = usePagination(filtered, `${filterStatus}|${filterType}`);
 
   const pendingCount = items.filter((i) => i.status === "pending").length;
 
@@ -119,7 +126,7 @@ export default function AdminLaporanPage() {
         <p className="text-gray-400 text-sm">Tidak ada laporan.</p>
       ) : (
         <div className="space-y-3">
-          {filtered.map((item) => {
+          {paged.map((item) => {
             const status = STATUS_LABEL[item.status] ?? STATUS_LABEL.pending;
             const reporterName = item.reporter?.nickname || item.reporter?.full_name || "User terhapus";
             const targetName =
@@ -198,6 +205,8 @@ export default function AdminLaporanPage() {
           })}
         </div>
       )}
+
+      <Pagination {...pagination} />
     </div>
   );
 }

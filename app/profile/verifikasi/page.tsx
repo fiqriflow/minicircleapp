@@ -17,6 +17,10 @@ export default function VerifikasiAkunPage() {
   const load = async () => {
     const { data: p } = await supabase.rpc("get_my_profile").maybeSingle();
     setProfile(p);
+    if (!p) {
+      setLoading(false);
+      return;
+    }
     const { data: r } = await supabase
       .from("verification_requests")
       .select("*")

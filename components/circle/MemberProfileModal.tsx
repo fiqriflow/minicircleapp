@@ -5,6 +5,7 @@ import { X, Flag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getCircleDisplayStatus } from "@/lib/circleStatus";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import { chunk } from "@/lib/chunk";
 
 const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
 
@@ -37,11 +38,13 @@ export default function MemberProfileModal({
 
       let hostCircle = 0;
       if (completedIds.length) {
-        const { data: attendanceRows } = await supabase
-          .from("circle_members")
-          .select("circle_id, checked_in")
-          .in("circle_id", completedIds)
-          .eq("status", "joined");
+        const attendanceRows = (
+          await Promise.all(
+            chunk(completedIds, 100).map((ids) =>
+              supabase.from("circle_members").select("circle_id, checked_in").in("circle_id", ids).eq("status", "joined")
+            )
+          )
+        ).flatMap((r) => r.data ?? []);
 
         const byCircle: Record<string, { total: number; checked: number }> = {};
         (attendanceRows ?? []).forEach((r: any) => {
@@ -75,15 +78,15 @@ export default function MemberProfileModal({
   }, [profile?.id]);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4 relative">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4 relative" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute right-4 top-4 text-gray-400 hover:text-gray-700">
           <X size={20} />
         </button>
 
         <div className="flex flex-col items-center gap-2 pt-2">
           <img
-            src={profile.avatar_url || "https://ui-avatars.com/api/?name=" + (profile.full_name || "U")}
+            src={profile.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(profile.full_name || "U")}
             alt=""
             className="w-20 h-20 rounded-full object-cover border"
           />

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { subscribeToPush } from "@/lib/push";
+import { subscribeToPush, isPushOptedOut } from "@/lib/push";
 
 export default function PwaRegister() {
   useEffect(() => {
@@ -11,23 +11,28 @@ export default function PwaRegister() {
 
     let cancelled = false;
 
+    // Izin notif TIDAK diminta di sini (iOS wajib gesture user; Chrome bisa auto-blok).
+    // User mengaktifkannya lewat tombol di menu Profil. Di sini hanya sinkron diam-diam
+    // kalau izin sudah granted dan user belum mematikan notif di device ini.
+    const syncPush = () => {
+      if (!("Notification" in window)) return;
+      if (Notification.permission !== "granted") return;
+      if (isPushOptedOut()) return;
+      subscribeToPush().catch(() => {});
+    };
+
     navigator.serviceWorker.register("/sw.js").catch((err) => {
       console.error("SW registration failed:", err);
     });
 
     const supabase = createClient();
 
-    // Kalau component ini mount pas user UDAH login (misal reload halaman while logged in)
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!cancelled && user) subscribeToPush().catch(() => {});
+      if (!cancelled && user) syncPush();
     });
 
-    // Kalau user baru aja login TANPA reload halaman penuh (client-side redirect),
-    // window "load" udah lama kepanggil duluan, jadi dengerin auth state langsung.
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_IN") {
-        subscribeToPush().catch(() => {});
-      }
+      if (event === "SIGNED_IN") syncPush();
     });
 
     return () => {

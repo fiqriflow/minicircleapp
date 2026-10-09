@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import Pagination, { usePagination } from "@/components/ui/Pagination";
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { toast } from "sonner";
 
 const CATEGORY_LABEL: Record<string, { label: string; className: string }> = {
@@ -23,10 +25,15 @@ export default function AdminMasukanPage() {
   const [filterCategory, setFilterCategory] = useState<string>("all");
 
   const load = async () => {
-    const { data } = await supabase
-      .from("feedback")
-      .select("*, profile:profiles(full_name, avatar_url)")
-      .order("created_at", { ascending: false });
+    const { data, error } = await fetchAllPages((a, b) =>
+      supabase
+        .from("feedback")
+        .select("*, profile:profiles(full_name, avatar_url)")
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(a, b)
+    );
+    if (error) toast.error("Gagal memuat masukan: " + error.message);
     setItems(data ?? []);
     setLoading(false);
   };
@@ -49,6 +56,7 @@ export default function AdminMasukanPage() {
   };
 
   const filtered = filterCategory === "all" ? items : items.filter((i) => i.category === filterCategory);
+  const { pageItems: paged, pagination } = usePagination(filtered, filterCategory);
 
   return (
     <div className="space-y-4 max-w-2xl">
@@ -84,7 +92,7 @@ export default function AdminMasukanPage() {
         <p className="text-gray-400 text-sm">Belum ada masukan.</p>
       ) : (
         <div className="space-y-3">
-          {filtered.map((item) => {
+          {paged.map((item) => {
             const cat = CATEGORY_LABEL[item.category] ?? CATEGORY_LABEL.other;
             return (
               <div key={item.id} className="bg-white rounded-2xl border p-4 space-y-2">
@@ -122,6 +130,8 @@ export default function AdminMasukanPage() {
           })}
         </div>
       )}
+
+      <Pagination {...pagination} />
     </div>
   );
 }

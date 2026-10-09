@@ -20,8 +20,8 @@ export default function WelcomeDialog() {
   if (!name) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-6">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center space-y-4">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-6" onClick={() => setName(null)}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center space-y-4" onClick={(e) => e.stopPropagation()}>
         <img src="/mascotsukses.svg" alt="Berhasil" className="w-40 h-40 mx-auto" />
         <div>
           <h2 className="text-xl font-bold">Selamat Datang, {name}! 🎉</h2>

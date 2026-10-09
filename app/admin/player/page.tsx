@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Pagination, { usePagination } from "@/components/ui/Pagination";
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { toast } from "sonner";
 import LocationInput from "@/components/ui/LocationInput";
 
@@ -18,10 +20,14 @@ export default function AdminPlayerPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const load = async () => {
-    const { data, error } = await supabase
-      .rpc("admin_get_players")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const { data, error } = await fetchAllPages((a, b) =>
+      supabase
+        .rpc("admin_get_players")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: true })
+        .range(a, b)
+    );
     if (error) {
       toast.error("Gagal memuat data player: " + error.message);
       return;
@@ -158,6 +164,7 @@ export default function AdminPlayerPage() {
       .filter(Boolean)
       .some((v: string) => v.toLowerCase().includes(q));
   });
+  const { pageItems: pagedPlayers, pagination } = usePagination(displayedPlayers, search);
 
   return (
     <div className="space-y-6">
@@ -174,7 +181,7 @@ export default function AdminPlayerPage() {
 
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
-        {displayedPlayers.map((p) => (
+        {pagedPlayers.map((p) => (
           <div key={p.id} className="bg-white rounded-2xl border p-4 space-y-2">
             <div className="flex items-center gap-3">
               <img loading="lazy" decoding="async"
@@ -231,7 +238,7 @@ export default function AdminPlayerPage() {
             </tr>
           </thead>
           <tbody>
-            {displayedPlayers.map((p) => (
+            {pagedPlayers.map((p) => (
               <tr key={p.id} className="border-t">
                 <td className="p-3">{p.full_name}</td>
                 <td className="p-3">{p.nickname}</td>
@@ -261,10 +268,18 @@ export default function AdminPlayerPage() {
         </table>
       </div>
 
+      <Pagination {...pagination} />
+
       {/* Modal: View Detail (read-only, bentuk list c) */}
       {viewing && (
-        <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
-          <div className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50"
+          onClick={() => setViewing(null)}
+        >
+          <div
+            className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center gap-3">
               <img loading="lazy" decoding="async"
                 src={viewing.avatar_url || "https://ui-avatars.com/api/?name=" + (viewing.full_name || "U")}

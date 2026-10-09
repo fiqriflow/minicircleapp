@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Bug, Lightbulb, MoreHorizontal } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 type Category = "bug" | "feature" | "other";
 
@@ -42,7 +43,7 @@ export default function MasukanPage() {
 
     setSending(false);
     if (error) {
-      alert("Gagal mengirim masukan: " + error.message);
+      toast.error("Gagal mengirim masukan: " + error.message);
       return;
     }
 
@@ -95,6 +96,7 @@ export default function MasukanPage() {
             <textarea
               className="w-full border rounded-xl px-4 py-2 mt-1 min-h-[140px]"
               placeholder="Tulis masukan, saran, atau kendala yang kamu alami..."
+              maxLength={2000}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />

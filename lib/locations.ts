@@ -1,4 +1,4 @@
-export const INDONESIA_CITIES = [
+const RAW_CITIES = [
   "Jakarta Pusat", "Jakarta Utara", "Jakarta Barat", "Jakarta Selatan", "Jakarta Timur",
   "Bandung", "Kabupaten Bandung", "Bandung Barat", "Cimahi", "Bekasi", "Kabupaten Bekasi",
   "Bogor", "Kabupaten Bogor", "Depok", "Tangerang", "Tangerang Selatan", "Kabupaten Tangerang",
@@ -8,7 +8,7 @@ export const INDONESIA_CITIES = [
   "Kediri", "Blitar", "Madiun", "Jember", "Banyuwangi", "Probolinggo", "Pasuruan",
   "Tuban", "Lamongan", "Bojonegoro", "Nganjuk", "Ponorogo", "Pacitan", "Trenggalek",
   "Tulungagung", "Bangkalan", "Sampang", "Pamekasan", "Sumenep",
-  "Semarang", "Kabupaten Semarang", "Solo", "Surakarta", "Magelang", "Kabupaten Magelang",
+  "Semarang", "Kabupaten Semarang", "Surakarta (Solo)", "Magelang", "Kabupaten Magelang",
   "Salatiga", "Pekalongan", "Tegal", "Kudus", "Jepara", "Pati", "Rembang", "Blora",
   "Grobogan", "Demak", "Kendal", "Batang", "Pemalang", "Brebes", "Banyumas",
   "Purwokerto", "Cilacap", "Kebumen", "Purworejo", "Wonosobo", "Temanggung", "Klaten",
@@ -26,3 +26,6 @@ export const INDONESIA_CITIES = [
   "Singkawang", "Tarakan",
   "Ambon", "Ternate", "Sorong", "Jayapura", "Manokwari",
 ];
+
+// "Denpasar" tertulis dua kali di daftar -> buang duplikat (juga memicu warning key ganda di dropdown).
+export const INDONESIA_CITIES: string[] = Array.from(new Set(RAW_CITIES));

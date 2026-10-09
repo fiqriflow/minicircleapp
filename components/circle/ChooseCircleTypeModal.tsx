@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Users, Sparkles } from "lucide-react";
 
@@ -14,6 +15,13 @@ export default function ChooseCircleTypeModal({
 }) {
   const router = useRouter();
 
+  // Tutup dengan tombol Esc
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   const handleChoosePlus = () => {
     if (!circlePlusEnabled) {
       onClose();
@@ -24,8 +32,8 @@ export default function ChooseCircleTypeModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
-      <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4">
+    <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
         <h2 className="font-bold text-lg text-center">Pilih Jenis Circle</h2>
 
         <button

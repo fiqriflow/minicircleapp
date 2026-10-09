@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import Pagination, { usePagination } from "@/components/ui/Pagination";
 import { toast } from "sonner";
 
 const TYPE_LABEL: Record<string, { label: string; className: string }> = {
@@ -39,6 +40,7 @@ export default function AdminLogPage() {
   }, []);
 
   const filtered = filterType === "all" ? items : items.filter((i) => i.type === filterType);
+  const { pageItems: paged, pagination } = usePagination(filtered, filterType);
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
@@ -126,7 +128,10 @@ export default function AdminLogPage() {
         ].map((f) => (
           <button
             key={f.value}
-            onClick={() => setFilterType(f.value)}
+            onClick={() => {
+              setFilterType(f.value);
+              setSelected([]); // pilihan di filter lain tidak boleh ikut terhapus diam-diam
+            }}
             className={`text-xs font-medium px-3 py-1.5 rounded-full border ${
               filterType === f.value ? "bg-primary text-white border-primary" : "text-gray-500"
             }`}
@@ -161,7 +166,7 @@ export default function AdminLogPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((item) => {
+              {paged.map((item) => {
                 const type = TYPE_LABEL[item.type] ?? { label: item.type, className: "bg-gray-100 text-gray-500" };
                 return (
                   <tr key={item.id} className="border-b last:border-0 hover:bg-gray-50">
@@ -199,6 +204,8 @@ export default function AdminLogPage() {
           </table>
         </div>
       )}
+
+      <Pagination {...pagination} />
     </div>
   );
 }

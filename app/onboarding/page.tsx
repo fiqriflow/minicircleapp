@@ -3,17 +3,36 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { safeNext } from "@/lib/safeNext";
 import LocationInput from "@/components/ui/LocationInput";
 import AvatarCropModal from "@/components/profile/AvatarCropModal";
 import PolicyModal from "@/components/profile/PolicyModal";
 import AvatarPresetPicker from "@/components/profile/AvatarPresetPicker";
 import { saveProfile } from "@/lib/profile";
+import { toast } from "sonner";
 
 const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
 const TOTAL_STEPS = 5;
 
 // Harus sama dengan validasi di DB (migration 0050)
 const IG_REGEX = /^@[A-Za-z0-9._]{1,30}$/;
+
+// Tanggal lahir TIDAK bisa diubah setelah disimpan (DB, migration 0050) -> cegah salah ketik sejak awal.
+const MIN_BIRTH_DATE = "1920-01-01";
+function localDateStr(d = new Date()) {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+const MIN_AGE = 17; // usia minimum pengguna (juga dicek di DB, migration 0055)
+function maxBirthDate() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - MIN_AGE);
+  return localDateStr(d);
+}
+function isValidBirthDate(v?: string | null) {
+  return !!v && /^\d{4}-\d{2}-\d{2}$/.test(v) && v >= MIN_BIRTH_DATE && v <= maxBirthDate();
+}
 
 export default function OnboardingPage() {
   const supabase = createClient();
@@ -56,7 +75,7 @@ export default function OnboardingPage() {
       .upload(path, blob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
 
     if (uploadError) {
-      alert("Gagal upload foto: " + uploadError.message);
+      toast.error("Gagal upload foto: " + uploadError.message);
       setUploadingAvatar(false);
       return;
     }
@@ -68,9 +87,9 @@ export default function OnboardingPage() {
 
   const canProceed = () => {
     if (step === 0) return agreed;
-    if (step === 1) return !!profile?.full_name && !!profile?.nickname;
+    if (step === 1) return !!profile?.full_name?.trim() && !!profile?.nickname?.trim();
     if (step === 2) return (profile?.categories?.length ?? 0) > 0 && !!profile?.location;
-    if (step === 3) return !!profile?.birth_date && !!profile?.gender;
+    if (step === 3) return isValidBirthDate(profile?.birth_date) && !!profile?.gender;
     // foto profil & Instagram wajib
     if (step === 4) return !!profile?.avatar_url && !!profile?.instagram && IG_REGEX.test(profile.instagram);
     return true;
@@ -93,18 +112,21 @@ export default function OnboardingPage() {
     setSaving(true);
     const { error: saveError } = await saveProfile(supabase, {
       ...profile,
+      full_name: profile.full_name?.trim(),
+      nickname: profile.nickname?.trim(),
       onboarding_completed: true,
       terms_accepted_at: new Date().toISOString(),
     });
     setSaving(false);
     if (saveError) {
-      alert("Gagal menyimpan profil: " + saveError.message);
+      toast.error("Gagal menyimpan profil: " + saveError.message);
       return;
     }
     try {
       sessionStorage.setItem("mincle_show_welcome", profile?.nickname || profile?.full_name || "");
     } catch {}
-    router.push("/");
+    // balik ke tujuan awal (mis. link undangan circle) kalau ada
+    router.push(safeNext(new URLSearchParams(window.location.search).get("next")) ?? "/");
     router.refresh();
   };
 
@@ -194,6 +216,7 @@ export default function OnboardingPage() {
                 <label className="text-sm text-gray-500">Nama Lengkap</label>
                 <input
                   className="w-full border rounded-xl px-4 py-2"
+                  maxLength={100}
                   value={profile.full_name ?? ""}
                   onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
                 />
@@ -202,6 +225,7 @@ export default function OnboardingPage() {
                 <label className="text-sm text-gray-500">Nama Panggilan</label>
                 <input
                   className="w-full border rounded-xl px-4 py-2"
+                  maxLength={50}
                   value={profile.nickname ?? ""}
                   onChange={(e) => setProfile({ ...profile, nickname: e.target.value })}
                 />
@@ -250,16 +274,27 @@ export default function OnboardingPage() {
             <>
               <div>
                 <h2 className="text-lg font-bold">Detail Tambahan</h2>
-                <p className="text-sm text-gray-500">Lengkapi tanggal lahir dan gender kamu.</p>
+                <p className="text-sm text-gray-500">
+                  Mincle untuk pengguna berusia minimal 17 tahun. Tanggal lahir dan gender tidak bisa diubah setelah disimpan, jadi pastikan sudah benar.
+                </p>
               </div>
               <div>
                 <label className="text-sm text-gray-500">Tanggal Lahir</label>
                 <input
                   type="date"
+                  min={MIN_BIRTH_DATE}
+                  max={maxBirthDate()}
                   className="w-full border rounded-xl px-4 py-2"
                   value={profile.birth_date ?? ""}
                   onChange={(e) => setProfile({ ...profile, birth_date: e.target.value })}
                 />
+                {profile.birth_date && !isValidBirthDate(profile.birth_date) && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {profile.birth_date > maxBirthDate()
+                      ? `Mincle khusus pengguna berusia minimal ${MIN_AGE} tahun.`
+                      : "Tanggal lahir tidak valid."}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-sm text-gray-500">Gender</label>
@@ -280,7 +315,7 @@ export default function OnboardingPage() {
             <>
               <div>
                 <h2 className="text-lg font-bold">Terakhir nih ✨</h2>
-                <p className="text-sm text-gray-500">Foto profil & Instagram opsional, bisa dilengkapi nanti.</p>
+                <p className="text-sm text-gray-500">Foto profil & Instagram wajib diisi supaya kamu bisa join atau buat circle.</p>
               </div>
 
               <div className="flex flex-col items-center gap-2">
@@ -317,7 +352,11 @@ export default function OnboardingPage() {
                   className="w-full border rounded-xl px-4 py-2"
                   placeholder="@username"
                   value={profile.instagram ?? ""}
-                  onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
+                  onChange={(e) => {
+                    // spasi dibuang, "@" otomatis ditambah kalau lupa (DB juga menormalkan)
+                    const v = e.target.value.replace(/\s/g, "");
+                    setProfile({ ...profile, instagram: v && !v.startsWith("@") ? "@" + v : v });
+                  }}
                 />
                 {profile.instagram && !IG_REGEX.test(profile.instagram) && (
                   <p className="text-xs text-red-500 mt-1">Format: @username (huruf, angka, titik, underscore; maks 30)</p>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import Pagination, { usePagination } from "@/components/ui/Pagination";
 import { toast } from "sonner";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
@@ -13,6 +14,8 @@ export default function AdminVerifikasiPage() {
   const [verified, setVerified] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const pendingPg = usePagination(pending);
+  const verifiedPg = usePagination(verified);
 
   const load = async () => {
     const [{ data: req }, { data: ver }] = await Promise.all([
@@ -99,20 +102,20 @@ export default function AdminVerifikasiPage() {
 
       {tab === "antrian" && (
         <div className="space-y-3">
-          {pending.map((r) => {
-            const handle = (r.instagram ?? "").replace(/^@/, "");
+          {pendingPg.pageItems.map((r) => {
+            const handle = (r.instagram ?? "").trim().replace(/^@/, "");
             return (
               <div key={r.id} className="bg-white border rounded-xl p-4 space-y-3">
                 <div className="flex items-center gap-3">
                   <img
-                    src={r.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (r.profile?.full_name || "U")}
+                    src={r.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(r.profile?.full_name || "U")}
                     className="w-10 h-10 rounded-full object-cover"
                     alt=""
                   />
                   <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{r.profile?.nickname || r.profile?.full_name}</p>
                     <a
-                      href={`https://instagram.com/${handle}`}
+                      href={`https://instagram.com/${encodeURIComponent(handle)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-primary inline-flex items-center gap-1"
@@ -147,15 +150,16 @@ export default function AdminVerifikasiPage() {
             );
           })}
           {!loading && !pending.length && <p className="text-sm text-gray-400">Tidak ada antrian.</p>}
+          <Pagination {...pendingPg.pagination} />
         </div>
       )}
 
       {tab === "verified" && (
         <div className="space-y-2">
-          {verified.map((u) => (
+          {verifiedPg.pageItems.map((u) => (
             <div key={u.id} className="bg-white border rounded-xl p-3 flex items-center gap-3">
               <img
-                src={u.avatar_url || "https://ui-avatars.com/api/?name=" + (u.full_name || "U")}
+                src={u.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(u.full_name || "U")}
                 className="w-10 h-10 rounded-full object-cover"
                 alt=""
               />
@@ -172,6 +176,7 @@ export default function AdminVerifikasiPage() {
             </div>
           ))}
           {!loading && !verified.length && <p className="text-sm text-gray-400">Belum ada akun terverifikasi.</p>}
+          <Pagination {...verifiedPg.pagination} />
         </div>
       )}
     </div>

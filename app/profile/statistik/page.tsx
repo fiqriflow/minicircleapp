@@ -5,13 +5,17 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getCircleDisplayStatus } from "@/lib/circleStatus";
+import { chunk } from "@/lib/chunk";
 
 const CATEGORY_COLORS: Record<string, string> = {
   Jogging: "#f97316", // orange
   Gowes: "#3b82f6", // blue
   "Jalan Santai": "#22c55e", // green
+  Kulineran: "#ef4444", // red
+  Ngopi: "#a16207", // brown
+  "Explore Alam": "#14b8a6", // teal
 };
-const FALLBACK_COLOR = "#9ca3af"; // gray, untuk kategori lain di luar 3 di atas
+const FALLBACK_COLOR = "#9ca3af"; // gray, untuk kategori lain di luar daftar di atas
 
 type Stats = {
   totalJoin: number;
@@ -23,6 +27,7 @@ export default function StatistikPage() {
   const supabase = createClient();
   const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -30,20 +35,27 @@ export default function StatistikPage() {
       if (!user) return;
 
       // Join Circle = circle ORANG LAIN yang di-join, SUDAH SELESAI & dia HADIR (checked-in)
-      const { data: memberships } = await supabase
+      const { data: memberships, error: memberError } = await supabase
         .from("circle_members")
         .select("checked_in, circle:circles(id, category, created_by, status, event_date)")
         .eq("user_id", user.id)
         .eq("status", "joined");
 
-      const joinedCircles = (memberships ?? []).map((m: any) => m.circle).filter(Boolean);
+      if (memberError) {
+        setLoadError(true);
+        return;
+      }
 
-      const totalJoin = (memberships ?? []).filter((m: any) => {
+      // Satu definisi "Join Circle" untuk angka DAN pie chart: circle orang lain, sudah selesai, dan dia HADIR.
+      // (Sebelumnya pie chart menghitung semua circle yang di-join, termasuk yang batal / belum selesai /
+      // tidak hadir, jadi angkanya tidak cocok dengan kartu "Join Circle".)
+      const attended = (memberships ?? []).filter((m: any) => {
         if (!m.circle) return false;
         if (m.circle.created_by === user.id) return false;
         if (!m.checked_in) return false;
         return getCircleDisplayStatus(m.circle) === "completed";
-      }).length;
+      });
+      const totalJoin = attended.length;
 
       // Host Circle = circle yang dia buat, SUDAH SELESAI & SUKSES (>80% peserta check-in)
       const { data: hostedCircles } = await supabase
@@ -57,11 +69,13 @@ export default function StatistikPage() {
 
       let totalHost = 0;
       if (completedHostedIds.length) {
-        const { data: attendanceRows } = await supabase
-          .from("circle_members")
-          .select("circle_id, checked_in")
-          .in("circle_id", completedHostedIds)
-          .eq("status", "joined");
+        const attendanceRows = (
+          await Promise.all(
+            chunk(completedHostedIds, 100).map((ids) =>
+              supabase.from("circle_members").select("circle_id, checked_in").in("circle_id", ids).eq("status", "joined")
+            )
+          )
+        ).flatMap((r) => r.data ?? []);
 
         const byCircle: Record<string, { total: number; checked: number }> = {};
         (attendanceRows ?? []).forEach((r: any) => {
@@ -73,8 +87,9 @@ export default function StatistikPage() {
       }
 
       const categoryCounts: Record<string, number> = {};
-      joinedCircles.forEach((c: any) => {
-        if (c.category) categoryCounts[c.category] = (categoryCounts[c.category] || 0) + 1;
+      attended.forEach((m: any) => {
+        const cat = m.circle.category;
+        if (cat) categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
       });
 
       setStats({ totalJoin, totalHost, categoryCounts });
@@ -82,6 +97,7 @@ export default function StatistikPage() {
     load();
   }, []);
 
+  if (loadError) return <p className="p-6 text-gray-500 text-center">Gagal memuat statistik. Coba lagi nanti.</p>;
   if (!stats) return <p className="p-6 text-gray-400">Memuat...</p>;
 
   const categoryEntries = Object.entries(stats.categoryCounts) as [string, number][];
@@ -121,7 +137,7 @@ export default function StatistikPage() {
 
       {/* Pie chart kategori */}
       <div className="bg-white rounded-2xl border p-4 space-y-4">
-        <p className="text-sm font-semibold">Aktivitas Circle yang Diikuti</p>
+        <p className="text-sm font-semibold">Aktivitas yang Pernah Kamu Hadiri</p>
 
         {totalCategory === 0 ? (
           <p className="text-sm text-gray-400">Belum ada data.</p>

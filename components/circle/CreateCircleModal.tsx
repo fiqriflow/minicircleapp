@@ -104,7 +104,8 @@ export default function CreateCircleModal({
   const [inviteLoaded, setInviteLoaded] = useState(!(isEdit && isPlus));
   useEffect(() => {
     if (!(isEdit && isPlus)) return;
-    supabase.rpc("get_circle_invite_code", { p_circle_id: editCircle.id }).then(({ data }: any) => {
+    supabase.rpc("get_circle_invite_code", { p_circle_id: editCircle.id }).then(({ data, error }: any) => {
+      if (error) toast.error("Kode undangan gagal dimuat. Kode yang lama tidak akan diubah.");
       const code = (data as string | null) ?? "";
       setOriginalInviteCode(code);
       setForm((f: any) => ({ ...f, invite_code: code }));
@@ -193,7 +194,7 @@ export default function CreateCircleModal({
     try {
       up = await compressImage(file, { maxSize: 960, quality: 0.8 });
     } catch {
-      alert("Gagal memproses gambar");
+      toast.error("Gagal memproses gambar");
       setUploadingCover(false);
       return;
     }
@@ -202,12 +203,16 @@ export default function CreateCircleModal({
       .from("circle-covers")
       .upload(path, up.blob, { upsert: true, contentType: up.contentType, cacheControl: LONG_CACHE });
     if (uploadError) {
-      alert("Gagal upload cover: " + uploadError.message);
+      toast.error("Gagal upload cover: " + uploadError.message);
       setUploadingCover(false);
       return;
     }
     const { data } = supabase.storage.from("circle-covers").getPublicUrl(path);
-    const oldPath = extractStoragePath(form.cover_url, "circle-covers");
+    // Cover ASLI circle yang sedang diedit baru boleh dihapus setelah Simpan berhasil (kalau batal, cover harus
+    // tetap ada). Di sini hanya file yang diupload di sesi ini yang dibersihkan.
+    const originalCoverUrl = editCircle?.cover_url ?? "";
+    const oldPath =
+      form.cover_url && form.cover_url !== originalCoverUrl ? extractStoragePath(form.cover_url, "circle-covers") : null;
     setForm((f) => ({ ...f, cover_url: data.publicUrl }));
     setCoverError(false);
     setUploadingCover(false);
@@ -256,6 +261,11 @@ export default function CreateCircleModal({
       return;
     }
     setFieldErrors({});
+    const slots = Number(form.max_participants);
+    if (!Number.isInteger(slots) || slots < minP || slots > maxP) {
+      setError(`Jumlah peserta harus ${minP}–${maxP} orang.`);
+      return;
+    }
     const startIso = combineDateTime(form.event_day, form.start_time);
     if (!startIso) {
       setError("Tanggal & jam tidak valid.");
@@ -286,20 +296,26 @@ export default function CreateCircleModal({
     setError("");
 
     const payload: any = {
-      name: form.name,
+      name: form.name.trim(),
       group_name: form.group_name.trim() || null,
       max_participants: form.max_participants,
       category: form.category,
-      city: form.city,
-      location: form.location,
+      city: form.city.trim(),
+      location: form.location.trim(),
       event_date: startIso,
-      description: form.description,
+      description: form.description.trim(),
     };
 
     if (isPlus) {
       payload.cover_url = form.cover_url || null;
       payload.is_private = form.is_private;
-      payload.invite_code = (form.invite_code.trim() || generateInviteCode()).toUpperCase();
+      if (isEdit) {
+        // Edit: kirim kode HANYA kalau memang diubah. Dulu kode kosong (mis. gagal dimuat) diganti kode acak
+        // -> link undangan yang sudah dibagikan mati diam-diam.
+        if (customCode && customCode !== originalInviteCode.toUpperCase()) payload.invite_code = customCode;
+      } else {
+        payload.invite_code = (form.invite_code.trim() || generateInviteCode()).toUpperCase();
+      }
       // pertanyaan join hanya berlaku kalau approval aktif (dijaga juga di DB, migration 0043)
       payload.requires_approval = form.requires_approval;
       // filter peserta (juga dijaga di DB, migration 0047)
@@ -360,11 +376,12 @@ export default function CreateCircleModal({
 
     // host otomatis masuk line up
     if (newCircle && user) {
-      await supabase.from("circle_members").insert({
-        circle_id: newCircle.id,
-        user_id: user.id,
-        status: "joined",
-      });
+      const hostRow = { circle_id: newCircle.id, user_id: user.id, status: "joined" };
+      let { error: joinError } = await supabase.from("circle_members").insert(hostRow);
+      if (joinError) ({ error: joinError } = await supabase.from("circle_members").insert(hostRow)); // coba sekali lagi
+      if (joinError) {
+        toast.warning("Circle sudah dibuat, tapi kamu belum masuk line up. Buka circle-nya lalu coba lagi.");
+      }
     }
 
     setSaving(false);
@@ -400,6 +417,7 @@ export default function CreateCircleModal({
           <button
             type="button"
             onClick={handleCancel}
+            disabled={saving}
             aria-label="Tutup"
             className="p-1.5 -mr-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >
@@ -455,7 +473,7 @@ export default function CreateCircleModal({
         {host && !isEdit && (
           <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
             <img
-              src={host.avatar_url || "https://ui-avatars.com/api/?name=" + (host.full_name || "U")}
+              src={host.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(host.full_name || "U")}
               className="w-8 h-8 rounded-full object-cover"
               alt=""
             />

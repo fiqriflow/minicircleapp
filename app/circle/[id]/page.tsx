@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2, Megaphone, Copy } from "lucide-react";
+import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2, Megaphone, Copy, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
@@ -45,6 +45,7 @@ export default function CircleDetailPage() {
   const [hasNewComment, setHasNewComment] = useState(false);
   const [joinedCount, setJoinedCount] = useState(0);
   const [notFound, setNotFound] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
   const chatBoxRef = useRef<HTMLDivElement>(null);
   const [showViewerMenu, setShowViewerMenu] = useState(false);
@@ -80,16 +81,23 @@ export default function CircleDetailPage() {
   };
 
   const load = async () => {
-    const [{ data: { user } }, { data: c }] = await Promise.all([
+    const [{ data: { user } }, { data: c, error: cErr }] = await Promise.all([
       supabase.auth.getUser(),
       supabase.from("circles").select(CIRCLE_COLUMNS).eq("id", id).single(),
     ]);
     setUserId(user?.id ?? null);
     if (!c) {
+      // PGRST116 = baris tidak ada / tidak boleh diakses, 22P02 = id bukan uuid.
+      // Error lain (jaringan/DB) BUKAN "circle tidak ditemukan" -> tawarkan coba lagi.
+      if (cErr && cErr.code !== "PGRST116" && cErr.code !== "22P02") {
+        setLoadFailed(true);
+        return;
+      }
       setNotFound(true);
       return;
     }
     setNotFound(false);
+    setLoadFailed(false);
     setCircle(c);
 
     const [hostRes, { data: allMembers }] = await Promise.all([
@@ -414,7 +422,19 @@ export default function CircleDetailPage() {
   };
 
   const handleShareCircle = async () => {
-    const url = `${location.origin}/circle/${id}`;
+    let url = `${location.origin}/circle/${id}`;
+    // Circle private tidak terlihat oleh non-member -> yang dibagikan harus link undangan
+    // (kode hanya bisa diambil host / co host / admin).
+    if (circle.is_private) {
+      const { data: code, error } = await supabase.rpc("get_circle_invite_code", { p_circle_id: id });
+      if (error || !code) {
+        toast.error("Circle private hanya bisa dibagikan lewat link undangan oleh host / co host.");
+        setShowHostMenu(false);
+        setShowViewerMenu(false);
+        return;
+      }
+      url = `${location.origin}/join/${code}`;
+    }
     if (navigator.share) {
       try {
         await navigator.share({ title: circle.name, text: `Yuk gabung circle "${circle.name}"!`, url });
@@ -422,8 +442,12 @@ export default function CircleDetailPage() {
         // user batal share, gak apa-apa
       }
     } else {
-      await navigator.clipboard.writeText(url);
-      toast.success("Link circle disalin!");
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.success(circle.is_private ? "Link undangan disalin!" : "Link circle disalin!");
+      } catch {
+        window.prompt("Salin link ini:", url);
+      }
     }
     setShowHostMenu(false);
     setShowViewerMenu(false);
@@ -452,6 +476,22 @@ export default function CircleDetailPage() {
         <p className="text-gray-500">Circle tidak ditemukan, sudah dihapus, atau tidak bisa kamu akses.</p>
         <button onClick={() => router.push("/")} className="text-primary font-medium">
           Ke Beranda
+        </button>
+      </div>
+    );
+  }
+  if (loadFailed && !circle) {
+    return (
+      <div className="p-6 text-center space-y-3">
+        <p className="text-gray-500">Gagal memuat circle. Cek koneksi lalu coba lagi.</p>
+        <button
+          onClick={() => {
+            setLoadFailed(false);
+            load();
+          }}
+          className="text-primary font-medium"
+        >
+          Coba lagi
         </button>
       </div>
     );
@@ -503,6 +543,15 @@ export default function CircleDetailPage() {
               {circle.is_circle_plus && (
                 <span className="text-xs bg-primary text-white px-2 py-1 rounded-full shrink-0">Circle+</span>
               )}
+              {circle.is_private && (
+                <span
+                  title="Circle private"
+                  aria-label="Circle private"
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-500 shrink-0"
+                >
+                  <Lock size={12} />
+                </span>
+              )}
             </div>
             {circle.group_name && <p className="text-sm text-gray-400">{circle.group_name}</p>}
           </div>
@@ -516,6 +565,7 @@ export default function CircleDetailPage() {
               >
                 <MoreVertical size={20} />
               </button>
+              {showHostMenu && <div className="fixed inset-0 z-40" onClick={() => setShowHostMenu(false)} />}
               {showHostMenu && (
                 <div className="absolute right-0 mt-2 w-56 bg-white border rounded-xl shadow-lg overflow-hidden z-50">
                   <button
@@ -611,14 +661,17 @@ export default function CircleDetailPage() {
               >
                 <MoreVertical size={20} />
               </button>
+              {showViewerMenu && <div className="fixed inset-0 z-40" onClick={() => setShowViewerMenu(false)} />}
               {showViewerMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-white border rounded-xl shadow-lg overflow-hidden z-50">
-                  <button
-                    onClick={handleShareCircle}
-                    className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
-                  >
-                    <Share2 size={14} /> Bagikan Circle
-                  </button>
+                  {(!circle.is_private || canManage) && (
+                    <button
+                      onClick={handleShareCircle}
+                      className="w-full text-left px-4 py-3 text-sm hover:bg-gray-50 flex items-center gap-2 border-b"
+                    >
+                      <Share2 size={14} /> Bagikan Circle
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setShowViewerMenu(false);
@@ -690,8 +743,11 @@ export default function CircleDetailPage() {
       )}
 
       {confirmAction && (
-        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
-          <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4">
+        <div
+          className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4"
+          onClick={() => setConfirmAction(null)}
+        >
+          <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-lg">
               {confirmAction === "join" ? "Konfirmasi Join Circle" : "Konfirmasi Batal Join"}
             </h3>
@@ -723,8 +779,11 @@ export default function CircleDetailPage() {
       )}
 
       {confirmStatusAction && (
-        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
-          <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4">
+        <div
+          className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4"
+          onClick={() => setConfirmStatusAction(null)}
+        >
+          <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-lg">
               {confirmStatusAction === "started"
                 ? "Tandai Circle Mulai?"
@@ -787,7 +846,7 @@ export default function CircleDetailPage() {
             <div key={m.id} className="border rounded-xl p-3 space-y-2">
               <div className="flex items-center gap-3">
                 <img loading="lazy" decoding="async"
-                  src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
+                  src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(m.profile?.full_name || "U")}
                   className="w-10 h-10 rounded-full object-cover"
                   alt=""
                 />
@@ -886,7 +945,7 @@ export default function CircleDetailPage() {
             {host && (
               <div className="flex items-center gap-3 border rounded-xl p-4">
                 <img loading="lazy" decoding="async"
-                  src={host.avatar_url || "https://ui-avatars.com/api/?name=" + (host.full_name || "U")}
+                  src={host.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(host.full_name || "U")}
                   className="w-9 h-9 rounded-full object-cover shrink-0"
                   alt=""
                 />
@@ -915,7 +974,11 @@ export default function CircleDetailPage() {
               <p className="font-semibold mb-1">Syarat peserta</p>
               <div className="flex flex-wrap gap-2">
                 {circle.join_gender && (
-                  <span className="text-xs bg-pink-50 text-pink-600 px-3 py-1 rounded-full">
+                  <span
+                    className={`text-xs px-3 py-1 rounded-full ${
+                      circle.join_gender === "female" ? "bg-pink-50 text-pink-600" : "bg-sky-50 text-sky-600"
+                    }`}
+                  >
                     {circle.join_gender === "female" ? "Khusus perempuan" : "Khusus laki-laki"}
                   </span>
                 )}
@@ -937,7 +1000,7 @@ export default function CircleDetailPage() {
           {circle.description && (
             <div>
               <p className="font-semibold mb-1">Deskripsi</p>
-              <p className="text-gray-500 text-sm">{circle.description}</p>
+              <p className="text-gray-500 text-sm whitespace-pre-wrap break-words">{circle.description}</p>
             </div>
           )}
         </div>
@@ -967,7 +1030,7 @@ export default function CircleDetailPage() {
                   className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 >
                   <img loading="lazy" decoding="async"
-                    src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
+                    src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(m.profile?.full_name || "U")}
                     className="w-10 h-10 rounded-full object-cover shrink-0"
                     alt=""
                   />
@@ -1085,7 +1148,7 @@ export default function CircleDetailPage() {
                         {!isMine && (
                           <p className="text-xs font-semibold mb-1 opacity-70">{c.profile?.full_name}</p>
                         )}
-                        <p className="text-sm">{c.message}</p>
+                        <p className="text-sm whitespace-pre-wrap break-words">{c.message}</p>
                       </div>
                     </div>
                   );
