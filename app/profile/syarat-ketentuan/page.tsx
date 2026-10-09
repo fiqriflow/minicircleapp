@@ -29,7 +29,7 @@ function SyaratKetentuanPageContent() {
       )}
 
       <div className="px-4 py-6 space-y-6 pb-16">
-      <p className="text-xs text-gray-400">Terakhir diperbarui: 7 September 2026</p>
+      <p className="text-xs text-gray-400">Terakhir diperbarui: 9 Oktober 2026</p>
 
       <div className="bg-white rounded-2xl border p-4 space-y-6">
         <p className="text-sm text-gray-600">
@@ -51,6 +51,7 @@ function SyaratKetentuanPageContent() {
             <li>Pendaftaran menggunakan akun Google. Kamu bertanggung jawab menjaga keamanan akunmu.</li>
             <li>Data profil yang kamu isi (nama, kategori aktivitas, kota, dsb.) harus akurat dan bukan menyamar sebagai orang lain.</li>
             <li>Satu akun hanya untuk digunakan oleh satu orang.</li>
+            <li>Pengguna Mincle harus berusia minimal 17 tahun. Kami berhak menonaktifkan akun yang terbukti berusia di bawah ketentuan ini.</li>
             <li>Kami berhak menonaktifkan atau menghapus akun yang melanggar Syarat &amp; Ketentuan ini atau Panduan Komunitas.</li>
           </ul>
         </Section>

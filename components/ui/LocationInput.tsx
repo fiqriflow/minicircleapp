@@ -21,6 +21,14 @@ export default function LocationInput({
   // bebas (mis. Explore) yang gak butuh validasi ketat.
   strict?: boolean;
 }) {
+  // Hooks harus dipanggil di setiap render (aturan React) -> di atas early return.
+  const [query, setQuery] = useState(value);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    setQuery(value);
+  }, [value]);
+
   if (!strict) {
     return (
       <>
@@ -40,13 +48,6 @@ export default function LocationInput({
       </>
     );
   }
-
-  const [query, setQuery] = useState(value);
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    setQuery(value);
-  }, [value]);
 
   const filtered = (
     query.trim()

@@ -114,7 +114,7 @@ export default function CircleCard({
         <div className="pt-1 space-y-1">
           <div className="flex justify-between text-xs text-gray-400">
             <span>Slot Terisi</span>
-            <span className="font-medium text-gray-600">{joined}/{max}</span>
+            <span className="font-medium text-gray-600">{joinedCount === undefined ? "–" : joined}/{max}</span>
           </div>
           <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
             <div className={`h-full ${isFull ? "bg-red-500" : "bg-primary"}`} style={{ width: `${pct}%` }} />

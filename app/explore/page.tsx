@@ -12,11 +12,15 @@ import CircleCreatedDialog from "@/components/circle/CircleCreatedDialog";
 import LocationInput from "@/components/ui/LocationInput";
 import { getCirclePlusEnabled, getDefaultCoverMap } from "@/lib/appSettings";
 import { getJoinedCounts } from "@/lib/circleMembers";
+import { toast } from "sonner";
 
 const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
 const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const DAYS_SHOWN = 14;
 const PAGE_SIZE = 30;
+
+// Escape karakter wildcard LIKE (\\ % _) supaya input user dicari apa adanya
+const escLike = (v: string) => v.replace(/[\\%_]/g, (m) => "\\" + m);
 
 function isSameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -38,6 +42,9 @@ function ExploreContent() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [eventDays, setEventDays] = useState<Set<string>>(new Set());
   const requestId = useRef(0);
+  // list pertama menunggu profil (lokasi default) supaya tidak fetch dua kali + berkedip
+  const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [showChooser, setShowChooser] = useState(false);
   const [createType, setCreateType] = useState<"regular" | "plus" | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -75,7 +82,7 @@ function ExploreContent() {
       if (data?.location) setLocation((prev) => prev || data.location);
       setJoinedIds(new Set((memberships ?? []).map((m) => m.circle_id)));
     };
-    loadUserData();
+    loadUserData().catch(() => {}).finally(() => setReady(true));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -100,10 +107,9 @@ function ExploreContent() {
         .gte("event_date", from.toISOString());
       if (to) q = q.lt("event_date", to.toISOString());
       if (category !== "Semua") q = q.eq("category", category);
-      if (location.trim()) q = q.ilike("city", `%${location.trim()}%`);
+      if (location.trim()) q = q.ilike("city", `%${escLike(location.trim())}%`);
       if (debouncedSearch) {
-        const esc = debouncedSearch.replace(/[\\%_]/g, (m) => "\\" + m);
-        q = q.ilike("name", `%${esc}%`);
+        q = q.ilike("name", `%${escLike(debouncedSearch)}%`);
       }
       return q.order("event_date", { ascending: true });
     },
@@ -114,8 +120,14 @@ function ExploreContent() {
   const fetchCircles = useCallback(async () => {
     const myRequest = ++requestId.current;
     setLoading(true);
-    const { data, count } = await buildQuery(CIRCLE_COLUMNS, true).range(0, PAGE_SIZE - 1);
+    const { data, count, error } = await buildQuery(CIRCLE_COLUMNS, true).range(0, PAGE_SIZE - 1);
     if (myRequest !== requestId.current) return; // ada request lebih baru -> abaikan hasil lama
+    if (error) {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
+    setLoadError(false);
     const rows = (data as unknown as Circle[]) ?? [];
     setCircles(rows);
     setTotalCount(count ?? rows.length);
@@ -130,12 +142,23 @@ function ExploreContent() {
     if (loadingMore || loading) return;
     const myRequest = requestId.current;
     setLoadingMore(true);
-    const { data } = await buildQuery(CIRCLE_COLUMNS).range(circles.length, circles.length + PAGE_SIZE - 1);
+    const { data, error } = await buildQuery(CIRCLE_COLUMNS).range(circles.length, circles.length + PAGE_SIZE - 1);
     if (myRequest !== requestId.current) {
       setLoadingMore(false);
       return;
     }
+    if (error) {
+      toast.error("Gagal memuat circle lainnya. Coba lagi.");
+      setLoadingMore(false);
+      return;
+    }
     const rows = (data as unknown as Circle[]) ?? [];
+    if (rows.length === 0) {
+      // total yang tersimpan sudah basi (circle dihapus/dibatalkan) -> sembunyikan tombol "Muat lebih banyak"
+      setTotalCount(circles.length);
+      setLoadingMore(false);
+      return;
+    }
     const counts = await getJoinedCounts(supabase, rows.map((c) => c.id));
     if (myRequest !== requestId.current) {
       setLoadingMore(false);
@@ -150,12 +173,13 @@ function ExploreContent() {
   };
 
   useEffect(() => {
-    fetchCircles();
-  }, [fetchCircles]);
+    if (ready) fetchCircles();
+  }, [fetchCircles, ready]);
 
   // Titik penanda tanggal di date strip: query ringan (hanya event_date, 14 hari ke depan),
   // supaya tetap akurat walau daftar circle dipaginasi.
   useEffect(() => {
+    if (!ready) return;
     let cancelled = false;
     const run = async () => {
       const start = new Date();
@@ -170,7 +194,7 @@ function ExploreContent() {
         .gte("event_date", start.toISOString())
         .lt("event_date", end.toISOString());
       if (category !== "Semua") q = q.eq("category", category);
-      if (location.trim()) q = q.ilike("city", `%${location.trim()}%`);
+      if (location.trim()) q = q.ilike("city", `%${escLike(location.trim())}%`);
       const { data } = await q.limit(500);
       if (cancelled) return;
       setEventDays(new Set((data ?? []).map((r: any) => new Date(r.event_date).toDateString())));
@@ -180,7 +204,7 @@ function ExploreContent() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, location]);
+  }, [category, location, ready]);
 
   const dateStrip = useMemo(() => {
     const today = new Date();
@@ -277,8 +301,15 @@ function ExploreContent() {
       </p>
 
       {/* Grid */}
-      {loading ? (
+      {loading || !ready ? (
         <p className="text-gray-400 text-sm">Memuat...</p>
+      ) : loadError ? (
+        <div className="text-center space-y-2 py-4">
+          <p className="text-sm text-gray-500">Gagal memuat circle. Cek koneksi kamu.</p>
+          <button onClick={fetchCircles} className="text-sm font-medium text-primary">
+            Coba lagi
+          </button>
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4">
           {filteredCircles.length ? (

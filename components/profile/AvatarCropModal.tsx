@@ -1,6 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+
+const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10 MB
 
 export default function AvatarCropModal({
   file,
@@ -15,11 +18,29 @@ export default function AvatarCropModal({
   const [offsetY, setOffsetY] = useState(50);
   const [zoom, setZoom] = useState(1); // 1 = tanpa zoom, makin besar makin zoom in
   const imgRef = useRef<HTMLImageElement>(null);
-  const imageUrl = useState(() => URL.createObjectURL(file))[0];
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  // object URL dibuat di effect (bukan di initializer state) supaya bisa di-revoke tanpa
+  // merusak gambar saat React StrictMode mount-unmount-mount di mode dev.
+  useEffect(() => {
+    if ((file.type && !file.type.startsWith("image/")) || file.size > MAX_FILE_BYTES) {
+      toast.error("File harus berupa gambar (JPG/PNG) maksimal 10 MB.");
+      onCancel();
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setImageUrl(url);
+    return () => URL.revokeObjectURL(url);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [file]);
 
   const handleConfirm = () => {
     const img = imgRef.current;
     if (!img) return;
+    if (!img.naturalWidth || !img.naturalHeight) {
+      toast.error("Foto belum bisa dibaca. Coba foto lain.");
+      return;
+    }
 
     const baseSize = Math.min(img.naturalWidth, img.naturalHeight);
     const size = baseSize / zoom;
@@ -29,15 +50,21 @@ export default function AvatarCropModal({
     const sy = (offsetY / 100) * maxY;
 
     const canvas = document.createElement("canvas");
-    canvas.width = 256;
-    canvas.height = 256;
+    canvas.width = 400;
+    canvas.height = 400;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.drawImage(img, sx, sy, size, size, 0, 0, 256, 256);
+    try {
+      ctx.drawImage(img, sx, sy, size, size, 0, 0, 400, 400);
+    } catch {
+      toast.error("Foto tidak bisa diproses. Coba foto lain.");
+      return;
+    }
 
     canvas.toBlob((blob) => {
       if (blob) onConfirm(blob);
-    }, "image/jpeg", 0.75);
+      else toast.error("Gagal memproses foto. Coba lagi.");
+    }, "image/jpeg", 0.8);
   };
 
   return (
@@ -46,10 +73,15 @@ export default function AvatarCropModal({
         <h2 className="font-bold text-center">Atur Posisi Foto</h2>
 
         <div className="w-48 h-48 mx-auto rounded-full overflow-hidden border-2 border-primary relative bg-gray-100">
+          {imageUrl && (
           <img
             ref={imgRef}
             src={imageUrl}
             alt="preview"
+            onError={() => {
+              toast.error("Foto tidak bisa dibuka. Pakai format JPG atau PNG.");
+              onCancel();
+            }}
             className="absolute w-full h-full object-cover"
             style={{
               objectPosition: `${offsetX}% ${offsetY}%`,
@@ -57,6 +89,7 @@ export default function AvatarCropModal({
               transformOrigin: `${offsetX}% ${offsetY}%`,
             }}
           />
+          )}
         </div>
 
         <div className="space-y-2">
