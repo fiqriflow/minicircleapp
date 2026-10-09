@@ -25,12 +25,14 @@ export default function CircleCard({
   joinedCount,
   currentUserId,
   isJoined,
+  isPending,
 }: {
   circle: Circle;
   defaultCoverMap?: Record<string, string>;
   joinedCount?: number;
   currentUserId?: string | null;
   isJoined?: boolean;
+  isPending?: boolean;
 }) {
   const isMyHost = !!currentUserId && circle.created_by === currentUserId;
   const max = circle.max_participants ?? null;
@@ -66,7 +68,7 @@ export default function CircleCard({
         </span>
       </div>
 
-      {(isMyHost || isJoined || circle.requires_approval) && (
+      {(isMyHost || isJoined || isPending || circle.requires_approval) && (
         <div className="flex flex-wrap items-center gap-1.5">
           {isMyHost ? (
             <span className="text-[10px] font-medium text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
@@ -76,8 +78,12 @@ export default function CircleCard({
             <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded-full">
               Diikuti
             </span>
+          ) : isPending ? (
+            <span className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">
+              Menunggu persetujuan
+            </span>
           ) : null}
-          {circle.requires_approval && (
+          {circle.requires_approval && !isPending && (
             <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full">
               <UserCheck size={11} /> Perlu approval
             </span>

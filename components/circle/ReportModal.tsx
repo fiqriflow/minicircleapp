@@ -127,6 +127,7 @@ export default function ReportModal({
               <textarea
                 className="w-full border rounded-xl px-4 py-2 mt-1 min-h-[90px] text-sm"
                 placeholder="Ceritakan detail kejadian..."
+                maxLength={2000}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />

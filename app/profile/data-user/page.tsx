@@ -23,6 +23,23 @@ function getMissingOptionalFields(profile: any) {
 // Harus sama dengan validasi di DB (migration 0050)
 const IG_REGEX = /^@[A-Za-z0-9._]{1,30}$/;
 
+// Tanggal lahir hanya bisa diisi sekali (DB). Batas yang sama dengan onboarding + trigger DB (migration 0055).
+const MIN_AGE = 17;
+const MIN_BIRTH_DATE = "1920-01-01";
+function localDateStr(d = new Date()) {
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+function maxBirthDate() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - MIN_AGE);
+  return localDateStr(d);
+}
+function isValidBirthDate(v?: string | null) {
+  return !!v && /^\d{4}-\d{2}-\d{2}$/.test(v) && v >= MIN_BIRTH_DATE && v <= maxBirthDate();
+}
+
 export default function DataUserPage() {
   const supabase = createClient();
   const router = useRouter();
@@ -74,7 +91,8 @@ export default function DataUserPage() {
     const { data } = supabase.storage.from("avatars").getPublicUrl(path);
     const avatar_url = `${data.publicUrl}?t=${Date.now()}`;
 
-    const { error: saveError } = await saveProfile(supabase, { ...profile, avatar_url });
+    // hanya kolom foto: perubahan form lain yang belum disimpan (mode edit) jangan ikut tersimpan diam-diam
+    const { error: saveError } = await saveProfile(supabase, { id: profile.id, avatar_url });
     setUploading(false);
     if (saveError) {
       toast.error("Gagal menyimpan foto: " + saveError.message);
@@ -87,7 +105,7 @@ export default function DataUserPage() {
   const handlePickPreset = async (url: string) => {
     if (!profile?.id || uploading) return;
     setUploading(true);
-    const { error } = await saveProfile(supabase, { ...profile, avatar_url: url });
+    const { error } = await saveProfile(supabase, { id: profile.id, avatar_url: url });
     setUploading(false);
     if (error) {
       toast.error("Gagal menyimpan avatar: " + error.message);
@@ -99,6 +117,14 @@ export default function DataUserPage() {
   };
 
   const handleSave = async () => {
+    if (!profile.full_name?.trim() || !profile.nickname?.trim()) {
+      toast.error("Nama lengkap dan nama panggilan wajib diisi.");
+      return;
+    }
+    if (!locked.birth && profile.birth_date && !isValidBirthDate(profile.birth_date)) {
+      toast.error(`Tanggal lahir tidak valid. Mincle khusus pengguna berusia minimal ${MIN_AGE} tahun.`);
+      return;
+    }
     if (!profile.instagram || !IG_REGEX.test(profile.instagram)) {
       toast.error("Instagram wajib diisi dengan format @username (huruf, angka, titik, underscore; maks 30).");
       return;
@@ -108,12 +134,14 @@ export default function DataUserPage() {
       return;
     }
     setSaving(true);
-    const { error } = await saveProfile(supabase, profile);
+    const payload = { ...profile, full_name: profile.full_name.trim(), nickname: profile.nickname.trim() };
+    const { error } = await saveProfile(supabase, payload);
     setSaving(false);
     if (error) {
       toast.error("Gagal menyimpan profil: " + error.message);
       return;
     }
+    setProfile(payload);
     setLocked({ gender: !!profile.gender, birth: !!profile.birth_date });
     setEditMode(false);
     toast.success("Profil berhasil disimpan!");
@@ -280,6 +308,7 @@ export default function DataUserPage() {
             <label className="text-sm text-gray-500">Nama Lengkap</label>
             <input
               className="w-full border rounded-xl px-4 py-2"
+              maxLength={100}
               value={profile.full_name ?? ""}
               onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
             />
@@ -289,6 +318,7 @@ export default function DataUserPage() {
             <label className="text-sm text-gray-500">Nama Panggilan</label>
             <input
               className="w-full border rounded-xl px-4 py-2"
+              maxLength={50}
               value={profile.nickname ?? ""}
               onChange={(e) => setProfile({ ...profile, nickname: e.target.value })}
             />
@@ -298,6 +328,8 @@ export default function DataUserPage() {
             <label className="text-sm text-gray-500">Tanggal Lahir</label>
             <input
               type="date"
+              min={MIN_BIRTH_DATE}
+              max={maxBirthDate()}
               className="w-full border rounded-xl px-4 py-2"
               value={profile.birth_date ?? ""}
               disabled={locked.birth}
@@ -361,7 +393,11 @@ export default function DataUserPage() {
               className="w-full border rounded-xl px-4 py-2"
               placeholder="@username"
               value={profile.instagram ?? ""}
-              onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
+              onChange={(e) => {
+                // spasi dibuang, "@" otomatis ditambah kalau lupa (DB juga menormalkan)
+                const v = e.target.value.replace(/\s/g, "");
+                setProfile({ ...profile, instagram: v && !v.startsWith("@") ? "@" + v : v });
+              }}
             />
             {profile.instagram && !IG_REGEX.test(profile.instagram) && (
               <p className="text-xs text-red-500 mt-1">Format: @username (huruf, angka, titik, underscore; maks 30)</p>

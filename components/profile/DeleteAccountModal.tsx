@@ -42,7 +42,8 @@ export default function DeleteAccountModal({ onCancel, onConfirm }: DeleteAccoun
             <li>Komentar yang pernah Anda buat</li>
           </ul>
           <p>
-            Circle yang pernah Anda buat sebagai host <b>tidak ikut terhapus</b>, hanya statusnya jadi tanpa host.
+            Circle aktif yang Anda host akan <b>dibatalkan otomatis</b> dan peserta diberi tahu. Circle yang sudah
+            selesai tetap ada, hanya tanpa host.
           </p>
           <p className="text-gray-500">
             Anda tetap bisa login lagi dengan akun yang sama — sistem akan mengarahkan Anda mengisi ulang data dari awal, seperti daftar baru.

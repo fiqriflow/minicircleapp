@@ -193,7 +193,7 @@ export default function CreateCircleModal({
     try {
       up = await compressImage(file, { maxSize: 960, quality: 0.8 });
     } catch {
-      alert("Gagal memproses gambar");
+      toast.error("Gagal memproses gambar");
       setUploadingCover(false);
       return;
     }
@@ -202,12 +202,16 @@ export default function CreateCircleModal({
       .from("circle-covers")
       .upload(path, up.blob, { upsert: true, contentType: up.contentType, cacheControl: LONG_CACHE });
     if (uploadError) {
-      alert("Gagal upload cover: " + uploadError.message);
+      toast.error("Gagal upload cover: " + uploadError.message);
       setUploadingCover(false);
       return;
     }
     const { data } = supabase.storage.from("circle-covers").getPublicUrl(path);
-    const oldPath = extractStoragePath(form.cover_url, "circle-covers");
+    // Cover ASLI circle yang sedang diedit baru boleh dihapus setelah Simpan berhasil (kalau batal, cover harus
+    // tetap ada). Di sini hanya file yang diupload di sesi ini yang dibersihkan.
+    const originalCoverUrl = editCircle?.cover_url ?? "";
+    const oldPath =
+      form.cover_url && form.cover_url !== originalCoverUrl ? extractStoragePath(form.cover_url, "circle-covers") : null;
     setForm((f) => ({ ...f, cover_url: data.publicUrl }));
     setCoverError(false);
     setUploadingCover(false);
@@ -286,14 +290,14 @@ export default function CreateCircleModal({
     setError("");
 
     const payload: any = {
-      name: form.name,
+      name: form.name.trim(),
       group_name: form.group_name.trim() || null,
       max_participants: form.max_participants,
       category: form.category,
-      city: form.city,
-      location: form.location,
+      city: form.city.trim(),
+      location: form.location.trim(),
       event_date: startIso,
-      description: form.description,
+      description: form.description.trim(),
     };
 
     if (isPlus) {
@@ -360,11 +364,12 @@ export default function CreateCircleModal({
 
     // host otomatis masuk line up
     if (newCircle && user) {
-      await supabase.from("circle_members").insert({
-        circle_id: newCircle.id,
-        user_id: user.id,
-        status: "joined",
-      });
+      const hostRow = { circle_id: newCircle.id, user_id: user.id, status: "joined" };
+      let { error: joinError } = await supabase.from("circle_members").insert(hostRow);
+      if (joinError) ({ error: joinError } = await supabase.from("circle_members").insert(hostRow)); // coba sekali lagi
+      if (joinError) {
+        toast.warning("Circle sudah dibuat, tapi kamu belum masuk line up. Buka circle-nya lalu coba lagi.");
+      }
     }
 
     setSaving(false);

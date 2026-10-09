@@ -5,6 +5,7 @@ import { X, Flag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { getCircleDisplayStatus } from "@/lib/circleStatus";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
+import { chunk } from "@/lib/chunk";
 
 const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
 
@@ -37,11 +38,13 @@ export default function MemberProfileModal({
 
       let hostCircle = 0;
       if (completedIds.length) {
-        const { data: attendanceRows } = await supabase
-          .from("circle_members")
-          .select("circle_id, checked_in")
-          .in("circle_id", completedIds)
-          .eq("status", "joined");
+        const attendanceRows = (
+          await Promise.all(
+            chunk(completedIds, 100).map((ids) =>
+              supabase.from("circle_members").select("circle_id, checked_in").in("circle_id", ids).eq("status", "joined")
+            )
+          )
+        ).flatMap((r) => r.data ?? []);
 
         const byCircle: Record<string, { total: number; checked: number }> = {};
         (attendanceRows ?? []).forEach((r: any) => {
