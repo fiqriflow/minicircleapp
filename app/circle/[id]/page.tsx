@@ -1231,8 +1231,12 @@ export default function CircleDetailPage() {
               Slot Penuh
             </button>
           );
-        } else if (!myStatus && displayStatus === "ongoing" && Date.now() > new Date(circle.event_date).getTime() + 3 * 60 * 60 * 1000) {
-          // sama dengan guard DB (0035): join ditutup 3 jam setelah jam mulai
+        } else if (
+          !myStatus &&
+          displayStatus === "ongoing" &&
+          (!circle.allow_late_join || Date.now() > new Date(circle.event_date).getTime() + 3 * 60 * 60 * 1000)
+        ) {
+          // sama dengan guard DB (0057): setelah mulai, join hanya boleh kalau host mengizinkan (maks. 3 jam setelah jam mulai)
           content = (
             <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
               Pendaftaran Ditutup
