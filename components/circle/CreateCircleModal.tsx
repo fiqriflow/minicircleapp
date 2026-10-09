@@ -56,6 +56,7 @@ export default function CreateCircleModal({
           join_birth_year_min: editCircle.join_birth_year_min ?? null,
           join_birth_year_max: editCircle.join_birth_year_max ?? null,
           join_verified_only: editCircle.join_verified_only ?? false,
+          allow_late_join: editCircle.allow_late_join ?? false,
         }
       : templateCircle
       ? {
@@ -77,6 +78,7 @@ export default function CreateCircleModal({
           join_birth_year_min: templateCircle.join_birth_year_min ?? null,
           join_birth_year_max: templateCircle.join_birth_year_max ?? null,
           join_verified_only: templateCircle.join_verified_only ?? false,
+          allow_late_join: templateCircle.allow_late_join ?? false,
         }
       : {
           name: "",
@@ -97,6 +99,7 @@ export default function CreateCircleModal({
           join_birth_year_min: null,
           join_birth_year_max: null,
           join_verified_only: false,
+          allow_late_join: false,
         }
   );
   const [saving, setSaving] = useState(false);
@@ -304,6 +307,7 @@ export default function CreateCircleModal({
       location: form.location.trim(),
       event_date: startIso,
       description: form.description.trim(),
+      allow_late_join: form.allow_late_join,
     };
 
     if (isPlus) {
@@ -671,6 +675,20 @@ export default function CreateCircleModal({
               if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: false });
             }}
           />
+        </div>
+
+        <div className="space-y-1">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.allow_late_join}
+              onChange={(e) => setForm({ ...form, allow_late_join: e.target.checked })}
+            />
+            Izinkan join setelah circle dimulai
+          </label>
+          <p className="text-xs text-gray-400">
+            Kalau mati (default), pendaftaran ditutup begitu jam mulai tiba atau kamu menekan &quot;Tandai Mulai&quot;. Kalau aktif, orang baru masih bisa join sampai 3 jam setelah jam mulai.
+          </p>
         </div>
 
         {isPlus && (
