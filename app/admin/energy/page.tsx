@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Pagination, { usePagination } from "@/components/ui/Pagination";
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { toast } from "sonner";
 import { ENERGY_COST, DAILY_ENERGY_BONUS, getNextBonusLabel } from "@/lib/energy";
 
@@ -15,10 +17,14 @@ export default function AdminEnergyPage() {
   const [amounts, setAmounts] = useState<Record<string, string>>({});
 
   const load = async () => {
-    const { data, error } = await supabase
-      .rpc("admin_get_players")
-      .select("id, full_name, nickname, email, avatar_url, energy, energy_reset_at")
-      .order("full_name", { ascending: true });
+    const { data, error } = await fetchAllPages((a, b) =>
+      supabase
+        .rpc("admin_get_players")
+        .select("id, full_name, nickname, email, avatar_url, energy, energy_reset_at")
+        .order("full_name", { ascending: true })
+        .order("id", { ascending: true })
+        .range(a, b)
+    );
     if (error) {
       toast.error("Gagal memuat data energy: " + error.message);
       return;
@@ -62,7 +68,11 @@ export default function AdminEnergyPage() {
     return [p.full_name, p.nickname, p.email].filter(Boolean).some((v: string) => v.toLowerCase().includes(q));
   });
 
-  const Controls = ({ p }: { p: any }) => (
+  const { pageItems: paged, pagination } = usePagination(displayed, search);
+
+  // Dipanggil sebagai fungsi (bukan <Komponen />): komponen yang didefinisikan di dalam render
+  // ter-remount tiap ketik -> input kehilangan fokus setelah 1 karakter.
+  const renderControls = (p: any) => (
     <div className="space-y-2">
       <div className="flex gap-2 items-center flex-wrap">
         <input
@@ -126,11 +136,11 @@ export default function AdminEnergyPage() {
 
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
-        {displayed.map((p) => (
+        {paged.map((p) => (
           <div key={p.id} className="bg-white rounded-2xl border p-4 space-y-3">
             <div className="flex items-center gap-3">
               <img loading="lazy" decoding="async"
-                src={p.avatar_url || "https://ui-avatars.com/api/?name=" + (p.full_name || "U")}
+                src={p.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(p.full_name || "U")}
                 alt=""
                 className="w-10 h-10 rounded-full object-cover border"
               />
@@ -142,7 +152,7 @@ export default function AdminEnergyPage() {
                 ⚡ {p.energy}
               </span>
             </div>
-            <Controls p={p} />
+            {renderControls(p)}
           </div>
         ))}
         {!displayed.length && <p className="text-gray-400 text-sm">{search ? "Tidak ada yang cocok." : "Belum ada user."}</p>}
@@ -161,12 +171,12 @@ export default function AdminEnergyPage() {
             </tr>
           </thead>
           <tbody>
-            {displayed.map((p) => (
+            {paged.map((p) => (
               <tr key={p.id} className="border-t align-top">
                 <td className="p-3">
                   <div className="flex items-center gap-2">
                     <img loading="lazy" decoding="async"
-                      src={p.avatar_url || "https://ui-avatars.com/api/?name=" + (p.full_name || "U")}
+                      src={p.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(p.full_name || "U")}
                       alt=""
                       className="w-8 h-8 rounded-full object-cover border"
                     />
@@ -181,7 +191,7 @@ export default function AdminEnergyPage() {
                   {p.energy_reset_at ? new Date(p.energy_reset_at).toLocaleString("id-ID") : "-"}
                 </td>
                 <td className="p-3">
-                  <Controls p={p} />
+                  {renderControls(p)}
                 </td>
               </tr>
             ))}
@@ -195,6 +205,8 @@ export default function AdminEnergyPage() {
           </tbody>
         </table>
       </div>
+
+      <Pagination {...pagination} />
     </div>
   );
 }

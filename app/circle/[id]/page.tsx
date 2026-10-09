@@ -45,6 +45,7 @@ export default function CircleDetailPage() {
   const [hasNewComment, setHasNewComment] = useState(false);
   const [joinedCount, setJoinedCount] = useState(0);
   const [notFound, setNotFound] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
   const chatBoxRef = useRef<HTMLDivElement>(null);
   const [showViewerMenu, setShowViewerMenu] = useState(false);
@@ -80,16 +81,23 @@ export default function CircleDetailPage() {
   };
 
   const load = async () => {
-    const [{ data: { user } }, { data: c }] = await Promise.all([
+    const [{ data: { user } }, { data: c, error: cErr }] = await Promise.all([
       supabase.auth.getUser(),
       supabase.from("circles").select(CIRCLE_COLUMNS).eq("id", id).single(),
     ]);
     setUserId(user?.id ?? null);
     if (!c) {
+      // PGRST116 = baris tidak ada / tidak boleh diakses, 22P02 = id bukan uuid.
+      // Error lain (jaringan/DB) BUKAN "circle tidak ditemukan" -> tawarkan coba lagi.
+      if (cErr && cErr.code !== "PGRST116" && cErr.code !== "22P02") {
+        setLoadFailed(true);
+        return;
+      }
       setNotFound(true);
       return;
     }
     setNotFound(false);
+    setLoadFailed(false);
     setCircle(c);
 
     const [hostRes, { data: allMembers }] = await Promise.all([
@@ -472,6 +480,22 @@ export default function CircleDetailPage() {
       </div>
     );
   }
+  if (loadFailed && !circle) {
+    return (
+      <div className="p-6 text-center space-y-3">
+        <p className="text-gray-500">Gagal memuat circle. Cek koneksi lalu coba lagi.</p>
+        <button
+          onClick={() => {
+            setLoadFailed(false);
+            load();
+          }}
+          className="text-primary font-medium"
+        >
+          Coba lagi
+        </button>
+      </div>
+    );
+  }
   if (!circle) return <p className="p-6 text-gray-400">Memuat...</p>;
 
   return (
@@ -541,6 +565,7 @@ export default function CircleDetailPage() {
               >
                 <MoreVertical size={20} />
               </button>
+              {showHostMenu && <div className="fixed inset-0 z-40" onClick={() => setShowHostMenu(false)} />}
               {showHostMenu && (
                 <div className="absolute right-0 mt-2 w-56 bg-white border rounded-xl shadow-lg overflow-hidden z-50">
                   <button
@@ -636,6 +661,7 @@ export default function CircleDetailPage() {
               >
                 <MoreVertical size={20} />
               </button>
+              {showViewerMenu && <div className="fixed inset-0 z-40" onClick={() => setShowViewerMenu(false)} />}
               {showViewerMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-white border rounded-xl shadow-lg overflow-hidden z-50">
                   {(!circle.is_private || canManage) && (
@@ -717,8 +743,11 @@ export default function CircleDetailPage() {
       )}
 
       {confirmAction && (
-        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
-          <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4">
+        <div
+          className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4"
+          onClick={() => setConfirmAction(null)}
+        >
+          <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-lg">
               {confirmAction === "join" ? "Konfirmasi Join Circle" : "Konfirmasi Batal Join"}
             </h3>
@@ -750,8 +779,11 @@ export default function CircleDetailPage() {
       )}
 
       {confirmStatusAction && (
-        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4">
-          <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4">
+        <div
+          className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4"
+          onClick={() => setConfirmStatusAction(null)}
+        >
+          <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
             <h3 className="font-bold text-lg">
               {confirmStatusAction === "started"
                 ? "Tandai Circle Mulai?"
@@ -814,7 +846,7 @@ export default function CircleDetailPage() {
             <div key={m.id} className="border rounded-xl p-3 space-y-2">
               <div className="flex items-center gap-3">
                 <img loading="lazy" decoding="async"
-                  src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
+                  src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(m.profile?.full_name || "U")}
                   className="w-10 h-10 rounded-full object-cover"
                   alt=""
                 />
@@ -913,7 +945,7 @@ export default function CircleDetailPage() {
             {host && (
               <div className="flex items-center gap-3 border rounded-xl p-4">
                 <img loading="lazy" decoding="async"
-                  src={host.avatar_url || "https://ui-avatars.com/api/?name=" + (host.full_name || "U")}
+                  src={host.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(host.full_name || "U")}
                   className="w-9 h-9 rounded-full object-cover shrink-0"
                   alt=""
                 />
@@ -968,7 +1000,7 @@ export default function CircleDetailPage() {
           {circle.description && (
             <div>
               <p className="font-semibold mb-1">Deskripsi</p>
-              <p className="text-gray-500 text-sm">{circle.description}</p>
+              <p className="text-gray-500 text-sm whitespace-pre-wrap break-words">{circle.description}</p>
             </div>
           )}
         </div>
@@ -998,7 +1030,7 @@ export default function CircleDetailPage() {
                   className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 >
                   <img loading="lazy" decoding="async"
-                    src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + (m.profile?.full_name || "U")}
+                    src={m.profile?.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(m.profile?.full_name || "U")}
                     className="w-10 h-10 rounded-full object-cover shrink-0"
                     alt=""
                   />
@@ -1116,7 +1148,7 @@ export default function CircleDetailPage() {
                         {!isMine && (
                           <p className="text-xs font-semibold mb-1 opacity-70">{c.profile?.full_name}</p>
                         )}
-                        <p className="text-sm">{c.message}</p>
+                        <p className="text-sm whitespace-pre-wrap break-words">{c.message}</p>
                       </div>
                     </div>
                   );

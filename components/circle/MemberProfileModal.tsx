@@ -78,15 +78,15 @@ export default function MemberProfileModal({
   }, [profile?.id]);
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4 relative">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm space-y-4 relative" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute right-4 top-4 text-gray-400 hover:text-gray-700">
           <X size={20} />
         </button>
 
         <div className="flex flex-col items-center gap-2 pt-2">
           <img
-            src={profile.avatar_url || "https://ui-avatars.com/api/?name=" + (profile.full_name || "U")}
+            src={profile.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(profile.full_name || "U")}
             alt=""
             className="w-20 h-20 rounded-full object-cover border"
           />

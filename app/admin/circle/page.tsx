@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
 import { createClient } from "@/lib/supabase/client";
+import Pagination, { usePagination } from "@/components/ui/Pagination";
+import { fetchAllPages } from "@/lib/fetchAllPages";
 import { toast } from "sonner";
 import { extractStoragePath } from "@/lib/storagePath";
 import { getCirclePlusEnabled } from "@/lib/appSettings";
@@ -21,10 +23,15 @@ export default function AdminCirclePage() {
   const [search, setSearch] = useState("");
 
   const load = async () => {
-    const { data } = await supabase
-      .from("circles")
-      .select(`${CIRCLE_COLUMNS}, host:profiles!circles_created_by_fkey(nickname, full_name)`)
-      .order("event_date", { ascending: false });
+    const { data, error } = await fetchAllPages((a, b) =>
+      supabase
+        .from("circles")
+        .select(`${CIRCLE_COLUMNS}, host:profiles!circles_created_by_fkey(nickname, full_name)`)
+        .order("event_date", { ascending: false })
+        .order("id", { ascending: true })
+        .range(a, b)
+    );
+    if (error) toast.error("Gagal memuat circle: " + error.message);
     setCircles(data ?? []);
   };
 
@@ -34,7 +41,8 @@ export default function AdminCirclePage() {
   }, []);
 
   const handleStatusChange = async (circleId: string, status: string) => {
-    await supabase.from("circles").update({ status }).eq("id", circleId);
+    const { error } = await supabase.from("circles").update({ status }).eq("id", circleId);
+    if (error) toast.error("Gagal ubah status: " + error.message);
     load();
   };
 
@@ -70,11 +78,17 @@ export default function AdminCirclePage() {
       .some((v: string) => v.toLowerCase().includes(q));
   };
   const displayedCircles = circles.filter((c) => (onlyNoHost ? noHostLabel(c) : true) && matchesSearch(c));
+  const { pageItems: pagedCircles, pagination } = usePagination(displayedCircles, `${search}|${onlyNoHost}`);
 
   const handleDelete = async (circle: any) => {
     if (!confirm("Hapus circle ini? Line up dan komentar ikut terhapus.")) return;
     const coverPath = extractStoragePath(circle.cover_url, "circle-covers");
-    await supabase.from("circles").delete().eq("id", circle.id);
+    const { error } = await supabase.from("circles").delete().eq("id", circle.id);
+    if (error) {
+      // jangan hapus file cover & jangan tampil "berhasil" kalau baris circle gagal dihapus
+      toast.error("Gagal menghapus circle: " + error.message);
+      return;
+    }
     if (coverPath) {
       await supabase.storage.from("circle-covers").remove([coverPath]);
     }
@@ -122,7 +136,7 @@ export default function AdminCirclePage() {
             </tr>
           </thead>
           <tbody>
-            {displayedCircles.map((c) => (
+            {pagedCircles.map((c) => (
               <tr key={c.id} className={`border-t ${!c.created_by ? "bg-red-50" : ""}`}>
                 <td className="p-3">{c.name}</td>
                 <td className="p-3">{c.category}</td>
@@ -159,10 +173,18 @@ export default function AdminCirclePage() {
         </table>
       </div>
 
+      <Pagination {...pagination} />
+
       {/* Detail circle - read only, bentuk list */}
       {viewing && (
-        <div className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50">
-          <div className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black/40 flex items-end md:items-center justify-center z-50"
+          onClick={() => setViewing(null)}
+        >
+          <div
+            className="bg-white rounded-t-2xl md:rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 className="font-bold text-lg">{viewing.name}</h2>
 
             <div className="divide-y border rounded-xl overflow-hidden">
