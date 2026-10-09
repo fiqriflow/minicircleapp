@@ -7,6 +7,7 @@ import { User, HelpCircle, Info, ShieldCheck, LogOut, ChevronRight, BarChart3, M
 import { createClient } from "@/lib/supabase/client";
 import { unsubscribeFromPush } from "@/lib/push";
 import PushToggleRow from "@/components/profile/PushToggleRow";
+import InstallPwaRow from "@/components/profile/InstallPwaRow";
 
 export default function AccountMenuPage() {
   const supabase = createClient();
@@ -59,6 +60,7 @@ export default function AccountMenuPage() {
             <ChevronRight size={16} className="text-gray-300" />
           </Link>
           <PushToggleRow />
+          <InstallPwaRow />
         </div>
       </div>
 
