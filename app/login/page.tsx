@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { safeNext } from "@/lib/safeNext";
+import LottieMascot from "@/components/ui/LottieMascot";
 
 function LoginPageContent() {
   const supabase = createClient();
@@ -71,10 +72,9 @@ function LoginPageContent() {
           alt=""
           className="absolute bottom-0 right-0 w-[80%] translate-y-[28%] select-none"
         />
-        <img
-          src="/maskot_login.svg"
-          alt=""
-          className="absolute bottom-0 left-0 w-[58%] max-w-[260px] -translate-x-[6%] translate-y-[20%] select-none"
+        <LottieMascot
+          src="/login.json"
+          className="absolute bottom-0 left-0 w-[62%] max-w-[300px] translate-y-[6%]"
         />
       </div>
 
