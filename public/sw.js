@@ -80,8 +80,42 @@ self.addEventListener("push", (event) => {
     badge: "/icons/icon-192.png",
     data: { url: data.url || "/" },
   };
+  // tag sama = notif lama diganti (tidak numpuk), tetap bunyi/getar lagi
+  if (data.tag) {
+    options.tag = data.tag;
+    options.renotify = true;
+  }
 
   event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Browser kadang mengganti/mengekspirasi subscription -> daftarkan ulang otomatis
+// (tanpa ini, push mati sampai user kebetulan membuka app lagi).
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    (async () => {
+      try {
+        let sub = event.newSubscription;
+        if (!sub) {
+          const key =
+            event.oldSubscription && event.oldSubscription.options
+              ? event.oldSubscription.options.applicationServerKey
+              : null;
+          if (!key) return;
+          sub = await self.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: key,
+          });
+        }
+        await fetch("/api/push/subscribe", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ subscription: sub.toJSON() }),
+        });
+      } catch {}
+    })()
+  );
 });
 
 // Klik notif -> buka/fokus tab app, arahkan ke url terkait

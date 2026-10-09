@@ -25,6 +25,8 @@ if (vapidPublicKey && vapidPrivateKey) {
   webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // Pesan singkat buat judul notif berdasarkan tipe (isi lengkap tetap pakai message dari DB)
 const TITLE_BY_TYPE: Record<string, string> = {
   member_joined: "Anggota baru",
@@ -57,6 +59,10 @@ export async function POST(request: Request) {
   if (!record?.user_id || !record?.message) {
     return NextResponse.json({ error: "Payload tidak valid" }, { status: 400 });
   }
+  // Hanya proses INSERT (UPDATE/DELETE di tabel notifications, mis. is_read, jangan jadi push)
+  if (payload?.type && payload.type !== "INSERT") {
+    return NextResponse.json({ skipped: true });
+  }
 
   const admin = createAdminClient();
   const { data: subs, error } = await admin
@@ -72,11 +78,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ sent: 0 });
   }
 
-  const url = record.circle_id ? `/circle/${record.circle_id}` : "/";
+  const circleId =
+    typeof record.circle_id === "string" && UUID_RE.test(record.circle_id) ? record.circle_id : null;
+  const url = circleId ? `/circle/${circleId}` : "/";
   const notifPayload = JSON.stringify({
     title: TITLE_BY_TYPE[record.type] || "Mincle",
-    body: record.message,
+    body: String(record.message).slice(0, 300),
     url,
+    tag: `${record.type || "notif"}:${circleId ?? "-"}`,
   });
 
   let sent = 0;
@@ -96,13 +105,17 @@ export async function POST(request: Request) {
             keys: { p256dh: sub.p256dh, auth: sub.auth },
           },
           notifPayload,
-          { timeout: 8000 }
+          // TTL 12 jam: HP yang lama offline tidak menerima notif basi berhari-hari kemudian
+          { timeout: 8000, TTL: 12 * 60 * 60, urgency: "normal" }
         );
         sent += 1;
       } catch (err: any) {
         // 404/410 = subscription udah gak valid (uninstall, clear data, dll) -> bersihkan
         if (err?.statusCode === 404 || err?.statusCode === 410) {
           staleIds.push(sub.id);
+        } else {
+          // jangan diam-diam: 401/403 = VAPID key/subject salah, 413 = payload kegedean, dst.
+          console.error("push gagal", { status: err?.statusCode, msg: err?.message });
         }
       }
     })
