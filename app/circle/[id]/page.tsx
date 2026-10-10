@@ -140,7 +140,7 @@ export default function CircleDetailPage() {
     if (mine?.status === "joined") {
       const { data: cm } = await supabase
         .from("circle_comments")
-        .select("*, profile:profiles(full_name, avatar_url)")
+        .select("*, profile:profiles(full_name, avatar_url, is_verified)")
         .eq("circle_id", id)
         .order("created_at", { ascending: true });
       setComments(cm ?? []);
@@ -177,7 +177,7 @@ export default function CircleDetailPage() {
       const last = commentsRef.current[commentsRef.current.length - 1]?.created_at;
       let q = supabase
         .from("circle_comments")
-        .select("*, profile:profiles(full_name, avatar_url)")
+        .select("*, profile:profiles(full_name, avatar_url, is_verified)")
         .eq("circle_id", id)
         .order("created_at", { ascending: true });
       if (last) q = q.gt("created_at", last);
@@ -369,7 +369,7 @@ export default function CircleDetailPage() {
     const { data, error } = await supabase
       .from("circle_comments")
       .insert({ circle_id: id, user_id: userId, message })
-      .select("*, profile:profiles(full_name, avatar_url)")
+      .select("*, profile:profiles(full_name, avatar_url, is_verified)")
       .single();
     setSendingComment(false);
     if (error) {
@@ -1146,7 +1146,10 @@ export default function CircleDetailPage() {
                         }`}
                       >
                         {!isMine && (
-                          <p className="text-xs font-semibold mb-1 opacity-70">{c.profile?.full_name}</p>
+                          <p className="text-xs font-semibold mb-1 opacity-70 flex items-center">
+                            {c.profile?.full_name}
+                            <VerifiedBadge show={c.profile?.is_verified} size={13} />
+                          </p>
                         )}
                         <p className="text-sm whitespace-pre-wrap break-words">{c.message}</p>
                       </div>

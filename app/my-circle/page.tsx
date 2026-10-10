@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
+import { CIRCLE_WITH_HOST } from "@/lib/circleColumns";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/circle/CircleCard";
@@ -50,10 +50,10 @@ function MyCircleContent() {
 
       // joined + pending: permintaan join yang belum disetujui host juga harus bisa ditemukan di sini
       const [{ data: hostedCircles, error: hostedError }, { data: memberships, error: memberError }] = await Promise.all([
-        supabase.from("circles").select(CIRCLE_COLUMNS).eq("created_by", user.id),
+        supabase.from("circles").select(CIRCLE_WITH_HOST).eq("created_by", user.id),
         supabase
           .from("circle_members")
-          .select(`status, circle:circles(${CIRCLE_COLUMNS})`)
+          .select(`status, circle:circles(${CIRCLE_WITH_HOST})`)
           .eq("user_id", user.id)
           .in("status", ["joined", "pending"]),
       ]);

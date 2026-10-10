@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus, Search } from "lucide-react";
-import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
+import { CIRCLE_WITH_HOST } from "@/lib/circleColumns";
 import { createClient } from "@/lib/supabase/client";
 import CircleCard, { Circle } from "@/components/circle/CircleCard";
 import CreateCircleModal from "@/components/circle/CreateCircleModal";
@@ -120,7 +120,7 @@ function ExploreContent() {
   const fetchCircles = useCallback(async () => {
     const myRequest = ++requestId.current;
     setLoading(true);
-    const { data, count, error } = await buildQuery(CIRCLE_COLUMNS, true).range(0, PAGE_SIZE - 1);
+    const { data, count, error } = await buildQuery(CIRCLE_WITH_HOST, true).range(0, PAGE_SIZE - 1);
     if (myRequest !== requestId.current) return; // ada request lebih baru -> abaikan hasil lama
     if (error) {
       setLoadError(true);
@@ -142,7 +142,7 @@ function ExploreContent() {
     if (loadingMore || loading) return;
     const myRequest = requestId.current;
     setLoadingMore(true);
-    const { data, error } = await buildQuery(CIRCLE_COLUMNS).range(circles.length, circles.length + PAGE_SIZE - 1);
+    const { data, error } = await buildQuery(CIRCLE_WITH_HOST).range(circles.length, circles.length + PAGE_SIZE - 1);
     if (myRequest !== requestId.current) {
       setLoadingMore(false);
       return;

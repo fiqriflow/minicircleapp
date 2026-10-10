@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
+import { CIRCLE_WITH_HOST } from "@/lib/circleColumns";
 import { getDefaultCoverMap } from "@/lib/appSettings";
 import { getJoinedCounts } from "@/lib/circleMembers";
 import { chunk } from "@/lib/chunk";
@@ -38,7 +38,7 @@ export default async function HomeUpcomingCircles() {
       chunk(joinedCircleIds, 100).map((ids) =>
         supabase
           .from("circles")
-          .select(CIRCLE_COLUMNS)
+          .select(CIRCLE_WITH_HOST)
           .eq("status", "active")
           .in("id", ids)
           .gte("event_date", from.toISOString())

@@ -8,11 +8,13 @@ import { createClient } from "@/lib/supabase/client";
 import { unsubscribeFromPush } from "@/lib/push";
 import PushToggleRow from "@/components/profile/PushToggleRow";
 import InstallPwaRow from "@/components/profile/InstallPwaRow";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 export default function AccountMenuPage() {
   const supabase = createClient();
   const router = useRouter();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [me, setMe] = useState<{ full_name?: string | null; nickname?: string | null; avatar_url?: string | null; is_verified?: boolean | null } | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -20,6 +22,7 @@ export default function AccountMenuPage() {
       if (!user) return;
       const { data } = await supabase.rpc("get_my_profile").maybeSingle();
       setIsSuperAdmin(!!(data as { is_super_admin?: boolean } | null)?.is_super_admin);
+      setMe(data as any);
     };
     load();
   }, []);
@@ -39,6 +42,20 @@ export default function AccountMenuPage() {
   return (
     <div className="px-4 py-6 space-y-6">
       <h1 className="text-xl font-bold">Akun</h1>
+
+      {me && (
+        <div className="flex items-center gap-3 bg-white rounded-2xl border px-4 py-3">
+          {me.avatar_url ? (
+            <img src={me.avatar_url} alt="" className="w-12 h-12 rounded-full object-cover bg-gray-100" />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gray-100" />
+          )}
+          <p className="min-w-0 font-semibold flex items-center">
+            <span className="truncate">{me.nickname || me.full_name}</span>
+            <VerifiedBadge show={me.is_verified} size={18} />
+          </p>
+        </div>
+      )}
 
       {/* Profil */}
       <div className="space-y-2">
