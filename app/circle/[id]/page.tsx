@@ -16,7 +16,7 @@ import { getJoinedCounts } from "@/lib/circleMembers";
 import { markCommentNotifRead } from "@/lib/notifications";
 import CreateCircleModal from "@/components/circle/CreateCircleModal";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
-import { hasJoinFilters, yearRangeLabel } from "@/lib/joinFilters";
+import { hasJoinFilters } from "@/lib/joinFilters";
 import { PUBLIC_PROFILE_COLUMNS, isProfileIncompleteError } from "@/lib/profile";
 import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
 
@@ -980,11 +980,6 @@ export default function CircleDetailPage() {
                     }`}
                   >
                     {circle.join_gender === "female" ? "Khusus perempuan" : "Khusus laki-laki"}
-                  </span>
-                )}
-                {(circle.join_birth_year_min != null || circle.join_birth_year_max != null) && (
-                  <span className="text-xs bg-purple-50 text-purple-600 px-3 py-1 rounded-full">
-                    {yearRangeLabel(circle.join_birth_year_min, circle.join_birth_year_max)}
                   </span>
                 )}
                 {circle.join_verified_only && (
