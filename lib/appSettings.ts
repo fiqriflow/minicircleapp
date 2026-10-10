@@ -43,3 +43,10 @@ export function resolveCircleCover(
   if (category && map[`default_circle_cover:${category}`]) return map[`default_circle_cover:${category}`];
   return map["default_circle_cover"] || null;
 }
+
+// Link donasi (Saweria/Trakteer/dll) — diatur dari admin settings. Kosong = menu donasi disembunyikan.
+export async function getDonationUrl(supabase: any): Promise<string | null> {
+  const { data } = await supabase.from("app_settings").select("value").eq("key", "donation_url").maybeSingle();
+  const v = (data?.value ?? "").trim();
+  return /^https:\/\//i.test(v) ? v : null;
+}

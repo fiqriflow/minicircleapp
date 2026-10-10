@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { unsubscribeFromPush } from "@/lib/push";
 import PushToggleRow from "@/components/profile/PushToggleRow";
 import InstallPwaRow from "@/components/profile/InstallPwaRow";
+import DonateRow from "@/components/profile/DonateRow";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 export default function AccountMenuPage() {
@@ -100,6 +101,7 @@ export default function AccountMenuPage() {
             <span className="flex-1 text-sm font-medium">Masukan</span>
             <ChevronRight size={16} className="text-gray-300" />
           </Link>
+          <DonateRow />
         </div>
       </div>
 
