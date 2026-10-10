@@ -1,7 +1,7 @@
 // Sistem energy = saldo kredit. Angka ini HARUS sama dengan yang di migration 0032
 // (DB yang menegakkan; konstanta ini cuma untuk tampilan & pengecekan awal di UI).
 export const INITIAL_ENERGY = 1000;
-export const DAILY_ENERGY_BONUS = 50;
+export const DAILY_ENERGY_BONUS = 100;
 export const ENERGY_COST = {
   join: 1,
   create: 10,
