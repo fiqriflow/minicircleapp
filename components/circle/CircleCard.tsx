@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { MapPin, Tag, Crosshair, CalendarDays, Lock, UserCheck } from "lucide-react";
 import { getCircleDisplayStatus, STATUS_LABEL } from "@/lib/circleStatus";
+import VerifiedBadge from "@/components/ui/VerifiedBadge";
 
 export type Circle = {
   id: string;
@@ -18,6 +19,7 @@ export type Circle = {
   created_by?: string | null;
   is_private?: boolean | null;
   requires_approval?: boolean | null;
+  host?: { nickname?: string | null; full_name?: string | null; is_verified?: boolean | null } | null;
 };
 
 export default function CircleCard({
@@ -67,6 +69,13 @@ export default function CircleCard({
           {statusInfo.label}
         </span>
       </div>
+
+      {circle.host?.is_verified && (
+        <p className="text-xs text-gray-500 flex items-center">
+          <span className="truncate">oleh {circle.host.nickname || circle.host.full_name}</span>
+          <VerifiedBadge show size={13} />
+        </p>
+      )}
 
       {(isMyHost || isJoined || isPending || circle.requires_approval) && (
         <div className="flex flex-wrap items-center gap-1.5">

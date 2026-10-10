@@ -16,7 +16,7 @@ import { getJoinedCounts } from "@/lib/circleMembers";
 import { markCommentNotifRead } from "@/lib/notifications";
 import CreateCircleModal from "@/components/circle/CreateCircleModal";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
-import { hasJoinFilters, yearRangeLabel } from "@/lib/joinFilters";
+import { hasJoinFilters } from "@/lib/joinFilters";
 import { PUBLIC_PROFILE_COLUMNS, isProfileIncompleteError } from "@/lib/profile";
 import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
 
@@ -140,7 +140,7 @@ export default function CircleDetailPage() {
     if (mine?.status === "joined") {
       const { data: cm } = await supabase
         .from("circle_comments")
-        .select("*, profile:profiles(full_name, avatar_url)")
+        .select("*, profile:profiles(full_name, avatar_url, is_verified)")
         .eq("circle_id", id)
         .order("created_at", { ascending: true });
       setComments(cm ?? []);
@@ -177,7 +177,7 @@ export default function CircleDetailPage() {
       const last = commentsRef.current[commentsRef.current.length - 1]?.created_at;
       let q = supabase
         .from("circle_comments")
-        .select("*, profile:profiles(full_name, avatar_url)")
+        .select("*, profile:profiles(full_name, avatar_url, is_verified)")
         .eq("circle_id", id)
         .order("created_at", { ascending: true });
       if (last) q = q.gt("created_at", last);
@@ -369,7 +369,7 @@ export default function CircleDetailPage() {
     const { data, error } = await supabase
       .from("circle_comments")
       .insert({ circle_id: id, user_id: userId, message })
-      .select("*, profile:profiles(full_name, avatar_url)")
+      .select("*, profile:profiles(full_name, avatar_url, is_verified)")
       .single();
     setSendingComment(false);
     if (error) {
@@ -982,11 +982,6 @@ export default function CircleDetailPage() {
                     {circle.join_gender === "female" ? "Khusus perempuan" : "Khusus laki-laki"}
                   </span>
                 )}
-                {(circle.join_birth_year_min != null || circle.join_birth_year_max != null) && (
-                  <span className="text-xs bg-purple-50 text-purple-600 px-3 py-1 rounded-full">
-                    {yearRangeLabel(circle.join_birth_year_min, circle.join_birth_year_max)}
-                  </span>
-                )}
                 {circle.join_verified_only && (
                   <span className="text-xs bg-blue-50 text-blue-600 px-3 py-1 rounded-full inline-flex items-center">
                     Akun terverifikasi
@@ -1146,7 +1141,10 @@ export default function CircleDetailPage() {
                         }`}
                       >
                         {!isMine && (
-                          <p className="text-xs font-semibold mb-1 opacity-70">{c.profile?.full_name}</p>
+                          <p className="text-xs font-semibold mb-1 opacity-70 flex items-center">
+                            {c.profile?.full_name}
+                            <VerifiedBadge show={c.profile?.is_verified} size={13} />
+                          </p>
                         )}
                         <p className="text-sm whitespace-pre-wrap break-words">{c.message}</p>
                       </div>

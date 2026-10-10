@@ -15,19 +15,22 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savingReg, setSavingReg] = useState(false);
+  const [donationUrl, setDonationUrl] = useState("");
+  const [savingDonation, setSavingDonation] = useState(false);
 
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase
         .from("app_settings")
         .select("key,value")
-        .in("key", ["circle_plus_enabled", "registration_limit_enabled", "registration_limit_count", "maintenance_mode"]);
+        .in("key", ["circle_plus_enabled", "registration_limit_enabled", "registration_limit_count", "maintenance_mode", "donation_url"]);
       const map: Record<string, string> = {};
       data?.forEach((row) => (map[row.key] = row.value));
       setCirclePlusEnabled(map.circle_plus_enabled !== "false");
       setMaintenanceMode(map.maintenance_mode === "true");
       setRegLimitEnabled(map.registration_limit_enabled === "true");
       setRegLimitCount(map.registration_limit_count ?? "1000");
+      setDonationUrl(map.donation_url ?? "");
       setLoading(false);
     };
     load();
@@ -82,6 +85,22 @@ export default function AdminSettingsPage() {
       return;
     }
     toast.success(`Kuota pendaftar disimpan: ${n} user.`);
+  };
+
+  const handleSaveDonation = async () => {
+    const v = donationUrl.trim();
+    if (v && !/^https:\/\//i.test(v)) {
+      toast.error("Link harus diawali https://");
+      return;
+    }
+    setSavingDonation(true);
+    const { error } = await supabase.from("app_settings").upsert({ key: "donation_url", value: v });
+    setSavingDonation(false);
+    if (error) {
+      toast.error("Gagal menyimpan link donasi: " + error.message);
+      return;
+    }
+    toast.success(v ? "Link donasi disimpan." : "Link dikosongkan, menu donasi disembunyikan.");
   };
 
   if (loading) return <p className="text-gray-400">Memuat...</p>;
@@ -145,6 +164,32 @@ export default function AdminSettingsPage() {
           <button
             onClick={handleSaveRegLimitCount}
             disabled={savingReg}
+            className="bg-primary text-white px-4 py-2 rounded-xl text-sm shrink-0"
+          >
+            Simpan
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border p-4 space-y-3">
+        <div>
+          <p className="font-medium">Link Donasi</p>
+          <p className="text-sm text-gray-400">
+            Link Saweria / Trakteer / dll (wajib https://). Tampil di menu Akun sebagai &quot;Dukung Developer&quot;.
+            Kosongkan untuk menyembunyikan.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="url"
+            value={donationUrl}
+            onChange={(e) => setDonationUrl(e.target.value)}
+            className="border rounded-xl px-4 py-2 w-full"
+            placeholder="https://saweria.co/namamu"
+          />
+          <button
+            onClick={handleSaveDonation}
+            disabled={savingDonation}
             className="bg-primary text-white px-4 py-2 rounded-xl text-sm shrink-0"
           >
             Simpan

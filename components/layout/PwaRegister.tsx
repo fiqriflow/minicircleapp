@@ -3,10 +3,12 @@
 import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { subscribeToPush, isPushOptedOut } from "@/lib/push";
+import { initPwaInstall } from "@/lib/pwaInstall";
 
 export default function PwaRegister() {
   useEffect(() => {
     if (typeof window === "undefined") return;
+    initPwaInstall();
     if (!("serviceWorker" in navigator)) return;
 
     let cancelled = false;

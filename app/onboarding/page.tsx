@@ -133,8 +133,20 @@ export default function OnboardingPage() {
   if (!profile) return <p className="p-6 text-gray-400 text-center">Memuat...</p>;
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 py-10">
-      <div className="w-full max-w-md space-y-6">
+    <div className="relative overflow-hidden min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 py-10">
+      {/* Ilustrasi bawah (dekoratif, tidak menghalangi klik) */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md h-[330px] overflow-hidden"
+      >
+        <img
+          src="/bgbawah.svg"
+          alt=""
+          className="absolute bottom-0 right-0 w-[80%] translate-y-[28%] select-none"
+        />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md space-y-6">
         <button
           onClick={handleBackToLogin}
           className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1"

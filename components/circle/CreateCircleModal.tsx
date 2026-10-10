@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { GENERATIONS, generationKey } from "@/lib/joinFilters";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { X } from "lucide-react";
@@ -324,8 +323,9 @@ export default function CreateCircleModal({
       payload.requires_approval = form.requires_approval;
       // filter peserta (juga dijaga di DB, migration 0047)
       payload.join_gender = form.join_gender || null;
-      payload.join_birth_year_min = form.join_birth_year_min;
-      payload.join_birth_year_max = form.join_birth_year_max;
+      // filter generasi dihapus: pastikan selalu kosong (juga membersihkan circle lama saat diedit)
+      payload.join_birth_year_min = null;
+      payload.join_birth_year_max = null;
       payload.join_verified_only = form.join_verified_only;
       payload.join_question = form.requires_approval ? form.join_question.trim().slice(0, 200) || null : null;
     }
@@ -726,27 +726,6 @@ export default function CreateCircleModal({
                 <option value="">Semua gender</option>
                 <option value="female">Khusus perempuan</option>
                 <option value="male">Khusus laki-laki</option>
-              </select>
-              <select
-                className="w-full border rounded-xl px-3 py-2 bg-white"
-                value={generationKey(form.join_birth_year_min, form.join_birth_year_max)}
-                onChange={(e) => {
-                  const g = GENERATIONS.find((x) => x.key === e.target.value);
-                  if (e.target.value === "custom") return;
-                  setForm({ ...form, join_birth_year_min: g?.min ?? null, join_birth_year_max: g?.max ?? null });
-                }}
-              >
-                <option value="">Semua usia</option>
-                {GENERATIONS.map((g) => (
-                  <option key={g.key} value={g.key}>
-                    {g.label}
-                  </option>
-                ))}
-                {generationKey(form.join_birth_year_min, form.join_birth_year_max) === "custom" && (
-                  <option value="custom">
-                    Rentang khusus ({form.join_birth_year_min ?? "…"}–{form.join_birth_year_max ?? "…"})
-                  </option>
-                )}
               </select>
               <label className="flex items-center gap-2 text-sm">
                 <input

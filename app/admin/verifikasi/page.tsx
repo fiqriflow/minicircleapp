@@ -18,10 +18,10 @@ export default function AdminVerifikasiPage() {
   const verifiedPg = usePagination(verified);
 
   const load = async () => {
-    const [{ data: req }, { data: ver }] = await Promise.all([
+    const [{ data: req, error: reqErr }, { data: ver }] = await Promise.all([
       supabase
         .from("verification_requests")
-        .select("id, user_id, code, instagram, created_at, profile:profiles(full_name, nickname, avatar_url)")
+        .select("id, user_id, code, instagram, created_at, profile:profiles!user_id(full_name, nickname, avatar_url)")
         .eq("status", "pending")
         .order("created_at", { ascending: true }),
       supabase
@@ -30,6 +30,7 @@ export default function AdminVerifikasiPage() {
         .eq("is_verified", true)
         .order("verified_at", { ascending: false }),
     ]);
+    if (reqErr) toast.error("Gagal memuat antrian: " + reqErr.message);
     setPending(req ?? []);
     setVerified(ver ?? []);
     setLoading(false);
