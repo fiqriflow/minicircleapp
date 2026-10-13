@@ -3,10 +3,12 @@
 export const INITIAL_ENERGY = 1000;
 export const DAILY_ENERGY_BONUS = 100;
 export const ENERGY_COST = {
-  join: 1,
-  create: 10,
+  join: 10,
+  create: 50,
   createPlus: 100,
 } as const;
+/** Penalti tidak check-in (potong energi saat circle selesai). Harus sama dengan migration 0063. */
+export const NO_SHOW_PENALTY = 10;
 
 export type EnergyInfo = {
   energy: number;

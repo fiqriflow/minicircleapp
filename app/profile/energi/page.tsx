@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { DAILY_ENERGY_BONUS, ENERGY_COST, getMyEnergy, getNextBonusLabel } from "@/lib/energy";
+import { DAILY_ENERGY_BONUS, ENERGY_COST, NO_SHOW_PENALTY, getMyEnergy, getNextBonusLabel } from "@/lib/energy";
 
 type Row = { id: number; delta: number; balance: number; reason: string; created_at: string };
 
@@ -150,7 +150,7 @@ export default function EnergiPage() {
           <li>Join circle: -{ENERGY_COST.join}</li>
           <li>Buat circle: -{ENERGY_COST.create}</li>
           <li>Buat circle plus: -{ENERGY_COST.createPlus}</li>
-          <li>Tidak check-in di circle yang diikuti: -1</li>
+          <li>Tidak check-in di circle yang diikuti: -{NO_SHOW_PENALTY}</li>
           <li>
             Bonus +{DAILY_ENERGY_BONUS} tiap hari 00.00 WIB, menumpuk (berikutnya {getNextBonusLabel()})
           </li>

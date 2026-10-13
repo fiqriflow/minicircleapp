@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { INITIAL_ENERGY, DAILY_ENERGY_BONUS, ENERGY_COST } from "@/lib/energy";
+import { INITIAL_ENERGY, DAILY_ENERGY_BONUS, ENERGY_COST, NO_SHOW_PENALTY } from "@/lib/energy";
 import { isPushSupported, subscribeToPush, setPushOptOut } from "@/lib/push";
 
 const FLAG_KEY = "mincle_show_welcome";
@@ -28,7 +28,7 @@ const SLIDES = [
   {
     emoji: "✅",
     title: "Check-in Itu Penting",
-    body: "Saat circle dimulai, tekan Check-in. Kalau lupa atau tidak hadir, energy kamu dikurangi 1 dan host bisa tahu.",
+    body: `Saat circle dimulai, tekan Check-in. Kalau lupa atau tidak hadir, energy kamu dikurangi ${NO_SHOW_PENALTY} dan host bisa tahu.`,
   },
 ];
 
