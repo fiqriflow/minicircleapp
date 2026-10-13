@@ -244,7 +244,7 @@ export default function AdminAvatarPage() {
   const handleDelete = async (item: AvatarPreset) => {
     if (
       !confirm(
-        `Hapus avatar "${item.name}"? User yang sedang memakainya akan kembali ke avatar default. Tidak bisa dikembalikan.`
+        `Hapus avatar "${item.name}" dari daftar pilihan? Foto profil user yang sudah memilihnya tidak berubah. Tidak bisa dikembalikan.`
       )
     )
       return;
@@ -255,7 +255,7 @@ export default function AdminAvatarPage() {
       setBusyId(null);
       return;
     }
-    await removeFile((path as string | null) ?? item.storage_path);
+    await removeFile(path as string | null); // null = masih dipakai profil lama, file dipertahankan
     setItems((prev) => prev.filter((i) => i.id !== item.id));
     setBusyId(null);
     toast.success("Avatar dihapus.");
