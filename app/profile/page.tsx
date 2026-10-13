@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User, HelpCircle, Info, ShieldCheck, LogOut, ChevronRight, BarChart3, MessageSquarePlus, FileText, Scale, Users2, BadgeCheck } from "lucide-react";
+import { User, HelpCircle, Info, ShieldCheck, LogOut, ChevronRight, BarChart3, MessageSquarePlus, FileText, Scale, Users2, BadgeCheck, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { unsubscribeFromPush } from "@/lib/push";
 import PushToggleRow from "@/components/profile/PushToggleRow";
@@ -75,6 +75,11 @@ export default function AccountMenuPage() {
           <Link href="/profile/statistik" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
             <BarChart3 size={18} className="text-gray-400" />
             <span className="flex-1 text-sm font-medium">Statistik</span>
+            <ChevronRight size={16} className="text-gray-300" />
+          </Link>
+          <Link href="/profile/energi" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50">
+            <Zap size={18} className="text-gray-400" />
+            <span className="flex-1 text-sm font-medium">Rincian Energi</span>
             <ChevronRight size={16} className="text-gray-300" />
           </Link>
           <PushToggleRow />
