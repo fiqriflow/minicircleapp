@@ -11,8 +11,9 @@ const CATEGORY_COLORS: Record<string, string> = {
   Jogging: "#f97316", // orange
   Gowes: "#3b82f6", // blue
   "Jalan Santai": "#22c55e", // green
-  Kulineran: "#ef4444", // red
-  Ngopi: "#a16207", // brown
+  Renang: "#0ea5e9", // sky
+  Kulineran: "#ef4444", // red (kategori lama)
+  Ngopi: "#a16207", // brown (kategori lama)
   "Explore Alam": "#14b8a6", // teal
 };
 const FALLBACK_COLOR = "#9ca3af"; // gray, untuk kategori lain di luar daftar di atas

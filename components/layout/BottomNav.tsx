@@ -47,6 +47,7 @@ export default function BottomNav({ children }: { children: React.ReactNode }) {
     pathname === "/login" ||
     pathname === "/onboarding" ||
     pathname.startsWith("/circle/") ||
+    pathname === "/notifications" ||
     isProfileSubpage
   ) {
     return <main className="flex-1 overflow-y-auto">{children}</main>;

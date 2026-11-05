@@ -12,7 +12,7 @@ import DeleteAccountModal from "@/components/profile/DeleteAccountModal";
 import AvatarPresetPicker from "@/components/profile/AvatarPresetPicker";
 import { saveProfile } from "@/lib/profile";
 
-const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
+const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Renang", "Explore Alam"];
 
 function getMissingOptionalFields(profile: any) {
   const missing: string[] = [];

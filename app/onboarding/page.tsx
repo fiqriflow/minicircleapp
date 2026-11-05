@@ -11,7 +11,7 @@ import AvatarPresetPicker from "@/components/profile/AvatarPresetPicker";
 import { saveProfile } from "@/lib/profile";
 import { toast } from "sonner";
 
-const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
+const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Renang", "Explore Alam"];
 const TOTAL_STEPS = 5;
 
 // Harus sama dengan validasi di DB (migration 0050)

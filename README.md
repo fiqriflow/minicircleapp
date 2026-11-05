@@ -1,6 +1,6 @@
 # Mincle
 
-Aplikasi web/PWA untuk membentuk circle (tim kecil) beraktivitas bareng: Gowes, Jalan Santai, Jogging, Kulineran, Ngopi, Explore Alam, Motoran, dll.
+Aplikasi web/PWA untuk membentuk circle (tim kecil) beraktivitas bareng: Gowes, Jalan Santai, Jogging, Renang, Explore Alam, Motoran, dll.
 
 Stack: Next.js 16 (App Router) + React 19 + Tailwind 3 + Supabase + Vercel. Font: Nunito (self-host via `next/font`).
 
@@ -8,7 +8,7 @@ Stack: Next.js 16 (App Router) + React 19 + Tailwind 3 + Supabase + Vercel. Font
 
 1. **Supabase**
    - Buat project di supabase.com
-   - SQL Editor → jalankan semua file di `supabase/migrations/` **urut dari 0000 sampai 0064**. Detail: `supabase/README.md`
+   - SQL Editor → jalankan semua file di `supabase/migrations/` **urut dari 0000 sampai 0065**. Detail: `supabase/README.md`
    - Authentication → Providers → aktifkan **Google** (Client ID/Secret dari Google Cloud Console)
    - Authentication → URL Configuration → Redirect URL: `https://DOMAIN_KAMU/auth/callback` (dan `http://localhost:3000/auth/callback` untuk dev)
    - Jadikan 1 user super admin: `update profiles set is_super_admin = true where id = 'USER_UUID';`
@@ -26,6 +26,7 @@ Stack: Next.js 16 (App Router) + React 19 + Tailwind 3 + Supabase + Vercel. Font
    - Update Redirect URL Supabase ke domain produksi
 
 ## Struktur halaman
+- `/notifications` — halaman notifikasi (lonceng di header Beranda membuka halaman ini)
 - `/login` — Google SSO · `/onboarding` — lengkapi profil
 - `/` — Beranda · `/explore` (+ `/explore/categories`) — cari circle
 - `/my-circle` — circle yang dihost / diikuti / selesai
@@ -44,8 +45,8 @@ Stack: Next.js 16 (App Router) + React 19 + Tailwind 3 + Supabase + Vercel. Font
 
 ## Sistem energy
 Saldo kredit. Angka di `lib/energy.ts` harus sama dengan migration (DB yang menegakkan).
-- Akun baru 1000 · bonus harian +100 (00.00 WIB, menumpuk)
-- Join circle -10 · buat circle -50 · buat circle plus -100 · tidak check-in -10
+- Akun baru 1000 · reset mingguan: tiap Senin 00.00 WIB saldo di-set jadi 1000 (sisa lama hangus, tidak menumpuk)
+- Join circle -100 · buat circle -100 · buat circle plus -200 · pelanggaran (tidak check-in) -50
 - Riwayat tercatat di `energy_ledger` (migration 0062)
 
 ## UI (gaya Duolingo)
@@ -83,5 +84,6 @@ Sudah dipakai di:
 - Chat circle bisa ditingkatkan pakai `supabase.channel()` supaya auto-update tanpa reload
 
 ## Changelog
+- **Kategori, energy mingguan, halaman notifikasi** (migration 0065): kategori Kulineran & Ngopi dihapus dari pilihan, ditambah Renang (circle lama berkategori Kulineran/Ngopi tetap tersimpan, hanya muncul di filter "Semua"); energy di-reset ke 1000 tiap Senin 00.00 WIB, biaya join -100 / buat -100 / plus -200 / pelanggaran -50; notifikasi pindah dari dropdown ke halaman `/notifications` (filter Semua/Belum dibaca, tandai dibaca, hapus), lonceng tinggal badge
 - **Duolingo ke seluruh app + optimistic UI**: gaya global tombol/kartu/input/tab/toggle/toast, `lib/optimistic.ts`, optimistic di circle, notifikasi, profil, masukan, energy badge
 - **UI Duolingo + navigasi cepat**: font Nunito, tombol/kartu chunky, bottom nav gaya Duolingo, transisi halaman cepat, skeleton per rute, `getClaims()` di proxy, splash lebih singkat

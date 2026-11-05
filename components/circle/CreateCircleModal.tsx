@@ -11,7 +11,7 @@ import { toDateValue, toTimeValue, combineDateTime } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/ui/LocationInput";
 import { ENERGY_COST, getMyEnergy, mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
 
-const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Kulineran", "Ngopi", "Explore Alam"];
+const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Renang", "Explore Alam"];
 
 export default function CreateCircleModal({
   circleType,

@@ -67,3 +67,19 @@ export async function deleteNotification(supabase: any, notificationId: string) 
 export async function refreshFinishReminders(supabase: any) {
   await supabase.rpc("remind_unfinished_circles");
 }
+
+// Event antar-komponen: halaman /notifications memberi tahu lonceng di header supaya badge ikut berubah.
+export const NOTIF_CHANGED_EVENT = "notifications-changed";
+export function notifyNotificationsChanged() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(NOTIF_CHANGED_EVENT));
+}
+
+export async function getUnreadCount(supabase: any, userId: string): Promise<number> {
+  const { count } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("is_read", false);
+  return count ?? 0;
+}
