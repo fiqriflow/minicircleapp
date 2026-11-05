@@ -112,24 +112,24 @@ function MyCircleContent() {
 
   return (
     <div className="px-4 py-6 space-y-6">
-      <h1 className="text-xl font-bold">My Circle</h1>
+      <h1 className="text-2xl font-extrabold">My Circle</h1>
 
-      <div className="flex border-b">
+      <div className="flex gap-2">
         <button
           onClick={() => changeTab("host")}
-          className={`flex-1 py-2 font-medium text-sm ${tab === "host" ? "border-b-2 border-primary text-primary" : "text-gray-400"}`}
+          className={`flex-1 py-2 px-1 font-bold text-xs rounded-xl border-2 border-b-4 ${tab === "host" ? "bg-primary/10 border-primary text-primary" : "bg-white border-gray-200 text-gray-400"}`}
         >
           Host ({hosted.length})
         </button>
         <button
           onClick={() => changeTab("active")}
-          className={`flex-1 py-2 font-medium text-sm ${tab === "active" ? "border-b-2 border-primary text-primary" : "text-gray-400"}`}
+          className={`flex-1 py-2 px-1 font-bold text-xs rounded-xl border-2 border-b-4 ${tab === "active" ? "bg-primary/10 border-primary text-primary" : "bg-white border-gray-200 text-gray-400"}`}
         >
           Sedang Diikuti ({active.length})
         </button>
         <button
           onClick={() => changeTab("completed")}
-          className={`flex-1 py-2 font-medium text-sm ${tab === "completed" ? "border-b-2 border-primary text-primary" : "text-gray-400"}`}
+          className={`flex-1 py-2 px-1 font-bold text-xs rounded-xl border-2 border-b-4 ${tab === "completed" ? "bg-primary/10 border-primary text-primary" : "bg-white border-gray-200 text-gray-400"}`}
         >
           Selesai ({completed.length})
         </button>

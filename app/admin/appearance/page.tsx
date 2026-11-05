@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { extractStoragePath } from "@/lib/storagePath";
 import { compressImage, LONG_CACHE } from "@/lib/imageCompress";
 
-const CATEGORIES = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
+const CATEGORIES = ["Gowes", "Jalan Santai", "Jogging", "Renang", "Explore Alam"];
 
 export default function AdminAppearancePage() {
   const supabase = createClient();

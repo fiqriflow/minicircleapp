@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Bell } from "lucide-react";
 import { toast } from "sonner";
 import ToggleSwitch from "@/components/ui/ToggleSwitch";
+import { optimistic } from "@/lib/optimistic";
 import { isPushSupported, subscribeToPush, unsubscribeFromPush, setPushOptOut } from "@/lib/push";
 
 type Status = "loading" | "unsupported" | "denied" | "on" | "off";
@@ -40,10 +41,26 @@ export default function PushToggleRow() {
     setBusy(true);
     try {
       if (status === "on") {
-        setPushOptOut(true);
-        await unsubscribeFromPush();
-        setStatus("off");
-        toast.success("Notifikasi dimatikan di perangkat ini");
+        // OPTIMISTIC: toggle langsung mati; gagal -> menyala lagi. (Menyalakan TIDAK optimistic: butuh izin browser.)
+        await optimistic({
+          apply: () => {
+            setStatus("off");
+            return () => {
+              setStatus("on");
+              setPushOptOut(false);
+            };
+          },
+          run: async (): Promise<{ error: { message?: string } | null }> => {
+            setPushOptOut(true);
+            await unsubscribeFromPush();
+            return { error: null };
+          },
+          onSuccess: () => toast.success("Notifikasi dimatikan di perangkat ini"),
+          onError: () => {
+            toast.error("Gagal mematikan notifikasi, coba lagi");
+            return true;
+          },
+        });
         return;
       }
       // dipanggil dari tap user -> aman untuk iOS

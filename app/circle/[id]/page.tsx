@@ -5,7 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { MoreVertical, Link as LinkIcon, Trash2, ArrowLeft, Tag, MapPin, Crosshair, CalendarDays, Users, Flag, Share2, Megaphone, Copy, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
+import { ENERGY_COST, mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
+import { optimistic, tempId } from "@/lib/optimistic";
 import MemberProfileModal from "@/components/circle/MemberProfileModal";
 import JoinQuestionModal from "@/components/circle/JoinQuestionModal";
 import ReportModal from "@/components/circle/ReportModal";
@@ -17,7 +18,7 @@ import { markCommentNotifRead } from "@/lib/notifications";
 import CreateCircleModal from "@/components/circle/CreateCircleModal";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { hasJoinFilters } from "@/lib/joinFilters";
-import { PUBLIC_PROFILE_COLUMNS, isProfileIncompleteError } from "@/lib/profile";
+import { PUBLIC_PROFILE_COLUMNS, fetchMemberExtras, isProfileIncompleteError } from "@/lib/profile";
 import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
 
 export default function CircleDetailPage() {
@@ -46,12 +47,32 @@ export default function CircleDetailPage() {
   const [joinedCount, setJoinedCount] = useState(0);
   const [notFound, setNotFound] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [sendingComment, setSendingComment] = useState(false);
+  // profil sendiri: dipakai untuk baris sementara saat optimistic join / kirim komentar / pengumuman
+  const [myProfile, setMyProfile] = useState<any>(null);
   const chatBoxRef = useRef<HTMLDivElement>(null);
   const [showViewerMenu, setShowViewerMenu] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ type: "circle" | "user"; name?: string; userId?: string } | null>(
     null
   );
+
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .rpc("get_my_profile")
+      .maybeSingle()
+      .then(({ data }) => setMyProfile(data));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  // Modal langsung tampil dengan data publik; gender/IG/kota (hanya sesama circle) menyusul dari RPC.
+  const openMemberProfile = (profile: any) => {
+    setSelectedMember(profile);
+    if (!profile?.id) return;
+    fetchMemberExtras(supabase, profile.id).then((extras) => {
+      if (!extras) return;
+      setSelectedMember((cur: any) => (cur && cur.id === profile.id ? { ...cur, ...extras } : cur));
+    });
+  };
 
   const isJoined = myStatus === "joined";
   const isHost = !!(userId && circle && userId === circle.created_by);
@@ -174,7 +195,7 @@ export default function CircleDetailPage() {
     const poll = async () => {
       if (typeof document !== "undefined" && document.hidden) return;
       loadAnnouncement();
-      const last = commentsRef.current[commentsRef.current.length - 1]?.created_at;
+      const last = commentsRef.current.filter((c) => !c.pending).slice(-1)[0]?.created_at;
       let q = supabase
         .from("circle_comments")
         .select("*, profile:profiles(full_name, avatar_url, is_verified)")
@@ -205,35 +226,68 @@ export default function CircleDetailPage() {
 
   const doJoin = async (answer?: string) => {
     if (!userId) return;
-    // re-check slot langsung sebelum insert (hindari race condition/slot penuh)
-    const { count } = await supabase
-      .from("circle_members")
-      .select("id", { count: "exact", head: true })
-      .eq("circle_id", id)
-      .eq("status", "joined");
-    if (isCircleFull(count ?? 0, circle.max_participants)) {
-      toast.error("Slot circle ini sudah penuh.");
-      load();
-      return;
-    }
-    const { error: joinError } = await supabase.from("circle_members").insert({
+    const needsApproval = !!circle.requires_approval;
+    const prev = { status: myStatus, members, count: joinedCount };
+    const meRow = {
+      id: tempId(),
       circle_id: id,
       user_id: userId,
-      status: circle.requires_approval ? "pending" : "joined",
-      join_answer: answer ?? null,
+      status: "joined",
+      checked_in: false,
+      is_co_host: false,
+      profile: myProfile ?? { full_name: "Kamu" },
+    };
+    // OPTIMISTIC: status, line up, slot, dan saldo energy langsung berubah; server menyusul
+    await optimistic({
+      apply: () => {
+        setMyStatus(needsApproval ? "pending" : "joined");
+        if (!needsApproval) {
+          setMembers((m) => [...m, meRow]);
+          setJoinedCount((c) => c + 1);
+        }
+        notifyEnergyChanged({ delta: -ENERGY_COST.join });
+        return () => {
+          setMyStatus(prev.status);
+          setMembers(prev.members);
+          setJoinedCount(prev.count);
+        };
+      },
+      run: async (): Promise<{ error: { message?: string } | null }> => {
+        // re-check slot langsung sebelum insert (hindari race condition/slot penuh)
+        const { count } = await supabase
+          .from("circle_members")
+          .select("id", { count: "exact", head: true })
+          .eq("circle_id", id)
+          .eq("status", "joined");
+        if (isCircleFull(count ?? 0, circle.max_participants)) {
+          return { error: { message: "Slot circle ini sudah penuh." } };
+        }
+        const { error } = await supabase.from("circle_members").insert({
+          circle_id: id,
+          user_id: userId,
+          status: needsApproval ? "pending" : "joined",
+          join_answer: answer ?? null,
+        });
+        return { error };
+      },
+      onError: (res) => {
+        const msg = res?.error?.message ?? "";
+        if (isProfileIncompleteError(msg)) {
+          toast.error(msg);
+          router.push("/profile/data-user");
+          return true;
+        }
+        toast.error(mapEnergyError(msg) ?? (msg || "Koneksi bermasalah, coba lagi."));
+        return true;
+      },
+      onSuccess: () =>
+        toast.success(needsApproval ? "Permintaan join terkirim, menunggu persetujuan host." : "Berhasil join circle!"),
+      // sinkron ulang dengan data asli (saldo energy, daftar member, slot)
+      onSettled: () => {
+        notifyEnergyChanged();
+        load();
+      },
     });
-    if (joinError) {
-      if (isProfileIncompleteError(joinError.message)) {
-        toast.error(joinError.message);
-        router.push("/profile/data-user");
-        return;
-      }
-      toast.error(mapEnergyError(joinError.message) ?? joinError.message);
-      return;
-    }
-    notifyEnergyChanged();
-    toast.success(circle.requires_approval ? "Permintaan join terkirim, menunggu persetujuan host." : "Berhasil join circle!");
-    load();
   };
 
   const handleJoinToggle = () => {
@@ -257,151 +311,268 @@ export default function CircleDetailPage() {
   const confirmLeave = async () => {
     setConfirmAction(null);
     const wasPending = myStatus === "pending";
-    const { data, error } = await supabase
-      .from("circle_members")
-      .delete()
-      .eq("circle_id", id)
-      .eq("user_id", userId)
-      .select("id");
-    if (error || !data || data.length === 0) {
-      toast.error(error?.message ?? "Tidak bisa batal join: circle sudah berlangsung atau selesai.");
-      load();
-      return;
-    }
-    toast.success(wasPending ? "Permintaan join dibatalkan." : "Berhasil batal join circle.");
-    load();
+    const prev = { status: myStatus, members, count: joinedCount };
+    await optimistic({
+      apply: () => {
+        setMyStatus(null);
+        if (!wasPending) {
+          setMembers((m) => m.filter((x) => x.user_id !== userId));
+          setJoinedCount((c) => Math.max(0, c - 1));
+        }
+        return () => {
+          setMyStatus(prev.status);
+          setMembers(prev.members);
+          setJoinedCount(prev.count);
+        };
+      },
+      run: async (): Promise<{ error: { message?: string } | null }> => {
+        const { data, error } = await supabase
+          .from("circle_members")
+          .delete()
+          .eq("circle_id", id)
+          .eq("user_id", userId)
+          .select("id");
+        if (error) return { error };
+        if (!data || data.length === 0) {
+          return { error: { message: "Tidak bisa batal join: circle sudah berlangsung atau selesai." } };
+        }
+        return { error: null };
+      },
+      onSuccess: () => toast.success(wasPending ? "Permintaan join dibatalkan." : "Berhasil batal join circle."),
+      onSettled: () => load(),
+    });
   };
 
   const handleApprove = async (memberId: string) => {
-    const { data, error } = await supabase
-      .from("circle_members")
-      .update({ status: "joined" })
-      .eq("id", memberId)
-      .select("id");
-    if (error || !data || data.length === 0) {
-      toast.error(error?.message ?? "Gagal menerima permintaan join.");
-    } else {
-      toast.success("Permintaan join diterima.");
-    }
-    load();
+    const target = pendingMembers.find((x) => x.id === memberId);
+    if (!target) return;
+    const prev = { pending: pendingMembers, members, count: joinedCount };
+    await optimistic({
+      apply: () => {
+        setPendingMembers((p) => p.filter((x) => x.id !== memberId));
+        setMembers((m) => [...m, { ...target, status: "joined" }]);
+        setJoinedCount((c) => c + 1);
+        return () => {
+          setPendingMembers(prev.pending);
+          setMembers(prev.members);
+          setJoinedCount(prev.count);
+        };
+      },
+      run: async (): Promise<{ error: { message?: string } | null }> => {
+        const { data, error } = await supabase
+          .from("circle_members")
+          .update({ status: "joined" })
+          .eq("id", memberId)
+          .select("id");
+        if (error) return { error };
+        if (!data || data.length === 0) return { error: { message: "Gagal menerima permintaan join." } };
+        return { error: null };
+      },
+      onSuccess: () => toast.success("Permintaan join diterima."),
+      onSettled: () => load(),
+    });
   };
 
   const handleReject = async (memberId: string) => {
-    const { data, error } = await supabase.from("circle_members").delete().eq("id", memberId).select("id");
-    if (error || !data || data.length === 0) {
-      toast.error(error?.message ?? "Gagal menolak permintaan join.");
-    } else {
-      toast.success("Permintaan join ditolak.");
-    }
-    load();
+    const prevPending = pendingMembers;
+    await optimistic({
+      apply: () => {
+        setPendingMembers((p) => p.filter((x) => x.id !== memberId));
+        return () => setPendingMembers(prevPending);
+      },
+      run: async (): Promise<{ error: { message?: string } | null }> => {
+        const { data, error } = await supabase.from("circle_members").delete().eq("id", memberId).select("id");
+        if (error) return { error };
+        if (!data || data.length === 0) return { error: { message: "Gagal menolak permintaan join." } };
+        return { error: null };
+      },
+      onSuccess: () => toast.success("Permintaan join ditolak."),
+      onSettled: () => load(),
+    });
   };
 
   const handleCheckin = async (memberRowId: string) => {
-    const { data, error } = await supabase
-      .from("circle_members")
-      .update({ checked_in: true, checked_in_at: new Date().toISOString() })
-      .eq("id", memberRowId)
-      .select("id");
-    // RLS yang menolak UPDATE tidak memberi error, hanya 0 baris -> jangan klaim sukses
-    if (error || !data || data.length === 0) {
-      toast.error("Gagal check-in" + (error ? ": " + error.message : ". Check-in belum dibuka atau circle sudah selesai."));
-      load();
-      return;
-    }
-    toast.success("Check-in berhasil!");
-    load();
+    const prevMembers = members;
+    const at = new Date().toISOString();
+    await optimistic({
+      apply: () => {
+        setMembers((m) => m.map((x) => (x.id === memberRowId ? { ...x, checked_in: true, checked_in_at: at } : x)));
+        return () => setMembers(prevMembers);
+      },
+      run: async (): Promise<{ error: { message?: string } | null }> => {
+        const { data, error } = await supabase
+          .from("circle_members")
+          .update({ checked_in: true, checked_in_at: at })
+          .eq("id", memberRowId)
+          .select("id");
+        if (error) return { error };
+        // RLS yang menolak UPDATE tidak memberi error, hanya 0 baris -> jangan klaim sukses
+        if (!data || data.length === 0) {
+          return { error: { message: "Check-in belum dibuka atau circle sudah selesai." } };
+        }
+        return { error: null };
+      },
+      errorMessage: (r) => "Gagal check-in: " + (r.error?.message ?? ""),
+      onSuccess: () => toast.success("Check-in berhasil!"),
+      onSettled: () => load(),
+    });
   };
 
   const handleToggleCoHost = async (m: any) => {
     const next = !m.is_co_host;
     const name = m.profile?.nickname || m.profile?.full_name || "member ini";
     if (!window.confirm(next ? `Jadikan ${name} co host? Dia bisa terima/tolak permintaan join dan koreksi kehadiran.` : `Cabut peran co host ${name}?`)) return;
-    const { error } = await supabase.rpc("set_circle_co_host", { p_member_row_id: m.id, p_value: next });
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success(next ? "Co host ditunjuk." : "Co host dicabut.");
-    load();
+    const prevMembers = members;
+    await optimistic({
+      apply: () => {
+        setMembers((ms) => ms.map((x) => (x.id === m.id ? { ...x, is_co_host: next } : x)));
+        return () => setMembers(prevMembers);
+      },
+      run: () => supabase.rpc("set_circle_co_host", { p_member_row_id: m.id, p_value: next }),
+      onSuccess: () => toast.success(next ? "Co host ditunjuk." : "Co host dicabut."),
+      onSettled: () => load(),
+    });
   };
 
   const handleToggleCheckinHost = async (m: any) => {
-    const { error } = await supabase.rpc("host_set_checkin", {
-      p_member_row_id: m.id,
-      p_checked_in: !m.checked_in,
+    const prevMembers = members;
+    const next = !m.checked_in;
+    await optimistic({
+      apply: () => {
+        setMembers((ms) => ms.map((x) => (x.id === m.id ? { ...x, checked_in: next } : x)));
+        return () => setMembers(prevMembers);
+      },
+      run: () => supabase.rpc("host_set_checkin", { p_member_row_id: m.id, p_checked_in: next }),
+      errorMessage: (r) => "Gagal ubah status hadir: " + (r.error?.message ?? ""),
+      onSettled: () => load(),
     });
-    if (error) {
-      toast.error("Gagal ubah status hadir: " + error.message);
-      return;
-    }
-    load();
   };
 
   const handlePostAnnouncement = async () => {
     const msg = announceText.trim();
     if (!msg || postingAnnouncement) return;
     setPostingAnnouncement(true);
-    const { error } = await supabase.rpc("post_circle_announcement", { p_circle_id: id, p_message: msg });
-    setPostingAnnouncement(false);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    toast.success("Pengumuman di-pin & dikirim ke semua member.");
-    setAnnounceText("");
-    setShowAnnounceForm(false);
-    loadAnnouncement();
+    const prevAnn = announcement;
+    await optimistic({
+      apply: () => {
+        // pengumuman langsung tampil ter-pin, form menutup; kalau gagal semuanya dikembalikan (teks tidak hilang)
+        setAnnouncement({
+          id: tempId(),
+          message: msg,
+          created_at: new Date().toISOString(),
+          author: myProfile ? { nickname: myProfile.nickname, full_name: myProfile.full_name } : null,
+        });
+        setAnnounceText("");
+        setShowAnnounceForm(false);
+        return () => {
+          setAnnouncement(prevAnn);
+          setAnnounceText(msg);
+          setShowAnnounceForm(true);
+        };
+      },
+      run: () => supabase.rpc("post_circle_announcement", { p_circle_id: id, p_message: msg }),
+      onSuccess: () => toast.success("Pengumuman di-pin & dikirim ke semua member."),
+      onSettled: (ok) => {
+        setPostingAnnouncement(false);
+        if (ok) loadAnnouncement();
+      },
+    });
   };
 
   const handleUnpinAnnouncement = async () => {
-    const { error } = await supabase.rpc("unpin_circle_announcement", { p_circle_id: id });
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    setAnnouncement(null);
+    const prevAnn = announcement;
+    await optimistic({
+      apply: () => {
+        setAnnouncement(null);
+        return () => setAnnouncement(prevAnn);
+      },
+      run: () => supabase.rpc("unpin_circle_announcement", { p_circle_id: id }),
+    });
   };
 
   const handleSendComment = async () => {
     const message = newComment.trim();
-    if (!message || !userId || isCommentLocked || sendingComment) return;
-    setSendingComment(true);
-    const { data, error } = await supabase
-      .from("circle_comments")
-      .insert({ circle_id: id, user_id: userId, message })
-      .select("*, profile:profiles(full_name, avatar_url, is_verified)")
-      .single();
-    setSendingComment(false);
-    if (error) {
-      // input tidak dikosongkan supaya pesan tidak hilang
-      toast.error(error.message || "Gagal mengirim komentar.");
-      return;
-    }
-    setNewComment("");
-    if (data) setComments((prev) => (prev.some((c) => c.id === data.id) ? prev : [...prev, data]));
+    if (!message || !userId || isCommentLocked) return;
+    // komentar langsung muncul (redup) & kolom input langsung kosong; diganti data asli setelah server menjawab
+    const tmp = {
+      id: tempId(),
+      circle_id: id,
+      user_id: userId,
+      message,
+      created_at: new Date().toISOString(),
+      pending: true,
+      profile: myProfile ?? { full_name: "Kamu" },
+    };
+    await optimistic({
+      apply: () => {
+        setComments((prev) => [...prev, tmp]);
+        setNewComment("");
+        return () => {
+          setComments((prev) => prev.filter((c) => c.id !== tmp.id));
+          // pesan dikembalikan ke kolom input supaya tidak hilang (kecuali user sudah mengetik yang baru)
+          setNewComment((cur) => cur || message);
+        };
+      },
+      run: async (): Promise<{ error: { message?: string } | null; data?: any }> => {
+        const { data, error } = await supabase
+          .from("circle_comments")
+          .insert({ circle_id: id, user_id: userId, message })
+          .select("*, profile:profiles(full_name, avatar_url, is_verified)")
+          .single();
+        return { error, data };
+      },
+      errorMessage: (r) => r.error?.message || "Gagal mengirim komentar.",
+      onSuccess: (r) => {
+        const real = r.data;
+        setComments((prev) => {
+          const rest = prev.filter((c) => c.id !== tmp.id);
+          return real && !rest.some((c) => c.id === real.id) ? [...rest, real] : rest;
+        });
+      },
+    });
   };
 
   const handleSetStatus = async (status: string) => {
-    const { error } = await supabase.from("circles").update({ status }).eq("id", id);
-    if (error) toast.error(error.message);
     setShowHostMenu(false);
-    load();
+    const prev = circle;
+    await optimistic({
+      apply: () => {
+        setCircle((c: any) => ({ ...c, status }));
+        return () => setCircle(prev);
+      },
+      run: async () => supabase.from("circles").update({ status }).eq("id", id),
+      onSettled: () => load(),
+    });
   };
 
   const handleStartCircle = async () => {
-    // waktu mulai dicap server (trigger guard_circle_write)
-    const { error } = await supabase.from("circles").update({ started_at: new Date().toISOString() }).eq("id", id);
-    if (error) toast.error(error.message);
-    else toast.success("Circle ditandai mulai.");
     setShowHostMenu(false);
-    load();
+    const prev = circle;
+    const startedAt = new Date().toISOString();
+    // waktu mulai dicap server (trigger guard_circle_write)
+    await optimistic({
+      apply: () => {
+        setCircle((c: any) => ({ ...c, started_at: startedAt }));
+        return () => setCircle(prev);
+      },
+      run: async () => supabase.from("circles").update({ started_at: startedAt }).eq("id", id),
+      onSuccess: () => toast.success("Circle ditandai mulai."),
+      onSettled: () => load(),
+    });
   };
 
   const handleToggleApproval = async () => {
-    const { error } = await supabase.from("circles").update({ requires_approval: !circle.requires_approval }).eq("id", id);
-    if (error) toast.error(error.message);
     setShowHostMenu(false);
-    load();
+    const prev = circle;
+    const next = !circle.requires_approval;
+    await optimistic({
+      apply: () => {
+        setCircle((c: any) => ({ ...c, requires_approval: next }));
+        return () => setCircle(prev);
+      },
+      run: async () => supabase.from("circles").update({ requires_approval: next }).eq("id", id),
+      onSettled: () => load(),
+    });
   };
 
   const handleCopyInvite = async () => {
@@ -887,16 +1058,16 @@ export default function CircleDetailPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex border-b">
+      <div className="flex gap-2">
         <button
           onClick={() => setTab("detail")}
-          className={`flex-1 py-2 font-medium ${tab === "detail" ? "border-b-2 border-primary text-primary" : "text-gray-400"}`}
+          className={`flex-1 py-2 text-sm font-bold rounded-xl border-2 border-b-4 ${tab === "detail" ? "bg-primary/10 border-primary text-primary" : "bg-white border-gray-200 text-gray-400"}`}
         >
           Detail
         </button>
         <button
           onClick={() => setTab("lineup")}
-          className={`flex-1 py-2 font-medium ${tab === "lineup" ? "border-b-2 border-primary text-primary" : "text-gray-400"}`}
+          className={`flex-1 py-2 text-sm font-bold rounded-xl border-2 border-b-4 ${tab === "lineup" ? "bg-primary/10 border-primary text-primary" : "bg-white border-gray-200 text-gray-400"}`}
         >
           Line Up ({members.length})
         </button>
@@ -906,7 +1077,7 @@ export default function CircleDetailPage() {
             setHasNewComment(false);
             if (isHost && userId) markCommentNotifRead(supabase, userId, id);
           }}
-          className={`relative flex-1 py-2 font-medium ${tab === "chat" ? "border-b-2 border-primary text-primary" : "text-gray-400"}`}
+          className={`relative flex-1 py-2 text-sm font-bold rounded-xl border-2 border-b-4 ${tab === "chat" ? "bg-primary/10 border-primary text-primary" : "bg-white border-gray-200 text-gray-400"}`}
         >
           Komen Grup
           {hasNewComment && (
@@ -1021,7 +1192,7 @@ export default function CircleDetailPage() {
                 className="w-full flex items-center justify-between gap-3 border rounded-xl p-3"
               >
                 <button
-                  onClick={() => isJoined && setSelectedMember(m.profile)}
+                  onClick={() => isJoined && openMemberProfile(m.profile)}
                   className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 >
                   <img loading="lazy" decoding="async"
@@ -1134,10 +1305,12 @@ export default function CircleDetailPage() {
                 {comments.map((c) => {
                   const isMine = c.user_id === userId;
                   return (
-                    <div key={c.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                    <div key={c.id} className={`flex ${isMine ? "justify-end" : "justify-start"} ${c.pending ? "opacity-60" : ""}`}>
                       <div
-                        className={`max-w-[75%] rounded-2xl p-3 ${
-                          isMine ? "bg-primary text-white rounded-br-sm" : "bg-gray-100 text-gray-800 rounded-bl-sm"
+                        className={`max-w-[75%] rounded-2xl p-3 border-b-4 ${
+                          isMine
+                            ? "bg-primary text-white rounded-br-sm border-primary-edge"
+                            : "bg-white text-gray-800 rounded-bl-sm border-2 border-b-4 border-gray-200"
                         }`}
                       >
                         {!isMine && (
@@ -1170,10 +1343,10 @@ export default function CircleDetailPage() {
                   />
                   <button
                     onClick={handleSendComment}
-                    disabled={sendingComment}
-                    className="bg-primary text-white px-4 rounded-xl disabled:opacity-50"
+                    disabled={!newComment.trim()}
+                    className="bg-primary text-white px-4 rounded-xl font-bold disabled:opacity-50"
                   >
-                    {sendingComment ? "..." : "Kirim"}
+                    Kirim
                   </button>
                 </div>
               )}
@@ -1219,13 +1392,13 @@ export default function CircleDetailPage() {
         let content: React.ReactNode;
         if (displayStatus === "completed" || displayStatus === "cancelled") {
           content = (
-            <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+            <button disabled className="w-full rounded-xl py-3 font-bold bg-gray-100 text-gray-400 cursor-not-allowed">
               {displayStatus === "completed" ? "Circle sudah selesai" : "Circle dibatalkan"}
             </button>
           );
         } else if (displayStatus === "full" && !myStatus) {
           content = (
-            <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+            <button disabled className="w-full rounded-xl py-3 font-bold bg-gray-100 text-gray-400 cursor-not-allowed">
               Slot Penuh
             </button>
           );
@@ -1236,14 +1409,14 @@ export default function CircleDetailPage() {
         ) {
           // sama dengan guard DB (0057): setelah mulai, join hanya boleh kalau host mengizinkan (maks. 3 jam setelah jam mulai)
           content = (
-            <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+            <button disabled className="w-full rounded-xl py-3 font-bold bg-gray-100 text-gray-400 cursor-not-allowed">
               Pendaftaran Ditutup
             </button>
           );
         } else if (myStatus === "joined" && displayStatus === "ongoing") {
           // sama dengan policy DB (0054): tidak bisa batal join setelah circle dimulai
           content = (
-            <button disabled className="w-full rounded-xl py-3 font-medium bg-gray-100 text-gray-400 cursor-not-allowed">
+            <button disabled className="w-full rounded-xl py-3 font-bold bg-gray-100 text-gray-400 cursor-not-allowed">
               Circle Sedang Berlangsung
             </button>
           );
@@ -1251,7 +1424,7 @@ export default function CircleDetailPage() {
           content = (
             <button
               onClick={handleJoinToggle}
-              className={`w-full rounded-xl py-3 font-medium ${
+              className={`w-full rounded-xl py-3 font-bold ${
                 myStatus === "joined"
                   ? "bg-red-50 text-red-600 border border-red-300"
                   : myStatus === "pending"
@@ -1265,7 +1438,7 @@ export default function CircleDetailPage() {
         }
         return (
           <div className="fixed bottom-0 inset-x-0 flex justify-center z-40 pointer-events-none">
-            <div className="w-full max-w-[480px] bg-white border-t p-4 pointer-events-auto">{content}</div>
+            <div className="w-full max-w-[480px] bg-white border-t-2 border-gray-200 p-4 pointer-events-auto">{content}</div>
           </div>
         );
       })()}

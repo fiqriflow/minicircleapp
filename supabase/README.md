@@ -14,7 +14,7 @@ ke file berikutnya).
 0000_init_schema.sql          -> tabel inti (profiles, circles, dst)
 0001_storage_buckets.sql      -> bucket avatar & cover circle
 0002_username_login.sql       -> login pakai username
-0003 ... 0019                 -> fitur & perbaikan, urut sesuai tanggal dibuat
+0003 ... 0067                 -> fitur & perbaikan, urut sesuai tanggal dibuat
 ```
 
 Setelah semua jalan, jadikan 1 user sebagai super admin:

@@ -5,11 +5,11 @@ import { useEffect, useState } from "react";
 const SESSION_KEY = "mincle_splash_shown";
 
 // Timeline animasi (ms)
-const ICON_MS = 600; // roda logo masuk & settle
-const TEXT_DELAY = 380; // teks "mincle" mulai muncul (overlap dikit sama icon)
-const TEXT_MS = 400;
-const HOLD_MS = 400; // jeda liat logo lengkap sebelum zoom
-const ZOOM_MS = 650; // zoom in + fade ke putih
+const ICON_MS = 450; // roda logo masuk & settle
+const TEXT_DELAY = 250; // teks "mincle" mulai muncul (overlap dikit sama icon)
+const TEXT_MS = 300;
+const HOLD_MS = 150; // jeda liat logo lengkap sebelum zoom
+const ZOOM_MS = 450; // zoom in + fade ke putih
 
 const ZOOM_START_MS = TEXT_DELAY + TEXT_MS + HOLD_MS;
 const TOTAL_MS = ZOOM_START_MS + ZOOM_MS;

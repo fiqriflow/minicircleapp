@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { DAILY_ENERGY_BONUS, ENERGY_COST, NO_SHOW_PENALTY, getMyEnergy, getNextBonusLabel } from "@/lib/energy";
+import { ENERGY_COST, NO_SHOW_PENALTY, WEEKLY_ENERGY_RESET, getMyEnergy, getNextResetLabel } from "@/lib/energy";
 
 type Row = { id: number; delta: number; balance: number; reason: string; created_at: string };
 
@@ -15,7 +15,8 @@ const NEUTRAL = new Set(["opening", "initial"]);
 const REASON_LABEL: Record<string, string> = {
   opening: "Saldo awal pencatatan",
   initial: "Saldo awal akun",
-  daily_bonus: "Bonus harian",
+  daily_bonus: "Bonus harian (lama)",
+  weekly_reset: "Reset energi mingguan",
   join_circle: "Join circle",
   create_circle: "Membuat circle",
   create_circle_plus: "Membuat circle plus",
@@ -26,9 +27,6 @@ const REASON_LABEL: Record<string, string> = {
 };
 
 function labelOf(r: Row) {
-  if (r.reason === "daily_bonus" && r.delta > DAILY_ENERGY_BONUS) {
-    return `Bonus harian (${Math.round(r.delta / DAILY_ENERGY_BONUS)} hari)`;
-  }
   return REASON_LABEL[r.reason] ?? "Penyesuaian energi";
 }
 
@@ -74,7 +72,7 @@ export default function EnergiPage() {
 
   useEffect(() => {
     (async () => {
-      const info = await getMyEnergy(supabase); // sekalian hitung bonus harian tertunda
+      const info = await getMyEnergy(supabase); // sekalian reset mingguan kalau tertunda
       if (!info.failed) setBalance(info.energy);
 
       const [{ data, error: err }, { data: mdata }] = await Promise.all([
@@ -150,9 +148,9 @@ export default function EnergiPage() {
           <li>Join circle: -{ENERGY_COST.join}</li>
           <li>Buat circle: -{ENERGY_COST.create}</li>
           <li>Buat circle plus: -{ENERGY_COST.createPlus}</li>
-          <li>Tidak check-in di circle yang diikuti: -{NO_SHOW_PENALTY}</li>
+          <li>Pelanggaran (tidak check-in di circle yang diikuti): -{NO_SHOW_PENALTY}</li>
           <li>
-            Bonus +{DAILY_ENERGY_BONUS} tiap hari 00.00 WIB, menumpuk (berikutnya {getNextBonusLabel()})
+            Reset jadi {WEEKLY_ENERGY_RESET} tiap Senin 00.00 WIB (berikutnya {getNextResetLabel()}), sisa tidak dibawa
           </li>
         </ul>
       </div>

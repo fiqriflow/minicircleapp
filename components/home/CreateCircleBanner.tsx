@@ -21,13 +21,13 @@ export default function CreateCircleBanner() {
   }, []);
 
   return (
-    <section className="bg-gray-800 rounded-2xl p-5 flex items-center justify-between gap-4">
-      <p className="text-white font-semibold text-lg leading-snug">
+    <section className="bg-primary/10 border-2 border-b-4 border-primary/30 rounded-2xl p-5 flex items-center justify-between gap-4">
+      <p className="text-gray-800 font-bold text-lg leading-snug">
         Buat Circlemu sekarang juga
       </p>
       <button
         onClick={() => setShowChooser(true)}
-        className="flex items-center gap-1.5 bg-primary text-white rounded-xl px-4 py-2.5 font-medium whitespace-nowrap shrink-0"
+        className="flex items-center gap-1.5 bg-primary text-white rounded-xl px-4 py-2.5 font-bold whitespace-nowrap shrink-0"
       >
         <Plus size={18} />
         Buat Circle

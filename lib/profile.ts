@@ -1,9 +1,27 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-// Kolom profil yang boleh dibaca user lain. birth_date, lat, lng, suspension_reason
-// sengaja TIDAK ada (lihat migration 0028) -> jangan pakai select("*") ke tabel profiles.
+// Kolom profil yang boleh dibaca SEMUA user login. Kolom pribadi sengaja TIDAK ada
+// (migration 0028 + 0067) -> jangan pakai select("*") ke tabel profiles.
+//  - gender, instagram, location (kota): hanya sesama circle -> rpc("get_member_profile")
+//  - profil SENDIRI (semua kolom): rpc("get_my_profile")
 export const PUBLIC_PROFILE_COLUMNS =
-  "id, full_name, nickname, username, avatar_url, gender, instagram, categories, location, created_at, is_verified";
+  "id, full_name, nickname, username, avatar_url, categories, created_at, is_verified";
+
+// Tambahan gender/instagram/location milik user lain (hanya terisi kalau satu circle dengan kita).
+// Gagal / tidak berhak -> null; pemanggil cukup menampilkan data publik yang sudah ada.
+export async function fetchMemberExtras(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<{ gender: string | null; instagram: string | null; location: string | null } | null> {
+  try {
+    const { data, error } = await supabase.rpc("get_member_profile", { p_user_id: userId }).maybeSingle();
+    if (error || !data) return null;
+    const d = data as any;
+    return { gender: d.gender ?? null, instagram: d.instagram ?? null, location: d.location ?? null };
+  } catch {
+    return null;
+  }
+}
 
 // Pesan error dari DB (migration 0045) kalau foto profil / Instagram belum diisi saat join / buat circle.
 const PROFILE_INCOMPLETE_HINT = "Lengkapi foto profil & Instagram";

@@ -1,10 +1,9 @@
-import { Footprints, Bike, PersonStanding, Utensils, Coffee, Mountain, type LucideIcon } from "lucide-react";
+import { Footprints, Bike, PersonStanding, Waves, Mountain, type LucideIcon } from "lucide-react";
 
 export const CATEGORIES: { label: string; icon: LucideIcon }[] = [
   { label: "Jogging", icon: Footprints },
   { label: "Gowes", icon: Bike },
   { label: "Jalan Santai", icon: PersonStanding },
-  { label: "Kulineran", icon: Utensils },
-  { label: "Ngopi", icon: Coffee },
+  { label: "Renang", icon: Waves },
   { label: "Explore Alam", icon: Mountain },
 ];

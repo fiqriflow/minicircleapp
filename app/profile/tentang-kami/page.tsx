@@ -19,7 +19,7 @@ export default function TentangKamiPage() {
       <div className="bg-white rounded-2xl border p-4 space-y-3 text-sm text-gray-600">
         <p>
           Mincle dibuat untuk memudahkan siapa saja mencari teman beraktivitas dan bergabung dengan komunitas
-          circle di sekitarnya — mulai dari lari, gowes, jalan santai, kulineran, ngopi, hingga explore alam.
+          circle di sekitarnya — mulai dari lari, gowes, jalan santai, renang, hingga explore alam.
         </p>
         <p>Punya masukan atau pertanyaan? Hubungi kami lewat kanal bantuan di aplikasi.</p>
       </div>

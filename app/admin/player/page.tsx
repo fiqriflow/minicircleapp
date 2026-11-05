@@ -7,7 +7,7 @@ import { fetchAllPages } from "@/lib/fetchAllPages";
 import { toast } from "sonner";
 import LocationInput from "@/components/ui/LocationInput";
 
-const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
+const CATEGORY_OPTIONS = ["Gowes", "Jalan Santai", "Jogging", "Renang", "Explore Alam"];
 
 const GENDER_LABEL: Record<string, string> = { male: "Pria", female: "Wanita" };
 

@@ -1,14 +1,15 @@
 // Sistem energy = saldo kredit. Angka ini HARUS sama dengan yang di migration 0032
 // (DB yang menegakkan; konstanta ini cuma untuk tampilan & pengecekan awal di UI).
 export const INITIAL_ENERGY = 1000;
-export const DAILY_ENERGY_BONUS = 100;
+/** Saldo di-reset ke angka ini tiap Senin 00.00 WIB (bukan menambah; sisa lama hangus). Migration 0065. */
+export const WEEKLY_ENERGY_RESET = 1000;
 export const ENERGY_COST = {
-  join: 10,
-  create: 50,
-  createPlus: 100,
+  join: 100,
+  create: 100,
+  createPlus: 200,
 } as const;
-/** Penalti tidak check-in (potong energi saat circle selesai). Harus sama dengan migration 0063. */
-export const NO_SHOW_PENALTY = 10;
+/** Penalti pelanggaran / tidak check-in (potong energi saat circle selesai). Harus sama dengan migration 0065. */
+export const NO_SHOW_PENALTY = 50;
 
 export type EnergyInfo = {
   energy: number;
@@ -25,13 +26,14 @@ export async function getMyEnergy(supabase: any): Promise<EnergyInfo> {
   return { energy: data.energy ?? INITIAL_ENERGY, energyResetAt: data.energy_reset_at ?? null };
 }
 
-/** Label "Kamis, 9 Oktober" untuk bonus harian berikutnya (00.00 WIB, UTC+7 tetap). */
-export function getNextBonusLabel(): string {
-  const now = new Date();
-  const wibNow = new Date(now.getTime() + 7 * 60 * 60 * 1000); // geser ke WIB
-  const tomorrowWib = Date.UTC(wibNow.getUTCFullYear(), wibNow.getUTCMonth(), wibNow.getUTCDate() + 1, 0, 0, 0);
-  const tomorrowUtc = new Date(tomorrowWib - 7 * 60 * 60 * 1000);
-  return tomorrowUtc.toLocaleDateString("id-ID", {
+/** Label "Senin, 9 November" untuk reset energy berikutnya (Senin 00.00 WIB, UTC+7 tetap). */
+export function getNextResetLabel(): string {
+  const wibNow = new Date(Date.now() + 7 * 60 * 60 * 1000); // geser ke WIB
+  const dow = wibNow.getUTCDay(); // 0=Minggu .. 1=Senin
+  const daysToMonday = ((8 - dow) % 7) || 7;
+  const nextWib = Date.UTC(wibNow.getUTCFullYear(), wibNow.getUTCMonth(), wibNow.getUTCDate() + daysToMonday, 0, 0, 0);
+  const nextUtc = new Date(nextWib - 7 * 60 * 60 * 1000);
+  return nextUtc.toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -46,7 +48,12 @@ export function mapEnergyError(message: string | undefined | null): string | nul
   return null;
 }
 
-/** Beri tahu EnergyBadge (dan komponen lain) supaya baca ulang saldo setelah aksi yang memotong energy. */
-export function notifyEnergyChanged() {
-  if (typeof window !== "undefined") window.dispatchEvent(new Event("energy-changed"));
+/**
+ * Beri tahu EnergyBadge (dan komponen lain).
+ * - tanpa argumen: baca ulang saldo asli dari server (dipanggil setelah aksi selesai / gagal)
+ * - { delta }: ubah saldo di layar SEKARANG (optimistic), nanti disinkronkan lagi oleh panggilan tanpa argumen
+ */
+export function notifyEnergyChanged(opts?: { delta?: number }) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("energy-changed", { detail: { delta: opts?.delta } }));
 }

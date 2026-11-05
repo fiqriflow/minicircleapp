@@ -35,11 +35,11 @@ export async function getNotifications(supabase: any, userId: string): Promise<A
 }
 
 export async function markAllAsRead(supabase: any, userId: string) {
-  await supabase.from("notifications").update({ is_read: true }).eq("user_id", userId).eq("is_read", false);
+  return supabase.from("notifications").update({ is_read: true }).eq("user_id", userId).eq("is_read", false);
 }
 
 export async function markAsRead(supabase: any, notificationId: string) {
-  await supabase.from("notifications").update({ is_read: true }).eq("id", notificationId);
+  return supabase.from("notifications").update({ is_read: true }).eq("id", notificationId);
 }
 
 // Dipakai host saat membuka tab "Komen Grup" biar notif "komen baru" circle itu ke-reset
@@ -55,15 +55,31 @@ export async function markCommentNotifRead(supabase: any, userId: string, circle
 }
 
 export async function clearAllNotifications(supabase: any, userId: string) {
-  await supabase.from("notifications").delete().eq("user_id", userId);
+  return supabase.from("notifications").delete().eq("user_id", userId);
 }
 
 export async function deleteNotification(supabase: any, notificationId: string) {
-  await supabase.from("notifications").delete().eq("id", notificationId);
+  return supabase.from("notifications").delete().eq("id", notificationId);
 }
 
 // Panggil ini tiap kali komponen notif dibuka/mount: kirim notif pengingat ke host yang lupa "Tandai Selesai"
 // (esok hari setelah acara, mulai jam 08.00 WIB). Aman dipanggil berkali-kali (idempotent di sisi DB).
 export async function refreshFinishReminders(supabase: any) {
   await supabase.rpc("remind_unfinished_circles");
+}
+
+// Event antar-komponen: halaman /notifications memberi tahu lonceng di header supaya badge ikut berubah.
+export const NOTIF_CHANGED_EVENT = "notifications-changed";
+export function notifyNotificationsChanged() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(NOTIF_CHANGED_EVENT));
+}
+
+export async function getUnreadCount(supabase: any, userId: string): Promise<number> {
+  const { count } = await supabase
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("is_read", false);
+  return count ?? 0;
 }

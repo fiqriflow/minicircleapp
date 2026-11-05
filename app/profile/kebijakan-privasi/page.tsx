@@ -41,7 +41,7 @@ function KebijakanPrivasiPageContent() {
         <Section title="1. Data yang Kami Kumpulkan">
           <ul className="list-disc pl-4 space-y-1">
             <li>Data akun dari Google saat login: nama, email, dan foto profil.</li>
-            <li>Data profil yang kamu isi: nama panggilan, tanggal lahir, jenis kelamin, kategori aktivitas favorit (mis. Gowes, Jogging, Kulineran, Explore Alam, dsb.), kota domisili, akun Instagram, dan foto profil (opsional).</li>
+            <li>Data profil yang kamu isi: nama panggilan, tanggal lahir, jenis kelamin, kategori aktivitas favorit (mis. Gowes, Jogging, Renang, Explore Alam, dsb.), kota domisili, akun Instagram, dan foto profil (opsional).</li>
             <li>Data lokasi kota yang kamu pilih, dipakai untuk menampilkan circle di sekitarmu (bukan lokasi GPS real-time).</li>
             <li>Data aktivitas dalam aplikasi: circle yang kamu buat/ikuti, komentar/chat di circle, dan riwayat join.</li>
             <li>Masukan, laporan (report), dan komunikasi lain yang kamu kirim ke kami.</li>
@@ -51,7 +51,7 @@ function KebijakanPrivasiPageContent() {
 
         <Section title="2. Bagaimana Kami Menggunakan Data">
           <ul className="list-disc pl-4 space-y-1">
-            <li>Menyediakan dan menjalankan fitur inti: membuat/menemukan circle, join, dan berinteraksi dengan sesama pengguna, untuk berbagai jenis aktivitas (olahraga, kulineran, explore alam, dan lainnya).</li>
+            <li>Menyediakan dan menjalankan fitur inti: membuat/menemukan circle, join, dan berinteraksi dengan sesama pengguna, untuk berbagai jenis aktivitas (olahraga, renang, explore alam, dan lainnya).</li>
             <li>Menampilkan circle di sekitarmu berdasarkan kota yang kamu pilih.</li>
             <li>Menampilkan profil dasar kamu (nama panggilan, foto, kategori aktivitas) kepada pengguna lain di dalam circle yang sama, sebagai bagian normal dari fitur sosial aplikasi.</li>
             <li>Meninjau dan menindaklanjuti masukan serta laporan (report) demi keamanan komunitas.</li>

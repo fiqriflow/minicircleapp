@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import Pagination, { usePagination } from "@/components/ui/Pagination";
 import { fetchAllPages } from "@/lib/fetchAllPages";
 import { toast } from "sonner";
-import { ENERGY_COST, DAILY_ENERGY_BONUS, getNextBonusLabel } from "@/lib/energy";
+import { ENERGY_COST, NO_SHOW_PENALTY, WEEKLY_ENERGY_RESET, getNextResetLabel } from "@/lib/energy";
 
 const QUICK_ADD = [10, 100, 1000];
 
@@ -121,8 +121,8 @@ export default function AdminEnergyPage() {
           <h1 className="text-xl font-bold">Energy</h1>
           <p className="text-sm text-gray-500">
             Energy = saldo kredit. Join circle -{ENERGY_COST.join}, buat circle -{ENERGY_COST.create}, buat circle plus -
-            {ENERGY_COST.createPlus}. Bonus +{DAILY_ENERGY_BONUS} tiap hari 00.00 WIB (menumpuk), berikutnya{" "}
-            <span className="font-medium">{getNextBonusLabel()}</span>. User yang kehabisan energy minta tambahan ke admin.
+            {ENERGY_COST.createPlus}. Pelanggaran -{NO_SHOW_PENALTY}. Reset jadi {WEEKLY_ENERGY_RESET} tiap Senin 00.00 WIB, berikutnya{" "}
+            <span className="font-medium">{getNextResetLabel()}</span>. User yang kehabisan energy minta tambahan ke admin.
           </p>
         </div>
         <input
@@ -166,7 +166,7 @@ export default function AdminEnergyPage() {
               <th className="p-3">User</th>
               <th className="p-3">Email</th>
               <th className="p-3">Energy</th>
-              <th className="p-3">Bonus Terakhir</th>
+              <th className="p-3">Reset Terakhir</th>
               <th className="p-3">Aksi</th>
             </tr>
           </thead>

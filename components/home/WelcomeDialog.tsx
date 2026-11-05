@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { INITIAL_ENERGY, DAILY_ENERGY_BONUS, ENERGY_COST, NO_SHOW_PENALTY } from "@/lib/energy";
+import { INITIAL_ENERGY, WEEKLY_ENERGY_RESET, ENERGY_COST, NO_SHOW_PENALTY } from "@/lib/energy";
 import { isPushSupported, subscribeToPush, setPushOptOut } from "@/lib/push";
 
 const FLAG_KEY = "mincle_show_welcome";
@@ -23,12 +23,12 @@ const SLIDES = [
   {
     emoji: "⚡",
     title: "Energy",
-    body: `Energy dipakai untuk join dan buat circle. Kamu mulai dengan ${INITIAL_ENERGY} energy dan dapat bonus +${DAILY_ENERGY_BONUS} tiap hari (00.00 WIB).`,
+    body: `Energy dipakai untuk join dan buat circle. Kamu mulai dengan ${INITIAL_ENERGY} energy dan di-reset jadi ${WEEKLY_ENERGY_RESET} tiap Senin (00.00 WIB).`,
   },
   {
     emoji: "✅",
     title: "Check-in Itu Penting",
-    body: `Saat circle dimulai, tekan Check-in. Kalau lupa atau tidak hadir, energy kamu dikurangi ${NO_SHOW_PENALTY} dan host bisa tahu.`,
+    body: `Saat circle dimulai, tekan Check-in. Kalau lupa atau tidak hadir, energy kamu dikurangi ${NO_SHOW_PENALTY} sebagai pelanggaran dan host bisa tahu.`,
   },
 ];
 

@@ -14,7 +14,7 @@ import { getCirclePlusEnabled, getDefaultCoverMap } from "@/lib/appSettings";
 import { getJoinedCounts } from "@/lib/circleMembers";
 import { toast } from "sonner";
 
-const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Jogging", "Kulineran", "Ngopi", "Explore Alam"];
+const CATEGORIES = ["Semua", "Gowes", "Jalan Santai", "Jogging", "Renang", "Explore Alam"];
 const DAY_LABELS = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
 const DAYS_SHOWN = 14;
 const PAGE_SIZE = 30;
@@ -76,10 +76,11 @@ function ExploreContent() {
       setCurrentUserId(user.id);
       // profil & memberships tidak saling bergantung -> paralel
       const [{ data }, { data: memberships }] = await Promise.all([
-        supabase.from("profiles").select("location").eq("id", user.id).single(),
+        supabase.rpc("get_my_profile").maybeSingle(),
         supabase.from("circle_members").select("circle_id").eq("user_id", user.id).eq("status", "joined"),
       ]);
-      if (data?.location) setLocation((prev) => prev || data.location);
+      const myLocation = (data as any)?.location as string | undefined;
+      if (myLocation) setLocation((prev) => prev || myLocation);
       setJoinedIds(new Set((memberships ?? []).map((m) => m.circle_id)));
     };
     loadUserData().catch(() => {}).finally(() => setReady(true));

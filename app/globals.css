@@ -2,8 +2,144 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply bg-white text-gray-800 antialiased;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+/* ===== Gaya ala Duolingo: tombol 3D "chunky", kartu bergaris tebal, respons tap instan ===== */
+
+/* Semua tombol/link utama (bg-primary) otomatis jadi 3D, tanpa ubah tiap halaman */
+button.bg-primary:not(:disabled):not([aria-pressed]):not(.btn-flat),
+a.bg-primary:not(.btn-flat) {
+  box-shadow: 0 4px 0 0 #c24a0a;
+  transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.15s ease;
+}
+button.bg-primary:not(:disabled):not([aria-pressed]):not(.btn-flat):active,
+a.bg-primary:not(.btn-flat):active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 0 #c24a0a;
+}
+@media (hover: hover) {
+  button.bg-primary:not(:disabled):not([aria-pressed]):not(.btn-flat):hover,
+  a.bg-primary:not(.btn-flat):hover {
+    filter: brightness(1.06);
+  }
+}
+
+/* Tombol kecil (text-xs): tebal bayangan 2px supaya proporsional */
+button.bg-primary.text-xs:not(:disabled):not([aria-pressed]):not(.btn-flat) {
+  box-shadow: 0 2px 0 0 #c24a0a;
+}
+button.bg-primary.text-xs:not(:disabled):not([aria-pressed]):not(.btn-flat):active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 0 #c24a0a;
+}
+
+/* Tombol sekunder (outline): garis 2px, bawah 4px, turun saat ditekan */
+button.border:not(.bg-primary):not(:disabled):not(.btn-flat) {
+  border-width: 2px;
+  border-bottom-width: 4px;
+  transition: transform 0.06s ease, border-bottom-width 0.06s ease;
+}
+button.border:not(.bg-primary):not(:disabled):not(.btn-flat):active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
+/* Kartu/panel & input: garis 2px ala Duolingo */
+:is(div, section, article, a, label, ul).rounded-2xl.border {
+  border-width: 2px;
+  border-bottom-width: 4px;
+}
+:is(div, section, article, a, label, li).rounded-xl.border {
+  border-width: 2px;
+}
+input.border,
+textarea.border,
+select.border {
+  border-width: 2px;
+  background-color: #f9fafb;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+}
+input.border:focus,
+textarea.border:focus,
+select.border:focus {
+  outline: none;
+  border-color: #f46113;
+  background-color: #ffffff;
+}
+
+/* Header sticky & pemisah: garis 2px */
+.sticky.border-b,
+header.border-b {
+  border-bottom-width: 2px;
+}
+.divide-y > :not([hidden]) ~ :not([hidden]) {
+  border-top-width: 2px;
+}
+
+/* Opt-out dari gaya 3D (tombol kecil di sidebar/tabel dsb) */
+.btn-flat {
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Kartu: garis 2px, bawah 4px, turun saat ditekan */
+.card-chunk {
+  @apply rounded-2xl border-2 border-b-4 border-gray-200;
+  transition: transform 0.06s ease, border-color 0.15s ease;
+}
+.card-chunk:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+  margin-bottom: 2px;
+}
+@media (hover: hover) {
+  .card-chunk:hover {
+    border-color: #fdba8c;
+  }
+}
+
+/* Efek tekan ringan untuk elemen klik lain */
+.press {
+  transition: transform 0.08s ease;
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* Transisi pindah halaman: cepat (160ms), hanya opacity + geser kecil */
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-in {
+  animation: pageIn 0.16s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-in {
+    animation: none;
+  }
+  .press:active,
+  .card-chunk:active {
+    transform: none;
+  }
 }
 
 @keyframes splashPop {

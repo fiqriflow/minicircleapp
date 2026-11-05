@@ -11,7 +11,7 @@ import { toDateValue, toTimeValue, combineDateTime } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/ui/LocationInput";
 import { ENERGY_COST, getMyEnergy, mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
 
-const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Kulineran", "Ngopi", "Explore Alam"];
+const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Renang", "Explore Alam"];
 
 export default function CreateCircleModal({
   circleType,
@@ -155,7 +155,7 @@ export default function CreateCircleModal({
     const loadHost = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("full_name, nickname, avatar_url, instagram").eq("id", user.id).single();
+      const { data } = await supabase.rpc("get_my_profile").maybeSingle();
       setHost(data);
       setHostChecked(true);
       if (!isEdit) {

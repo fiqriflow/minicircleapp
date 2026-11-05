@@ -61,7 +61,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 key={href}
                 href={href}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${
-                  active ? "bg-primary text-white" : "text-gray-300 hover:bg-gray-800"
+                  active ? "bg-primary text-white btn-flat" : "text-gray-300 hover:bg-gray-800"
                 }`}
               >
                 <Icon size={18} /> {label}

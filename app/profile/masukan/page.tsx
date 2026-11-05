@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Bug, Lightbulb, MoreHorizontal } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { optimistic } from "@/lib/optimistic";
 
 type Category = "bug" | "feature" | "other";
 
@@ -20,36 +21,39 @@ export default function MasukanPage() {
   const [category, setCategory] = useState<Category>("bug");
   const [message, setMessage] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
-  const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
   const handleSubmit = async () => {
-    if (!message.trim()) return;
-    setSending(true);
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setSending(false);
-      return;
-    }
-
-    const { error } = await supabase.from("feedback").insert({
-      user_id: user.id,
-      message: message.trim(),
-      is_anonymous: isAnonymous,
-      category,
-      source: "masukan",
+    const text = message.trim();
+    if (!text) return;
+    const prev = { category, isAnonymous };
+    // OPTIMISTIC: langsung tampil "Terima kasih"; kalau gagal form dikembalikan lengkap dengan isinya
+    await optimistic({
+      apply: () => {
+        setSent(true);
+        setMessage("");
+        setIsAnonymous(false);
+        return () => {
+          setSent(false);
+          setMessage((cur) => cur || text);
+          setCategory(prev.category);
+          setIsAnonymous(prev.isAnonymous);
+        };
+      },
+      run: async (): Promise<{ error: { message?: string } | null }> => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { error: { message: "Sesi habis, silakan login ulang." } };
+        const { error } = await supabase.from("feedback").insert({
+          user_id: user.id,
+          message: text,
+          is_anonymous: prev.isAnonymous,
+          category: prev.category,
+          source: "masukan",
+        });
+        return { error };
+      },
+      errorMessage: (r) => "Gagal mengirim masukan: " + (r.error?.message ?? ""),
     });
-
-    setSending(false);
-    if (error) {
-      toast.error("Gagal mengirim masukan: " + error.message);
-      return;
-    }
-
-    setSent(true);
-    setMessage("");
-    setIsAnonymous(false);
   };
 
   return (
@@ -114,10 +118,10 @@ export default function MasukanPage() {
 
           <button
             onClick={handleSubmit}
-            disabled={sending || !message.trim()}
-            className="w-full bg-primary text-white rounded-xl py-3 font-medium hover:bg-primary-dark disabled:opacity-50"
+            disabled={!message.trim()}
+            className="w-full bg-primary text-white rounded-xl py-3 font-bold hover:bg-primary-dark disabled:opacity-50"
           >
-            {sending ? "Mengirim..." : "Kirim Masukan"}
+            Kirim Masukan
           </button>
         </div>
       )}

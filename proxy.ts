@@ -119,7 +119,10 @@ export async function proxy(request: NextRequest) {
     return n ? `${base}?next=${encodeURIComponent(n)}` : base;
   };
 
-  const { data: { user } } = await supabase.auth.getUser();
+  // getClaims = verifikasi JWT lokal (tanpa round-trip ke Supabase Auth tiap navigasi) -> pindah halaman lebih cepat.
+  // Kalau project masih pakai JWT secret lama (simetris), otomatis fallback ke getUser().
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const user = claimsData?.claims?.sub ? { id: claimsData.claims.sub as string } : null;
 
   const isAuthPage = path === "/login" || path.startsWith("/auth") || path === "/pendaftaran-ditutup";
   const isAdminPage = path.startsWith("/admin");
