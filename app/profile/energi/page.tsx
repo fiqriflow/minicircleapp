@@ -23,6 +23,7 @@ const REASON_LABEL: Record<string, string> = {
   admin_adjust: "Penyesuaian oleh admin",
   no_show: "Penalti tidak check-in",
   host_correction: "Koreksi kehadiran oleh host",
+  kick_refund: "Dikeluarkan host (energi dikembalikan)",
   other: "Penyesuaian energi",
 };
 
