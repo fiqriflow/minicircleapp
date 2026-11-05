@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { X } from "lucide-react";
+import { X, ArrowLeft } from "lucide-react";
 import { generateInviteCode } from "@/lib/inviteCode";
 import { extractStoragePath } from "@/lib/storagePath";
 import { compressImage, LONG_CACHE } from "@/lib/imageCompress";
 import { toDateValue, toTimeValue, combineDateTime } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/ui/LocationInput";
+import { CATEGORIES } from "@/lib/categories";
 import { ENERGY_COST, getMyEnergy, mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
 
 const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Renang", "Explore Alam"];
@@ -124,6 +125,24 @@ export default function CreateCircleModal({
   const [hostChecked, setHostChecked] = useState(false);
   const [energy, setEnergy] = useState<number | null>(null);
   const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
+  // ===== Wizard per langkah (gaya Duolingo) =====
+  // 1 Dasar · 2 Lokasi · 3 Waktu · 4 Peserta & rundown · (Circle+) 5 Tampilan & akses · 6 Aturan join
+  const totalSteps = isPlus ? 6 : 4;
+  const [step, setStep] = useState(1);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const STEP_OF: Record<string, number> = { name: 1, category: 1, city: 2, location: 2, event_date: 3, start_time: 3, description: 4 };
+  const STEP_TITLE: Record<number, { title: string; hint: string }> = {
+    1: { title: "Circle apa ini?", hint: "Kasih nama & pilih aktivitasnya." },
+    2: { title: "Ketemu di mana?", hint: "Kota dan titik kumpul." },
+    3: { title: "Kapan mulainya?", hint: "Tanggal & jam mulai." },
+    4: { title: "Siapa aja yang ikut?", hint: "Jumlah orang dan rundown kegiatan." },
+    5: { title: "Tampilan & akses", hint: "Cover, private, dan link undangan." },
+    6: { title: "Aturan join", hint: "Batasi peserta & atur approval." },
+  };
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [step]);
 
   const missingInstagram = !isEdit && hostChecked && !host?.instagram;
   const missingAvatar = !isEdit && hostChecked && !host?.avatar_url;
@@ -259,22 +278,25 @@ export default function CreateCircleModal({
       missing.forEach((f) => (errs[f.key] = true));
       setFieldErrors(errs);
       toast.error(`Lengkapi dulu "${missing[0].label}" (ditandai merah).`);
-      fieldRefs.current[missing[0].key]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setStep(STEP_OF[missing[0].key] ?? 1);
       return;
     }
     setFieldErrors({});
     const slots = Number(form.max_participants);
     if (!Number.isInteger(slots) || slots < minP || slots > maxP) {
+      setStep(4);
       setError(`Jumlah peserta harus ${minP}–${maxP} orang.`);
       return;
     }
     const startIso = combineDateTime(form.event_day, form.start_time);
     if (!startIso) {
+      setStep(3);
       setError("Tanggal & jam tidak valid.");
       return;
     }
     if (!isEdit && new Date(startIso) < new Date()) {
       setFieldErrors({ start_time: true });
+      setStep(3);
       setError("Tanggal & jam mulai tidak boleh yang sudah lewat. Pilih waktu di masa depan.");
       return;
     }
@@ -282,10 +304,12 @@ export default function CreateCircleModal({
     const customCode = form.invite_code.trim().toUpperCase();
     if (isPlus && customCode && customCode !== originalInviteCode.toUpperCase()) {
       if (customCode.length < 6) {
+        setStep(5);
         setError("Kode undangan minimal 6 karakter biar tidak mudah ditebak.");
         return;
       }
       if (!/^[A-Z0-9_-]+$/.test(customCode)) {
+        setStep(5);
         setError("Kode undangan hanya boleh huruf, angka, tanda - dan _.");
         return;
       }
@@ -394,6 +418,76 @@ export default function CreateCircleModal({
     onClose();
   };
 
+  // Validasi per langkah sebelum lanjut. Validasi lengkap tetap dijalankan lagi di handleSave.
+  const validateStep = (st: number) => {
+    const checks: Record<number, { key: string; label: string; ok: boolean }[]> = {
+      1: [
+        { key: "name", label: "Nama Event", ok: !!form.name.trim() },
+        { key: "category", label: "Aktivitas Circle", ok: !!form.category },
+      ],
+      2: [
+        { key: "city", label: "Lokasi / Domisili", ok: !!form.city.trim() },
+        { key: "location", label: "Titik Kumpul", ok: !!form.location.trim() },
+      ],
+      3: [
+        { key: "event_date", label: "Tanggal", ok: !!form.event_day },
+        { key: "start_time", label: "Jam Mulai", ok: !!form.start_time },
+      ],
+      4: [{ key: "description", label: "Rundown / Detail Kegiatan", ok: !!form.description.trim() }],
+    };
+    const missing = (checks[st] ?? []).filter((f) => !f.ok);
+    if (missing.length) {
+      const errs: Record<string, boolean> = {};
+      missing.forEach((f) => (errs[f.key] = true));
+      setFieldErrors((prev) => ({ ...prev, ...errs }));
+      setError("");
+      toast.error(`Lengkapi dulu "${missing[0].label}".`);
+      return false;
+    }
+    if (st === 3 && !isEdit) {
+      const iso = combineDateTime(form.event_day, form.start_time);
+      if (!iso || new Date(iso) < new Date()) {
+        setFieldErrors((prev) => ({ ...prev, start_time: true }));
+        setError("Tanggal & jam mulai tidak boleh yang sudah lewat. Pilih waktu di masa depan.");
+        return false;
+      }
+    }
+    if (st === 5 && isPlus) {
+      const code = form.invite_code.trim().toUpperCase();
+      if (code && code !== originalInviteCode.toUpperCase()) {
+        if (code.length < 6) {
+          setError("Kode undangan minimal 6 karakter biar tidak mudah ditebak.");
+          return false;
+        }
+        if (!/^[A-Z0-9_-]+$/.test(code)) {
+          setError("Kode undangan hanya boleh huruf, angka, tanda - dan _.");
+          return false;
+        }
+      }
+    }
+    setError("");
+    return true;
+  };
+
+  const handleNext = () => {
+    if (step < totalSteps) {
+      if (validateStep(step)) setStep(step + 1);
+      return;
+    }
+    handleSave();
+  };
+
+  const handleBack = () => {
+    setError("");
+    setStep((st) => Math.max(1, st - 1));
+  };
+
+  const categoryCards = [
+    ...CATEGORY_OPTIONS,
+    // circle lama dengan kategori yang sudah dihapus tetap tampil supaya tidak hilang saat diedit
+    ...(form.category && !CATEGORY_OPTIONS.includes(form.category) ? [form.category] : []),
+  ].map((label) => ({ label, Icon: CATEGORIES.find((c) => c.label === label)?.icon }));
+
   const handleCancel = async () => {
     const originalCoverUrl = editCircle?.cover_url ?? "";
     if (form.cover_url && form.cover_url !== originalCoverUrl) {
@@ -405,31 +499,45 @@ export default function CreateCircleModal({
     onClose();
   };
 
+  const clearErr = (k: string) => {
+    if (fieldErrors[k]) setFieldErrors({ ...fieldErrors, [k]: false });
+  };
+
   return (
     <div
       className="fixed inset-x-0 top-0 bg-black/40 flex items-end justify-center z-50"
       style={{ height: viewportHeight ? `${viewportHeight}px` : "100vh" }}
     >
-      <div className="bg-white rounded-t-2xl w-full max-w-md max-h-[90%] flex flex-col overflow-hidden">
-        <div className="shrink-0 bg-white border-b px-6 pt-5 pb-3 flex items-center justify-between">
-          <h2 className="font-bold text-lg">
-            {isEdit ? "Edit Circle" : `Buat ${isPlus ? "Circle+" : "Circle"} Baru`}
-            {!isEdit && templateCircle && (
-              <span className="block text-xs font-normal text-gray-400">Salinan dari "{templateCircle.name}" — isi tanggal & jam baru</span>
-            )}
-          </h2>
+      <div className="bg-white rounded-t-2xl w-full max-w-md h-[92%] flex flex-col overflow-hidden">
+        {/* Header: tutup + progress bar */}
+        <div className="shrink-0 bg-white px-4 pt-4 pb-3 flex items-center gap-3">
           <button
             type="button"
             onClick={handleCancel}
             disabled={saving}
             aria-label="Tutup"
-            className="p-1.5 -mr-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="btn-flat p-1.5 -ml-1.5 rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-600"
           >
-            <X size={20} />
+            <X size={22} />
           </button>
+          {!profileIncomplete ? (
+            <div className="flex-1 h-3 rounded-full bg-gray-200 overflow-hidden" role="progressbar" aria-valuemin={1} aria-valuemax={totalSteps} aria-valuenow={step}>
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-300"
+                style={{ width: `${(step / totalSteps) * 100}%` }}
+              />
+            </div>
+          ) : (
+            <h2 className="font-bold text-lg flex-1">{isEdit ? "Edit Circle" : `Buat ${isPlus ? "Circle+" : "Circle"}`}</h2>
+          )}
+          {!profileIncomplete && (
+            <span className="text-xs font-bold text-gray-400 shrink-0">
+              {step}/{totalSteps}
+            </span>
+          )}
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain p-6 pt-4 space-y-3" onFocusCapture={handleFieldFocus}>
+        <div ref={bodyRef} className="flex-1 overflow-y-auto overscroll-contain px-6 pb-4 space-y-4" onFocusCapture={handleFieldFocus}>
         {profileIncomplete ? (
           <div className="space-y-4 py-2">
             <p className="text-sm text-gray-600">
@@ -473,226 +581,263 @@ export default function CreateCircleModal({
           </div>
         ) : (
         <>
-
-        {host && !isEdit && (
-          <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
-            <img
-              src={host.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(host.full_name || "U")}
-              className="w-8 h-8 rounded-full object-cover"
-              alt=""
-            />
-            <div className="flex-1">
-              <p className="text-xs text-gray-400">Host / Pembuat Circle</p>
-              <p className="text-sm font-medium">{host.nickname || host.full_name}</p>
-            </div>
-            {energy !== null && (
-              <span className="text-xs font-semibold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full shrink-0">
-                ⚡ {energy} (biaya -{createCost})
-              </span>
-            )}
-          </div>
-        )}
-
-        {isPlus && (
-          <div className="space-y-1">
-            <label className="text-sm text-gray-500">Custom Cover</label>
-            <div className="h-32 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
-              {form.cover_url && !coverError ? (
-                <img
-                  src={form.cover_url}
-                  alt="cover"
-                  className="w-full h-full object-cover"
-                  onError={() => setCoverError(true)}
-                />
-              ) : (
-                <span className="text-gray-400 text-sm text-center px-4">Pakai cover default sesuai aktivitas</span>
-              )}
-            </div>
-            <div className="flex items-center gap-4">
-              <label className="text-sm text-primary font-medium cursor-pointer inline-block">
-                {uploadingCover ? "Mengunggah..." : form.cover_url ? "Ganti Cover" : "Upload Cover"}
-                <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
-              </label>
-              {form.cover_url && (
-                <button
-                  type="button"
-                  onClick={handleRemoveCover}
-                  disabled={uploadingCover}
-                  className="text-sm text-red-500 font-medium disabled:opacity-40"
-                >
-                  Hapus
-                </button>
-              )}
-            </div>
-            <p className="text-xs text-gray-400">
-              Ukuran ideal: <span className="font-medium text-gray-500">800 x 450 px</span> (rasio 16:9), format JPG/PNG, maks 1MB.
-            </p>
-            {!form.cover_url && (
-              <p className="text-xs text-gray-400">Tanpa custom cover, otomatis dipakai cover default sesuai aktivitas.</p>
-            )}
-          </div>
-        )}
-
-        <div ref={(el) => { fieldRefs.current.name = el; }}>
-          <label className="text-sm text-gray-500">
-            Nama Event{fieldErrors.name && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
-          </label>
-          <input
-            className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.name ? "border-red-500" : ""}`}
-            placeholder="Mis. Gowes Pagi Akhir Pekan"
-            value={form.name}
-            onChange={(e) => {
-              setForm({ ...form, name: e.target.value });
-              if (fieldErrors.name) setFieldErrors({ ...fieldErrors, name: false });
-            }}
-          />
-        </div>
-
         <div>
-          <label className="text-sm text-gray-500">Nama Grup <span className="text-gray-400">(opsional)</span></label>
-          <input
-            className="w-full border rounded-xl px-3 py-2"
-            placeholder="Mis. Circle Sepeda Santai"
-            value={form.group_name}
-            onChange={(e) => setForm({ ...form, group_name: e.target.value })}
-          />
+          <h2 className="text-2xl font-extrabold text-gray-800">{STEP_TITLE[step].title}</h2>
+          <p className="text-sm text-gray-500">{STEP_TITLE[step].hint}</p>
+          {step === 1 && !isEdit && templateCircle && (
+            <p className="text-xs text-gray-400 mt-1">Salinan dari "{templateCircle.name}" — isi tanggal & jam baru</p>
+          )}
+          {step === 1 && isEdit && <p className="text-xs text-gray-400 mt-1">Mengedit circle</p>}
         </div>
 
-        <div>
-          <label className="text-sm text-gray-500">
-            Jumlah Orang: <span className="font-semibold text-primary">{form.max_participants}</span> ({minP}-{maxP})
-          </label>
-          <input
-            type="range"
-            min={minP}
-            max={maxP}
-            step={1}
-            value={form.max_participants}
-            onChange={(e) => setForm({ ...form, max_participants: Number(e.target.value) })}
-            className="w-full accent-primary"
-          />
-          <div className="flex justify-between text-xs text-gray-400">
-            <span>{minP}</span>
-            <span>{maxP}</span>
-          </div>
-        </div>
-
-        <div ref={(el) => { fieldRefs.current.category = el; }}>
-          <label className="text-sm text-gray-500">
-            Aktivitas Circle{fieldErrors.category && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
-          </label>
-          <select
-            className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.category ? "border-red-500" : ""}`}
-            value={form.category}
-            onChange={(e) => {
-              setForm({ ...form, category: e.target.value });
-              if (fieldErrors.category) setFieldErrors({ ...fieldErrors, category: false });
-            }}
-          >
-            <option value="" disabled>Pilih Aktivitas</option>
-            {CATEGORY_OPTIONS.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-        </div>
-
-        <div ref={(el) => { fieldRefs.current.city = el; }}>
-          <label className="text-sm text-gray-500">
-            Lokasi / Domisili{fieldErrors.city && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
-          </label>
-          <div className={fieldErrors.city ? "rounded-xl ring-1 ring-red-500" : ""}>
-            <LocationInput
-              id="create-circle-city-list"
-              value={form.city}
-              onChange={(v) => {
-                setForm({ ...form, city: v });
-                if (fieldErrors.city) setFieldErrors({ ...fieldErrors, city: false });
-              }}
-              placeholder="Ketik nama kota..."
-            />
-          </div>
-        </div>
-
-        <div ref={(el) => { fieldRefs.current.location = el; }}>
-          <label className="text-sm text-gray-500">
-            Titik Kumpul{fieldErrors.location && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
-          </label>
-          <input
-            className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.location ? "border-red-500" : ""}`}
-            placeholder="Mis. Taman Kota, Gerbang Utara"
-            value={form.location}
-            onChange={(e) => {
-              setForm({ ...form, location: e.target.value });
-              if (fieldErrors.location) setFieldErrors({ ...fieldErrors, location: false });
-            }}
-          />
-        </div>
-
-        <div ref={(el) => { fieldRefs.current.event_date = el; }} className="space-y-3">
-          <div>
-            <label className="text-sm text-gray-500">
-              Tanggal{fieldErrors.event_date && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
-            </label>
-            <input
-              type="date"
-              min={isEdit ? undefined : toDateValue(new Date().toISOString())}
-              className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.event_date ? "border-red-500" : ""}`}
-              value={form.event_day}
-              onChange={(e) => {
-                setForm({ ...form, event_day: e.target.value });
-                if (fieldErrors.event_date) setFieldErrors({ ...fieldErrors, event_date: false });
-              }}
-            />
-          </div>
-
-          <div ref={(el) => { fieldRefs.current.start_time = el; }}>
-            <label className="text-sm text-gray-500">
-              Jam Mulai{fieldErrors.start_time && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
-            </label>
-            <input
-              type="time"
-              className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.start_time ? "border-red-500" : ""}`}
-              value={form.start_time}
-              onChange={(e) => {
-                setForm({ ...form, start_time: e.target.value });
-                if (fieldErrors.start_time) setFieldErrors({ ...fieldErrors, start_time: false });
-              }}
-            />
-          </div>
-        </div>
-
-        <div ref={(el) => { fieldRefs.current.description = el; }}>
-          <label className="text-sm text-gray-500">
-            Rundown / Detail Kegiatan{fieldErrors.description && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
-          </label>
-          <textarea
-            className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.description ? "border-red-500" : ""}`}
-            rows={3}
-            placeholder="Mis. Kumpul 06.00, briefing, gowes 15km, sarapan bareng"
-            value={form.description}
-            onChange={(e) => {
-              setForm({ ...form, description: e.target.value });
-              if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: false });
-            }}
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={form.allow_late_join}
-              onChange={(e) => setForm({ ...form, allow_late_join: e.target.checked })}
-            />
-            Izinkan join setelah circle dimulai
-          </label>
-          <p className="text-xs text-gray-400">
-            Kalau mati (default), pendaftaran ditutup begitu jam mulai tiba atau kamu menekan &quot;Tandai Mulai&quot;. Kalau aktif, orang baru masih bisa join sampai 3 jam setelah jam mulai.
-          </p>
-        </div>
-
-        {isPlus && (
+        {/* ===== LANGKAH 1: DASAR ===== */}
+        {step === 1 && (
           <>
+            {host && !isEdit && (
+              <div className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
+                <img
+                  src={host.avatar_url || "https://ui-avatars.com/api/?name=" + encodeURIComponent(host.full_name || "U")}
+                  className="w-8 h-8 rounded-full object-cover"
+                  alt=""
+                />
+                <div className="flex-1">
+                  <p className="text-xs text-gray-400">Host / Pembuat Circle</p>
+                  <p className="text-sm font-medium">{host.nickname || host.full_name}</p>
+                </div>
+                {energy !== null && (
+                  <span className="text-xs font-semibold text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full shrink-0">
+                    ⚡ {energy} (biaya -{createCost})
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div ref={(el) => { fieldRefs.current.name = el; }}>
+              <label className="text-sm text-gray-500">
+                Nama Event{fieldErrors.name && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+              </label>
+              <input
+                className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.name ? "border-red-500" : ""}`}
+                placeholder="Mis. Gowes Pagi Akhir Pekan"
+                value={form.name}
+                onChange={(e) => {
+                  setForm({ ...form, name: e.target.value });
+                  clearErr("name");
+                }}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm text-gray-500">Nama Grup <span className="text-gray-400">(opsional)</span></label>
+              <input
+                className="w-full border rounded-xl px-3 py-2"
+                placeholder="Mis. Circle Sepeda Santai"
+                value={form.group_name}
+                onChange={(e) => setForm({ ...form, group_name: e.target.value })}
+              />
+            </div>
+
+            <div ref={(el) => { fieldRefs.current.category = el; }}>
+              <label className="text-sm text-gray-500">
+                Aktivitas Circle{fieldErrors.category && <span className="text-red-500 font-medium"> — Pilih salah satu</span>}
+              </label>
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                {categoryCards.map(({ label, Icon }) => {
+                  const active = form.category === label;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => {
+                        setForm({ ...form, category: label });
+                        clearErr("category");
+                      }}
+                      className={`flex items-center gap-2 rounded-2xl border-2 px-3 py-3 text-sm font-bold text-left ${
+                        active
+                          ? "border-primary bg-primary/10 text-primary"
+                          : fieldErrors.category
+                          ? "border-red-300 text-gray-600"
+                          : "border-gray-200 text-gray-600"
+                      }`}
+                    >
+                      {Icon ? <Icon size={20} className="shrink-0" /> : <span className="w-5 shrink-0" />}
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ===== LANGKAH 2: LOKASI ===== */}
+        {step === 2 && (
+          <>
+            <div ref={(el) => { fieldRefs.current.city = el; }}>
+              <label className="text-sm text-gray-500">
+                Lokasi / Domisili{fieldErrors.city && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+              </label>
+              <div className={fieldErrors.city ? "rounded-xl ring-1 ring-red-500" : ""}>
+                <LocationInput
+                  id="create-circle-city-list"
+                  value={form.city}
+                  onChange={(v) => {
+                    setForm({ ...form, city: v });
+                    clearErr("city");
+                  }}
+                  placeholder="Ketik nama kota..."
+                />
+              </div>
+            </div>
+
+            <div ref={(el) => { fieldRefs.current.location = el; }}>
+              <label className="text-sm text-gray-500">
+                Titik Kumpul{fieldErrors.location && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+              </label>
+              <input
+                className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.location ? "border-red-500" : ""}`}
+                placeholder="Mis. Taman Kota, Gerbang Utara"
+                value={form.location}
+                onChange={(e) => {
+                  setForm({ ...form, location: e.target.value });
+                  clearErr("location");
+                }}
+              />
+            </div>
+          </>
+        )}
+
+        {/* ===== LANGKAH 3: WAKTU ===== */}
+        {step === 3 && (
+          <>
+            <div ref={(el) => { fieldRefs.current.event_date = el; }}>
+              <label className="text-sm text-gray-500">
+                Tanggal{fieldErrors.event_date && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+              </label>
+              <input
+                type="date"
+                min={isEdit ? undefined : toDateValue(new Date().toISOString())}
+                className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.event_date ? "border-red-500" : ""}`}
+                value={form.event_day}
+                onChange={(e) => {
+                  setForm({ ...form, event_day: e.target.value });
+                  clearErr("event_date");
+                }}
+              />
+            </div>
+
+            <div ref={(el) => { fieldRefs.current.start_time = el; }}>
+              <label className="text-sm text-gray-500">
+                Jam Mulai{fieldErrors.start_time && <span className="text-red-500 font-medium"> — Cek lagi</span>}
+              </label>
+              <input
+                type="time"
+                className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.start_time ? "border-red-500" : ""}`}
+                value={form.start_time}
+                onChange={(e) => {
+                  setForm({ ...form, start_time: e.target.value });
+                  clearErr("start_time");
+                }}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={form.allow_late_join}
+                  onChange={(e) => setForm({ ...form, allow_late_join: e.target.checked })}
+                />
+                Izinkan join setelah circle dimulai
+              </label>
+              <p className="text-xs text-gray-400">
+                Kalau mati (default), pendaftaran ditutup begitu jam mulai tiba atau kamu menekan &quot;Tandai Mulai&quot;. Kalau aktif, orang baru masih bisa join sampai 3 jam setelah jam mulai.
+              </p>
+            </div>
+          </>
+        )}
+
+        {/* ===== LANGKAH 4: PESERTA & RUNDOWN ===== */}
+        {step === 4 && (
+          <>
+            <div>
+              <label className="text-sm text-gray-500">
+                Jumlah Orang: <span className="font-semibold text-primary">{form.max_participants}</span> ({minP}-{maxP})
+              </label>
+              <input
+                type="range"
+                min={minP}
+                max={maxP}
+                step={1}
+                value={form.max_participants}
+                onChange={(e) => setForm({ ...form, max_participants: Number(e.target.value) })}
+                className="w-full accent-primary"
+              />
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>{minP}</span>
+                <span>{maxP}</span>
+              </div>
+            </div>
+
+            <div ref={(el) => { fieldRefs.current.description = el; }}>
+              <label className="text-sm text-gray-500">
+                Rundown / Detail Kegiatan{fieldErrors.description && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
+              </label>
+              <textarea
+                className={`w-full border rounded-xl px-3 py-2 ${fieldErrors.description ? "border-red-500" : ""}`}
+                rows={5}
+                placeholder="Mis. Kumpul 06.00, briefing, gowes 15km, sarapan bareng"
+                value={form.description}
+                onChange={(e) => {
+                  setForm({ ...form, description: e.target.value });
+                  clearErr("description");
+                }}
+              />
+            </div>
+          </>
+        )}
+
+        {/* ===== LANGKAH 5 (Circle+): TAMPILAN & AKSES ===== */}
+        {isPlus && step === 5 && (
+          <>
+            <div className="space-y-1">
+              <label className="text-sm text-gray-500">Custom Cover</label>
+              <div className="h-32 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
+                {form.cover_url && !coverError ? (
+                  <img
+                    src={form.cover_url}
+                    alt="cover"
+                    className="w-full h-full object-cover"
+                    onError={() => setCoverError(true)}
+                  />
+                ) : (
+                  <span className="text-gray-400 text-sm text-center px-4">Pakai cover default sesuai aktivitas</span>
+                )}
+              </div>
+              <div className="flex items-center gap-4">
+                <label className="text-sm text-primary font-medium cursor-pointer inline-block">
+                  {uploadingCover ? "Mengunggah..." : form.cover_url ? "Ganti Cover" : "Upload Cover"}
+                  <input type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} disabled={uploadingCover} />
+                </label>
+                {form.cover_url && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveCover}
+                    disabled={uploadingCover}
+                    className="btn-flat text-sm text-red-500 font-medium disabled:opacity-40"
+                  >
+                    Hapus
+                  </button>
+                )}
+              </div>
+              <p className="text-xs text-gray-400">
+                Ukuran ideal: <span className="font-medium text-gray-500">800 x 450 px</span> (rasio 16:9), format JPG/PNG, maks 1MB.
+              </p>
+              {!form.cover_url && (
+                <p className="text-xs text-gray-400">Tanpa custom cover, otomatis dipakai cover default sesuai aktivitas.</p>
+              )}
+            </div>
+
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -715,7 +860,12 @@ export default function CreateCircleModal({
                 />
               </div>
             </div>
+          </>
+        )}
 
+        {/* ===== LANGKAH 6 (Circle+): ATURAN JOIN ===== */}
+        {isPlus && step === 6 && (
+          <>
             <div className="space-y-2">
               <p className="text-sm text-gray-500">Batasi peserta (opsional)</p>
               <select
@@ -762,22 +912,31 @@ export default function CreateCircleModal({
         )}
 
         {error && <p className="text-sm text-red-500">{error}</p>}
-
-        <div className="flex gap-2 pt-2">
-          <button onClick={handleCancel} className="flex-1 py-3 text-gray-500">
-            Batal
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 bg-primary text-white rounded-xl py-3 font-medium"
-          >
-            {saving ? "Menyimpan..." : isEdit ? "Simpan" : "Save"}
-          </button>
-        </div>
         </>
         )}
         </div>
+
+        {/* Footer tetap: Kembali / Lanjut */}
+        {!profileIncomplete && (
+          <div className="shrink-0 border-t-2 border-gray-200 bg-white px-4 py-3 flex gap-2">
+            <button
+              type="button"
+              onClick={step === 1 ? handleCancel : handleBack}
+              disabled={saving}
+              className="flex-1 py-3 rounded-xl border-2 border-gray-200 text-gray-500 font-bold flex items-center justify-center gap-1"
+            >
+              {step === 1 ? "Batal" : (<><ArrowLeft size={16} /> Kembali</>)}
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={saving || uploadingCover}
+              className="flex-[2] bg-primary text-white rounded-xl py-3 font-bold disabled:opacity-60"
+            >
+              {step < totalSteps ? "Lanjut" : saving ? "Menyimpan..." : isEdit ? "Simpan" : "Buat Circle"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
