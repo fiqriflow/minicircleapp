@@ -48,7 +48,7 @@ export default function CircleCard({
   return (
     <Link
       href={`/circle/${circle.id}`}
-      className="block bg-white rounded-2xl border p-4 space-y-2 hover:shadow-md transition"
+      className="card-chunk block bg-white p-4 space-y-2"
     >
       <div className="flex items-start justify-between gap-2">
         <h3 className="min-w-0 flex-1 font-semibold flex items-start gap-1.5">
@@ -131,8 +131,8 @@ export default function CircleCard({
             <span>Slot Terisi</span>
             <span className="font-medium text-gray-600">{joinedCount === undefined ? "–" : joined}/{max}</span>
           </div>
-          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div className={`h-full ${isFull ? "bg-red-500" : "bg-primary"}`} style={{ width: `${pct}%` }} />
+          <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full ${isFull ? "bg-red-500" : "bg-primary"}`} style={{ width: `${pct}%` }} />
           </div>
         </div>
       )}

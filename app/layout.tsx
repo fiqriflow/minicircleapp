@@ -3,8 +3,17 @@ import { connection } from "next/server";
 import type { Metadata, Viewport } from "next";
 import AppShell from "@/components/layout/AppShell";
 import { Toaster } from "sonner";
+import { Nunito } from "next/font/google";
 import SplashScreen from "@/components/layout/SplashScreen";
 import PwaRegister from "@/components/layout/PwaRegister";
+
+// Font self-host oleh Next.js (tidak perlu izin CSP tambahan)
+const nunito = Nunito({
+  subsets: ["latin"],
+  weight: ["400", "600", "700", "800"],
+  display: "swap",
+  variable: "--font-nunito",
+});
 
 export const metadata: Metadata = {
   title: "Mincle",
@@ -41,8 +50,8 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   await connection();
   return (
-    <html lang="id">
-      <body>
+    <html lang="id" className={nunito.variable}>
+      <body className="font-sans">
         <SplashScreen />
         <AppShell>{children}</AppShell>
         <Toaster position="top-center" richColors closeButton />

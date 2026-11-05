@@ -2,8 +2,86 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply bg-white text-gray-800 antialiased;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+/* ===== Gaya ala Duolingo: tombol 3D "chunky", kartu bergaris tebal, respons tap instan ===== */
+
+/* Semua tombol/link utama (bg-primary) otomatis jadi 3D, tanpa ubah tiap halaman */
+button.bg-primary:not(:disabled),
+a.bg-primary {
+  box-shadow: 0 4px 0 0 #c24a0a;
+  transition: transform 0.06s ease, box-shadow 0.06s ease, filter 0.15s ease;
+}
+button.bg-primary:not(:disabled):active,
+a.bg-primary:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 0 #c24a0a;
+}
+@media (hover: hover) {
+  button.bg-primary:not(:disabled):hover,
+  a.bg-primary:hover {
+    filter: brightness(1.06);
+  }
+}
+
+/* Kartu: garis 2px, bawah 4px, turun saat ditekan */
+.card-chunk {
+  @apply rounded-2xl border-2 border-b-4 border-gray-200;
+  transition: transform 0.06s ease, border-color 0.15s ease;
+}
+.card-chunk:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+  margin-bottom: 2px;
+}
+@media (hover: hover) {
+  .card-chunk:hover {
+    border-color: #fdba8c;
+  }
+}
+
+/* Efek tekan ringan untuk elemen klik lain */
+.press {
+  transition: transform 0.08s ease;
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* Transisi pindah halaman: cepat (160ms), hanya opacity + geser kecil */
+@keyframes pageIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-in {
+  animation: pageIn 0.16s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-in {
+    animation: none;
+  }
+  .press:active,
+  .card-chunk:active {
+    transform: none;
+  }
 }
 
 @keyframes splashPop {

@@ -22,6 +22,12 @@ export default function BottomNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const supabase = createClient();
   const [profile, setProfile] = useState<{ full_name?: string; avatar_url?: string } | null>(null);
+  // Tab langsung aktif saat di-tap (tanpa nunggu halaman tujuan selesai load) -> terasa instan
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -53,16 +59,16 @@ export default function BottomNav({ children }: { children: React.ReactNode }) {
     <>
       {/* Top bar: avatar + sapaan di kiri, notif di kanan — cuma tampil di beranda */}
       {isBeranda && (
-        <header className="shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b">
+        <header className="shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b-2 border-gray-200">
           <Link href="/profile/data-user" className="shrink-0">
             <img
               src={profile?.avatar_url || "https://ui-avatars.com/api/?name=" + firstName}
-              className="w-10 h-10 rounded-full object-cover"
+              className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
               alt=""
             />
           </Link>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm truncate">Halo, {firstName} 👋</p>
+            <p className="font-bold text-sm truncate">Halo, {firstName} 👋</p>
             <p className="text-xs text-gray-400 truncate">Yuk cari circle mabar terdekat & gabung sekarang!</p>
           </div>
           <EnergyBadge />
@@ -74,15 +80,20 @@ export default function BottomNav({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-y-auto">{children}</main>
 
       {/* Bottom nav — flex item statis di dasar frame (bukan fixed), selalu nempel di bawah layar */}
-      <nav className="shrink-0 flex justify-around bg-white border-t py-2">
+      <nav className="shrink-0 flex justify-around bg-white border-t-2 border-gray-200 px-2 py-1.5">
         {menu.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href !== "/" && pathname.startsWith(href));
+          const current = pendingHref ?? pathname;
+          const active = current === href || (href !== "/" && current.startsWith(href));
           return (
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center text-xs gap-1 px-3 py-1 ${
-                active ? "text-primary font-semibold" : "text-gray-400"
+              prefetch
+              onClick={() => setPendingHref(href)}
+              className={`press flex flex-col items-center text-[11px] font-bold gap-0.5 px-3.5 py-1.5 rounded-xl border-2 ${
+                active
+                  ? "text-primary bg-primary/10 border-primary"
+                  : "text-gray-400 border-transparent"
               }`}
             >
               <Icon size={22} active={active} />

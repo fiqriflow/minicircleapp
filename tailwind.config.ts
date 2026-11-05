@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import defaultTheme from "tailwindcss/defaultTheme";
 
 const config: Config = {
   content: [
@@ -8,10 +9,21 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-nunito)", ...defaultTheme.fontFamily.sans],
+      },
+      // Nunito punya bobot 600/700/800 -> teks terasa "tebal & ramah" ala Duolingo tanpa ubah tiap komponen
+      fontWeight: {
+        medium: "600",
+        semibold: "700",
+        bold: "800",
+      },
       colors: {
         primary: {
           DEFAULT: "#F46113",
           dark: "#D9530D",
+          // sisi bawah tombol 3D (chunky)
+          edge: "#C24A0A",
         },
       },
       keyframes: {

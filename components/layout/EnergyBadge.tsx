@@ -43,12 +43,12 @@ export default function EnergyBadge() {
     <div className="relative shrink-0" ref={ref}>
       <button
         onClick={() => setShowInfo((s) => !s)}
-        className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
-          isLow ? "bg-red-50 text-red-500" : "bg-yellow-50 text-yellow-600"
+        className={`press flex items-center gap-1 px-2.5 py-1 rounded-xl border-2 text-sm font-bold ${
+          isLow ? "bg-red-50 border-red-200 text-red-500" : "bg-amber-50 border-amber-200 text-amber-500"
         }`}
         aria-label="Energy"
       >
-        <Zap size={14} fill="currentColor" />
+        <Zap size={16} fill="currentColor" />
         {energy}
       </button>
 
