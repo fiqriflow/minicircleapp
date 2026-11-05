@@ -18,7 +18,7 @@ import { markCommentNotifRead } from "@/lib/notifications";
 import CreateCircleModal from "@/components/circle/CreateCircleModal";
 import VerifiedBadge from "@/components/ui/VerifiedBadge";
 import { hasJoinFilters } from "@/lib/joinFilters";
-import { PUBLIC_PROFILE_COLUMNS, isProfileIncompleteError } from "@/lib/profile";
+import { PUBLIC_PROFILE_COLUMNS, fetchMemberExtras, isProfileIncompleteError } from "@/lib/profile";
 import { CIRCLE_COLUMNS } from "@/lib/circleColumns";
 
 export default function CircleDetailPage() {
@@ -58,13 +58,21 @@ export default function CircleDetailPage() {
   useEffect(() => {
     if (!userId) return;
     supabase
-      .from("profiles")
-      .select(PUBLIC_PROFILE_COLUMNS)
-      .eq("id", userId)
-      .single()
+      .rpc("get_my_profile")
+      .maybeSingle()
       .then(({ data }) => setMyProfile(data));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  // Modal langsung tampil dengan data publik; gender/IG/kota (hanya sesama circle) menyusul dari RPC.
+  const openMemberProfile = (profile: any) => {
+    setSelectedMember(profile);
+    if (!profile?.id) return;
+    fetchMemberExtras(supabase, profile.id).then((extras) => {
+      if (!extras) return;
+      setSelectedMember((cur: any) => (cur && cur.id === profile.id ? { ...cur, ...extras } : cur));
+    });
+  };
 
   const isJoined = myStatus === "joined";
   const isHost = !!(userId && circle && userId === circle.created_by);
@@ -1184,7 +1192,7 @@ export default function CircleDetailPage() {
                 className="w-full flex items-center justify-between gap-3 border rounded-xl p-3"
               >
                 <button
-                  onClick={() => isJoined && setSelectedMember(m.profile)}
+                  onClick={() => isJoined && openMemberProfile(m.profile)}
                   className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 >
                   <img loading="lazy" decoding="async"

@@ -103,7 +103,7 @@ function buildActivityByWeekday(dates: string[]) {
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
   const [{ data: profiles }, { data: circles }, { data: members }, { data: comments }] = await Promise.all([
-    supabase.from("profiles").select("id, gender, categories, location, created_at"),
+    supabase.rpc("admin_profile_stats"),
     supabase.from("circles").select("status, created_by, event_date, category, created_at"),
     supabase.from("circle_members").select("user_id, status, joined_at"),
     supabase.from("circle_comments").select("user_id, created_at"),

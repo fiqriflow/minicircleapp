@@ -8,7 +8,7 @@ Stack: Next.js 16 (App Router) + React 19 + Tailwind 3 + Supabase + Vercel. Font
 
 1. **Supabase**
    - Buat project di supabase.com
-   - SQL Editor → jalankan semua file di `supabase/migrations/` **urut dari 0000 sampai 0065**. Detail: `supabase/README.md`
+   - SQL Editor → jalankan semua file di `supabase/migrations/` **urut dari 0000 sampai 0067**. Detail: `supabase/README.md`
    - Authentication → Providers → aktifkan **Google** (Client ID/Secret dari Google Cloud Console)
    - Authentication → URL Configuration → Redirect URL: `https://DOMAIN_KAMU/auth/callback` (dan `http://localhost:3000/auth/callback` untuk dev)
    - Jadikan 1 user super admin: `update profiles set is_super_admin = true where id = 'USER_UUID';`
@@ -84,6 +84,7 @@ Sudah dipakai di:
 - Chat circle bisa ditingkatkan pakai `supabase.channel()` supaya auto-update tanpa reload
 
 ## Changelog
+- **Privasi profil (penuh)** (migration 0066 + 0067): gender/Instagram/kota hanya terbaca sesama circle (`rpc get_member_profile`); energy, tgl onboarding, dll tertutup (profil sendiri lewat `get_my_profile`); admin lewat `admin_profile_stats` & `admin_verified_profiles`. **Urutan deploy: jalankan 0066 → deploy kode → jalankan 0067.** Juga: `.gitignore`, guard `createAdminClient` hanya di server
 - **Kategori, energy mingguan, halaman notifikasi** (migration 0065): kategori Kulineran & Ngopi dihapus dari pilihan, ditambah Renang (circle lama berkategori Kulineran/Ngopi tetap tersimpan, hanya muncul di filter "Semua"); energy di-reset ke 1000 tiap Senin 00.00 WIB, biaya join -100 / buat -100 / plus -200 / pelanggaran -50; notifikasi pindah dari dropdown ke halaman `/notifications` (filter Semua/Belum dibaca, tandai dibaca, hapus), lonceng tinggal badge
 - **Duolingo ke seluruh app + optimistic UI**: gaya global tombol/kartu/input/tab/toggle/toast, `lib/optimistic.ts`, optimistic di circle, notifikasi, profil, masukan, energy badge
 - **UI Duolingo + navigasi cepat**: font Nunito, tombol/kartu chunky, bottom nav gaya Duolingo, transisi halaman cepat, skeleton per rute, `getClaims()` di proxy, splash lebih singkat

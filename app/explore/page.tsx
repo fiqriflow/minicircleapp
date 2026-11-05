@@ -76,7 +76,7 @@ function ExploreContent() {
       setCurrentUserId(user.id);
       // profil & memberships tidak saling bergantung -> paralel
       const [{ data }, { data: memberships }] = await Promise.all([
-        supabase.from("profiles").select("location").eq("id", user.id).single(),
+        supabase.rpc("get_my_profile").maybeSingle(),
         supabase.from("circle_members").select("circle_id").eq("user_id", user.id).eq("status", "joined"),
       ]);
       if (data?.location) setLocation((prev) => prev || data.location);

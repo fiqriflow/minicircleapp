@@ -24,11 +24,7 @@ export default function AdminVerifikasiPage() {
         .select("id, user_id, code, instagram, created_at, profile:profiles!user_id(full_name, nickname, avatar_url)")
         .eq("status", "pending")
         .order("created_at", { ascending: true }),
-      supabase
-        .from("profiles")
-        .select("id, full_name, nickname, avatar_url, instagram, verified_at")
-        .eq("is_verified", true)
-        .order("verified_at", { ascending: false }),
+      supabase.rpc("admin_verified_profiles"),
     ]);
     if (reqErr) toast.error("Gagal memuat antrian: " + reqErr.message);
     setPending(req ?? []);
