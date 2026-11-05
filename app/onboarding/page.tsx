@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { safeNext } from "@/lib/safeNext";
@@ -45,6 +45,46 @@ export default function OnboardingPage() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [policyModal, setPolicyModal] = useState<{ title: string; url: string } | null>(null);
+
+  // ===== Keyboard-aware (HP) =====
+  // Saat keyboard muncul, browser mengecilkan visual viewport tapi layout tetap setinggi layar penuh -> input
+  // tertutup keyboard. Tinggi layar kita ikutkan visualViewport, dan input yang difokus otomatis di-scroll ke tengah.
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const nicknameRef = useRef<HTMLInputElement>(null);
+
+  const isField = (el: Element | null): el is HTMLElement =>
+    !!el && ["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName) && !!bodyRef.current?.contains(el);
+
+  const scrollFieldIntoView = (el: Element | null) => {
+    if (isField(el)) el.scrollIntoView({ block: "center", behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const onResize = () => {
+      setViewportHeight(vv.height);
+      setKeyboardOpen(vv.height < window.innerHeight * 0.8);
+      // keyboard baru selesai membuka -> pastikan input aktif terlihat
+      setTimeout(() => scrollFieldIntoView(document.activeElement), 80);
+    };
+    onResize();
+    vv.addEventListener("resize", onResize);
+    return () => vv.removeEventListener("resize", onResize);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleFieldFocus = (e: React.FocusEvent<HTMLElement>) => {
+    const target = e.target;
+    setTimeout(() => scrollFieldIntoView(target), 300);
+  };
+
+  // pindah langkah -> mulai dari atas
+  useEffect(() => {
+    bodyRef.current?.scrollTo({ top: 0 });
+  }, [step]);
 
   useEffect(() => {
     const load = async () => {
@@ -133,11 +173,16 @@ export default function OnboardingPage() {
   if (!profile) return <p className="p-6 text-gray-400 text-center">Memuat...</p>;
 
   return (
-    <div className="relative overflow-hidden min-h-screen bg-gray-50 flex flex-col items-center justify-center px-6 py-10">
-      {/* Ilustrasi bawah (dekoratif, tidak menghalangi klik) */}
+    <div
+      className="fixed inset-x-0 top-0 z-40 overflow-hidden bg-gray-50 flex flex-col items-center"
+      style={{ height: viewportHeight ? `${viewportHeight}px` : "100dvh" }}
+    >
+      {/* Ilustrasi bawah (dekoratif, tidak menghalangi klik; disembunyikan saat keyboard terbuka) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md h-[330px] overflow-hidden"
+        className={`pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md h-[330px] overflow-hidden ${
+          keyboardOpen ? "hidden" : ""
+        }`}
       >
         <img
           src="/bgbawah.svg"
@@ -146,24 +191,32 @@ export default function OnboardingPage() {
         />
       </div>
 
-      <div className="relative z-10 w-full max-w-md space-y-6">
-        <button
-          onClick={handleBackToLogin}
-          className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1"
-        >
-          ← Kembali ke Login/Daftar
-        </button>
+      <div className="relative z-10 w-full max-w-md h-full flex flex-col">
+        {/* Header tetap: kembali + progress */}
+        <div className="shrink-0 px-6 pt-5 pb-3 space-y-3">
+          <button
+            onClick={handleBackToLogin}
+            className="btn-flat text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1"
+          >
+            ← Kembali ke Login/Daftar
+          </button>
 
-        {/* Progress bar */}
-        <div className="flex gap-2">
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-            <div
-              key={i}
-              className={`h-1.5 flex-1 rounded-full ${i <= step ? "bg-primary" : "bg-gray-200"}`}
-            />
-          ))}
+          <div className="flex gap-2">
+            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-2 flex-1 rounded-full transition-colors duration-300 ${i <= step ? "bg-primary" : "bg-gray-200"}`}
+              />
+            ))}
+          </div>
         </div>
 
+        {/* Isi langkah: area scroll sendiri; input aktif otomatis dibawa ke tengah layar */}
+        <div
+          ref={bodyRef}
+          className="flex-1 overflow-y-auto overscroll-contain px-6 py-2"
+          onFocusCapture={handleFieldFocus}
+        >
         <div className="bg-white rounded-2xl border p-6 space-y-5">
           {step === 0 && (
             <>
@@ -229,6 +282,14 @@ export default function OnboardingPage() {
                 <input
                   className="w-full border rounded-xl px-4 py-2"
                   maxLength={100}
+                  autoComplete="name"
+                  enterKeyHint="next"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      nicknameRef.current?.focus();
+                    }
+                  }}
                   value={profile.full_name ?? ""}
                   onChange={(e) => setProfile({ ...profile, full_name: e.target.value })}
                 />
@@ -236,8 +297,14 @@ export default function OnboardingPage() {
               <div>
                 <label className="text-sm text-gray-500">Nama Panggilan</label>
                 <input
+                  ref={nicknameRef}
                   className="w-full border rounded-xl px-4 py-2"
                   maxLength={50}
+                  autoComplete="nickname"
+                  enterKeyHint="done"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur(); // tutup keyboard
+                  }}
                   value={profile.nickname ?? ""}
                   onChange={(e) => setProfile({ ...profile, nickname: e.target.value })}
                 />
@@ -363,6 +430,13 @@ export default function OnboardingPage() {
                 <input
                   className="w-full border rounded-xl px-4 py-2"
                   placeholder="@username"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  enterKeyHint="done"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                  }}
                   value={profile.instagram ?? ""}
                   onChange={(e) => {
                     // spasi dibuang, "@" otomatis ditambah kalau lupa (DB juga menormalkan)
@@ -377,10 +451,12 @@ export default function OnboardingPage() {
             </>
           )}
         </div>
+        </div>
 
-        <div className="flex gap-2">
+        {/* Tombol tetap di bawah (selalu terlihat, naik mengikuti keyboard) */}
+        <div className="shrink-0 px-6 py-3 flex gap-2">
           {step > 0 && (
-            <button onClick={handleBack} className="flex-1 border rounded-xl py-3 font-medium text-gray-500">
+            <button onClick={handleBack} className="flex-1 border rounded-xl py-3 font-bold text-gray-500 bg-white">
               Kembali
             </button>
           )}
@@ -388,7 +464,7 @@ export default function OnboardingPage() {
             <button
               onClick={handleNext}
               disabled={!canProceed()}
-              className="flex-1 bg-primary text-white rounded-xl py-3 font-medium disabled:opacity-40"
+              className="flex-1 bg-primary text-white rounded-xl py-3 font-bold disabled:opacity-40"
             >
               Lanjut
             </button>
@@ -396,7 +472,7 @@ export default function OnboardingPage() {
             <button
               onClick={handleFinish}
               disabled={saving || !canProceed()}
-              className="flex-1 bg-primary text-white rounded-xl py-3 font-medium disabled:opacity-40"
+              className="flex-1 bg-primary text-white rounded-xl py-3 font-bold disabled:opacity-40"
             >
               {saving ? "Menyimpan..." : "Selesai"}
             </button>
