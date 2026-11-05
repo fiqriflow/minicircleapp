@@ -28,7 +28,7 @@ export default function AdminVerifikasiPage() {
     ]);
     if (reqErr) toast.error("Gagal memuat antrian: " + reqErr.message);
     setPending(req ?? []);
-    setVerified(ver ?? []);
+    setVerified((ver as any[] | null) ?? []);
     setLoading(false);
   };
 

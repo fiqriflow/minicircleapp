@@ -79,7 +79,8 @@ function ExploreContent() {
         supabase.rpc("get_my_profile").maybeSingle(),
         supabase.from("circle_members").select("circle_id").eq("user_id", user.id).eq("status", "joined"),
       ]);
-      if (data?.location) setLocation((prev) => prev || data.location);
+      const myLocation = (data as any)?.location as string | undefined;
+      if (myLocation) setLocation((prev) => prev || myLocation);
       setJoinedIds(new Set((memberships ?? []).map((m) => m.circle_id)));
     };
     loadUserData().catch(() => {}).finally(() => setReady(true));

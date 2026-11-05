@@ -102,13 +102,14 @@ function buildActivityByWeekday(dates: string[]) {
 
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
-  const [{ data: profiles }, { data: circles }, { data: members }, { data: comments }] = await Promise.all([
+  const [{ data: profilesRaw }, { data: circles }, { data: members }, { data: comments }] = await Promise.all([
     supabase.rpc("admin_profile_stats"),
     supabase.from("circles").select("status, created_by, event_date, category, created_at"),
     supabase.from("circle_members").select("user_id, status, joined_at"),
     supabase.from("circle_comments").select("user_id, created_at"),
   ]);
 
+  const profiles = (profilesRaw ?? null) as any[] | null; // hasil rpc admin_profile_stats
   const totalUser = profiles?.length ?? 0;
 
   const genderData = Object.entries(groupCount(profiles ?? [], "gender")).map(([k, v]) => ({
