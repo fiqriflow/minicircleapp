@@ -49,10 +49,14 @@ Saldo kredit. Angka di `lib/energy.ts` harus sama dengan migration (DB yang mene
 - Riwayat tercatat di `energy_ledger` (migration 0062)
 
 ## UI (gaya Duolingo)
-- Tombol utama `bg-primary` otomatis 3D "chunky" (lihat `app/globals.css`); tidak perlu class tambahan
-- Kartu: class `card-chunk` (garis 2px, bawah 4px, turun saat ditekan). Efek tekan ringan: class `press`
-- Bobot font di-remap (`medium` 600, `semibold` 700, `bold` 800) di `tailwind.config.ts`
-- Radius tombol default 12px (`rounded-xl`)
+Semua gaya global ada di `app/globals.css`; halaman baru otomatis ikut tanpa class tambahan.
+- Tombol utama `button.bg-primary` / `a.bg-primary` → 3D "chunky" (bayangan 4px, 2px untuk `text-xs`, turun saat ditekan)
+- Tombol outline `button.border` → garis 2px, bawah 4px
+- Kartu/panel `rounded-2xl border` → garis 2px, bawah 4px. Input/textarea/select `border` → garis 2px, abu muda, fokus oranye
+- Kelas bantu: `card-chunk` (kartu yang bisa diklik), `press` (efek tekan ringan), `btn-flat` (opt-out dari gaya 3D, mis. sidebar admin)
+- Tab: kotak bergaris (aktif = oranye muda). Bottom nav: tab aktif berkotak oranye
+- Bobot font di-remap (`medium` 600, `semibold` 700, `bold` 800) di `tailwind.config.ts`; font Nunito
+- Radius tombol default 12px (`rounded-xl`). Toast (sonner) ikut gaya kartu tebal
 
 ## Kecepatan pindah halaman
 - Tab bottom nav aktif langsung saat di-tap (state optimistik), tanpa tunggu halaman tujuan
@@ -60,9 +64,24 @@ Saldo kredit. Angka di `lib/energy.ts` harus sama dengan migration (DB yang mene
 - `proxy.ts` pakai `auth.getClaims()` (verifikasi JWT lokal), bukan `getUser()` yang round-trip ke Supabase Auth tiap navigasi
 - Splash screen dipersingkat (~1,1 detik, sekali per sesi)
 
+## Optimistic UI
+Helper: `lib/optimistic.ts` → `optimistic({ apply, run, onSuccess, onError, onSettled })`.
+`apply` mengubah state SEKARANG dan mengembalikan fungsi rollback; `run` mengirim ke server di belakang layar.
+Gagal/error jaringan → rollback otomatis + toast. `onSettled` dipakai untuk sinkron ulang dari server (`load()`).
+Pola: simpan nilai lama di `apply`, kembalikan fungsi yang memasangnya lagi. Item baru yang belum tersimpan pakai `tempId()`.
+
+Sudah dipakai di:
+- Detail circle: join, batal join (slot, line up, saldo energy langsung berubah), terima/tolak permintaan join, check-in, koreksi hadir, co host, kirim komentar (muncul redup lalu diganti data asli; teks dikembalikan ke kolom input kalau gagal), pengumuman (kirim & lepas pin), tandai mulai/status circle, toggle approval
+- Saldo energy: `notifyEnergyChanged({ delta })` mengubah badge langsung; `notifyEnergyChanged()` tanpa argumen = baca ulang dari server
+- Notifikasi: tandai dibaca, hapus satu, hapus semua; klik notifikasi pindah halaman dulu
+- Profil: ganti avatar preset, upload foto (pratinjau lokal), simpan profil
+- Masukan: langsung tampil "Terima kasih", form dipulihkan kalau gagal
+- Toggle notifikasi push (mematikan). Menyalakan sengaja tidak optimistic karena butuh izin browser
+
 ## Catatan
 - CSP nonce diatur di `proxy.ts`; `CSP_REPORT_ONLY=1` untuk mode tes (tidak memblokir)
 - Chat circle bisa ditingkatkan pakai `supabase.channel()` supaya auto-update tanpa reload
 
 ## Changelog
+- **Duolingo ke seluruh app + optimistic UI**: gaya global tombol/kartu/input/tab/toggle/toast, `lib/optimistic.ts`, optimistic di circle, notifikasi, profil, masukan, energy badge
 - **UI Duolingo + navigasi cepat**: font Nunito, tombol/kartu chunky, bottom nav gaya Duolingo, transisi halaman cepat, skeleton per rute, `getClaims()` di proxy, splash lebih singkat

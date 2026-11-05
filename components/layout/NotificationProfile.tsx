@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, X, CheckCheck, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { optimistic } from "@/lib/optimistic";
 import {
   AppNotification,
   clearAllNotifications,
@@ -80,31 +81,61 @@ export default function NotificationProfile() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // OPTIMISTIC: tampilan langsung berubah; kalau server menolak, daftar dikembalikan + toast
   const handleMarkAllRead = async () => {
     if (!userId) return;
-    setNotifs((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    await markAllAsRead(supabase, userId);
+    const prev = notifs;
+    await optimistic({
+      apply: () => {
+        setNotifs((p) => p.map((n) => ({ ...n, is_read: true })));
+        return () => setNotifs(prev);
+      },
+      run: () => markAllAsRead(supabase, userId),
+      errorMessage: () => "Gagal menandai dibaca.",
+    });
   };
 
   const handleClearAll = async () => {
     if (!userId) return;
-    setNotifs([]);
-    await clearAllNotifications(supabase, userId);
+    const prev = notifs;
+    await optimistic({
+      apply: () => {
+        setNotifs([]);
+        return () => setNotifs(prev);
+      },
+      run: () => clearAllNotifications(supabase, userId),
+      errorMessage: () => "Gagal menghapus notifikasi.",
+    });
   };
 
   const handleDeleteOne = async (id: string) => {
-    setNotifs((prev) => prev.filter((n) => n.id !== id));
-    await deleteNotification(supabase, id);
+    const prev = notifs;
+    await optimistic({
+      apply: () => {
+        setNotifs((p) => p.filter((n) => n.id !== id));
+        return () => setNotifs(prev);
+      },
+      run: () => deleteNotification(supabase, id),
+      errorMessage: () => "Gagal menghapus notifikasi.",
+    });
   };
 
   const handleClickNotif = async (n: AppNotification) => {
-    if (!n.is_read) {
-      setNotifs((prev) => prev.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
-      await markAsRead(supabase, n.id);
-    }
+    // pindah halaman duluan (tanpa menunggu server); status baca disimpan di belakang
     if (n.circle_id) {
       setShowNotif(false);
       router.push(`/circle/${n.circle_id}`);
+    }
+    if (!n.is_read) {
+      const prev = notifs;
+      await optimistic({
+        apply: () => {
+          setNotifs((p) => p.map((x) => (x.id === n.id ? { ...x, is_read: true } : x)));
+          return () => setNotifs(prev);
+        },
+        run: () => markAsRead(supabase, n.id),
+        onError: () => true, // gagal tandai baca bukan masalah besar: titik biru kembali, tanpa toast
+      });
     }
   };
 
@@ -124,9 +155,9 @@ export default function NotificationProfile() {
       </button>
 
       {showNotif && (
-        <div className="absolute right-0 mt-2 w-80 bg-white border rounded-xl shadow-lg z-50 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-80 bg-white border-2 border-b-4 border-gray-200 rounded-2xl shadow-lg z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b">
-            <p className="text-sm font-semibold">Notifikasi</p>
+            <p className="text-sm font-bold">Notifikasi</p>
             {notifs.length > 0 && (
               <div className="flex items-center gap-3">
                 <button

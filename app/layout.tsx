@@ -54,7 +54,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="font-sans">
         <SplashScreen />
         <AppShell>{children}</AppShell>
-        <Toaster position="top-center" richColors closeButton />
+        <Toaster
+          position="top-center"
+          richColors
+          closeButton
+          toastOptions={{ classNames: { toast: "!rounded-2xl !border-2 !border-b-4 !font-bold" } }}
+        />
         <PwaRegister />
       </body>
     </html>

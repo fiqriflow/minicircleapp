@@ -46,7 +46,12 @@ export function mapEnergyError(message: string | undefined | null): string | nul
   return null;
 }
 
-/** Beri tahu EnergyBadge (dan komponen lain) supaya baca ulang saldo setelah aksi yang memotong energy. */
-export function notifyEnergyChanged() {
-  if (typeof window !== "undefined") window.dispatchEvent(new Event("energy-changed"));
+/**
+ * Beri tahu EnergyBadge (dan komponen lain).
+ * - tanpa argumen: baca ulang saldo asli dari server (dipanggil setelah aksi selesai / gagal)
+ * - { delta }: ubah saldo di layar SEKARANG (optimistic), nanti disinkronkan lagi oleh panggilan tanpa argumen
+ */
+export function notifyEnergyChanged(opts?: { delta?: number }) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent("energy-changed", { detail: { delta: opts?.delta } }));
 }

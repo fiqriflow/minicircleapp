@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Pencil, Trash2, Info } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { optimistic } from "@/lib/optimistic";
 import LocationInput from "@/components/ui/LocationInput";
 import AvatarCropModal from "@/components/profile/AvatarCropModal";
 import DeleteAccountModal from "@/components/profile/DeleteAccountModal";
@@ -77,43 +78,55 @@ export default function DataUserPage() {
     setCropFile(null);
     setUploading(true);
 
-    const path = `${profile.id}/avatar.jpg`;
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(path, blob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
+    // OPTIMISTIC: foto baru langsung terlihat (pratinjau lokal) sambil upload berjalan
+    const prevAvatar = profile.avatar_url;
+    const previewUrl = URL.createObjectURL(blob);
+    await optimistic({
+      apply: () => {
+        setProfile((p: any) => ({ ...p, avatar_url: previewUrl }));
+        return () => setProfile((p: any) => ({ ...p, avatar_url: prevAvatar }));
+      },
+      run: async (): Promise<{ error: { message?: string } | null; avatar_url?: string }> => {
+        const path = `${profile.id}/avatar.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("avatars")
+          .upload(path, blob, { upsert: true, contentType: "image/jpeg", cacheControl: "31536000" });
+        if (uploadError) return { error: { message: "Gagal upload foto: " + uploadError.message } };
 
-    if (uploadError) {
-      toast.error("Gagal upload foto: " + uploadError.message);
-      setUploading(false);
-      return;
-    }
+        const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+        const avatar_url = `${data.publicUrl}?t=${Date.now()}`;
 
-    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-    const avatar_url = `${data.publicUrl}?t=${Date.now()}`;
-
-    // hanya kolom foto: perubahan form lain yang belum disimpan (mode edit) jangan ikut tersimpan diam-diam
-    const { error: saveError } = await saveProfile(supabase, { id: profile.id, avatar_url });
-    setUploading(false);
-    if (saveError) {
-      toast.error("Gagal menyimpan foto: " + saveError.message);
-      return;
-    }
-    setProfile((p: any) => ({ ...p, avatar_url }));
-    toast.success("Foto profil diperbarui!");
+        // hanya kolom foto: perubahan form lain yang belum disimpan (mode edit) jangan ikut tersimpan diam-diam
+        const { error: saveError } = await saveProfile(supabase, { id: profile.id, avatar_url });
+        if (saveError) return { error: { message: "Gagal menyimpan foto: " + saveError.message } };
+        return { error: null, avatar_url };
+      },
+      onSuccess: (r) => {
+        setProfile((p: any) => ({ ...p, avatar_url: r.avatar_url }));
+        toast.success("Foto profil diperbarui!");
+      },
+      onSettled: () => {
+        URL.revokeObjectURL(previewUrl);
+        setUploading(false);
+      },
+    });
   };
 
   const handlePickPreset = async (url: string) => {
     if (!profile?.id || uploading) return;
     setUploading(true);
-    const { error } = await saveProfile(supabase, { id: profile.id, avatar_url: url });
-    setUploading(false);
-    if (error) {
-      toast.error("Gagal menyimpan avatar: " + error.message);
-      return;
-    }
-    setProfile((p: any) => ({ ...p, avatar_url: url }));
-    setShowPresets(false);
-    toast.success("Avatar diperbarui!");
+    const prevAvatar = profile.avatar_url;
+    await optimistic({
+      apply: () => {
+        setProfile((p: any) => ({ ...p, avatar_url: url }));
+        setShowPresets(false);
+        return () => setProfile((p: any) => ({ ...p, avatar_url: prevAvatar }));
+      },
+      run: () => saveProfile(supabase, { id: profile.id, avatar_url: url }),
+      errorMessage: (r) => "Gagal menyimpan avatar: " + (r.error?.message ?? ""),
+      onSuccess: () => toast.success("Avatar diperbarui!"),
+      onSettled: () => setUploading(false),
+    });
   };
 
   const handleSave = async () => {
@@ -133,18 +146,26 @@ export default function DataUserPage() {
       toast.error("Foto profil wajib diisi.");
       return;
     }
-    setSaving(true);
     const payload = { ...profile, full_name: profile.full_name.trim(), nickname: profile.nickname.trim() };
-    const { error } = await saveProfile(supabase, payload);
-    setSaving(false);
-    if (error) {
-      toast.error("Gagal menyimpan profil: " + error.message);
-      return;
-    }
-    setProfile(payload);
-    setLocked({ gender: !!profile.gender, birth: !!profile.birth_date });
-    setEditMode(false);
-    toast.success("Profil berhasil disimpan!");
+    const prev = { profile, locked };
+    // OPTIMISTIC: mode edit langsung tertutup & data baru tampil; gagal -> kembali ke form dengan isian semula
+    await optimistic({
+      apply: () => {
+        setSaving(true);
+        setProfile(payload);
+        setLocked({ gender: !!profile.gender, birth: !!profile.birth_date });
+        setEditMode(false);
+        return () => {
+          setProfile(prev.profile);
+          setLocked(prev.locked);
+          setEditMode(true);
+        };
+      },
+      run: () => saveProfile(supabase, payload),
+      errorMessage: (r) => "Gagal menyimpan profil: " + (r.error?.message ?? ""),
+      onSuccess: () => toast.success("Profil berhasil disimpan!"),
+      onSettled: () => setSaving(false),
+    });
   };
 
   const handleDeleteAccount = async () => {

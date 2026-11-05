@@ -21,9 +21,17 @@ export default function EnergyBadge() {
       if (!info.failed) setEnergy(info.energy);
     };
     load();
-    // saldo dibaca ulang setelah join / buat circle
-    window.addEventListener("energy-changed", load);
-    return () => window.removeEventListener("energy-changed", load);
+    // saldo diubah langsung di layar (optimistic) kalau ada delta; tanpa delta = baca ulang dari server
+    const onChanged = (e: Event) => {
+      const delta = (e as CustomEvent<{ delta?: number }>).detail?.delta;
+      if (typeof delta === "number") {
+        setEnergy((prev) => (prev === null ? prev : Math.max(0, prev + delta)));
+        return;
+      }
+      load();
+    };
+    window.addEventListener("energy-changed", onChanged);
+    return () => window.removeEventListener("energy-changed", onChanged);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
