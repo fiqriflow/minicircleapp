@@ -8,7 +8,7 @@ Stack: Next.js 16 (App Router) + React 19 + Tailwind 3 + Supabase + Vercel. Font
 
 1. **Supabase**
    - Buat project di supabase.com
-   - SQL Editor → jalankan semua file di `supabase/migrations/` **urut dari 0000 sampai 0067**. Detail: `supabase/README.md`
+   - SQL Editor → jalankan semua file di `supabase/migrations/` **urut dari 0000 sampai 0068**. Detail: `supabase/README.md`
    - Authentication → Providers → aktifkan **Google** (Client ID/Secret dari Google Cloud Console)
    - Authentication → URL Configuration → Redirect URL: `https://DOMAIN_KAMU/auth/callback` (dan `http://localhost:3000/auth/callback` untuk dev)
    - Jadikan 1 user super admin: `update profiles set is_super_admin = true where id = 'USER_UUID';`
@@ -84,6 +84,8 @@ Sudah dipakai di:
 - Chat circle bisa ditingkatkan pakai `supabase.channel()` supaya auto-update tanpa reload
 
 ## Changelog
+- **Wizard Buat/Edit Circle: langkah Review** di akhir (ringkasan per grup + tombol "Ubah" yang melompat ke langkahnya, info biaya energy) sebelum Simpan/Buat Circle
+- **Kick peserta + opsi check-in** (migration 0068): host & co host bisa "Keluarkan" peserta di tab Line Up sebelum circle dimulai (RPC `kick_member`, energy join 100 dikembalikan, peserta dapat notifikasi; co host tidak bisa mengeluarkan host/co host lain). Setting circle baru **"Pakai check-in peserta"** (`circles.require_checkin`, default aktif, terkunci setelah circle dimulai): kalau dimatikan tidak ada tombol check-in/koreksi hadir, tidak ada penalti, dan statistik menganggap semua peserta hadir. **Jalankan 0068 SEBELUM deploy kode** (kode membaca kolom baru)
 - **Onboarding keyboard-aware**: tinggi layar mengikuti `visualViewport`, isi langkah scroll sendiri, input/select yang difokus otomatis dibawa ke tengah (tidak tertutup keyboard), header progress & tombol Lanjut/Kembali tetap terlihat di atas keyboard, ilustrasi bawah disembunyikan saat keyboard terbuka; Enter di Nama Lengkap pindah ke Nama Panggilan, Enter di field terakhir menutup keyboard
 - **Buat/Edit Circle jadi wizard per langkah (gaya Duolingo)**: progress bar + tombol Lanjut/Kembali. Circle: 1 Dasar (nama, grup, aktivitas berupa kartu) → 2 Lokasi → 3 Waktu → 4 Peserta & rundown. Circle+ ditambah 5 Tampilan & akses (cover, private, invite link) → 6 Aturan join. Validasi per langkah; validasi penuh tetap di simpan (lompat ke langkah yang bermasalah). Logika simpan tidak berubah
 - **Privasi profil (penuh)** (migration 0066 + 0067): gender/Instagram/kota hanya terbaca sesama circle (`rpc get_member_profile`); energy, tgl onboarding, dll tertutup (profil sendiri lewat `get_my_profile`); admin lewat `admin_profile_stats` & `admin_verified_profiles`. **Urutan deploy: jalankan 0066 → deploy kode → jalankan 0067.** Juga: `.gitignore`, guard `createAdminClient` hanya di server

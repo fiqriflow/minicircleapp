@@ -10,7 +10,7 @@ import { compressImage, LONG_CACHE } from "@/lib/imageCompress";
 import { toDateValue, toTimeValue, combineDateTime } from "@/lib/dateTimeLocal";
 import LocationInput from "@/components/ui/LocationInput";
 import { CATEGORIES } from "@/lib/categories";
-import { ENERGY_COST, getMyEnergy, mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
+import { ENERGY_COST, NO_SHOW_PENALTY, getMyEnergy, mapEnergyError, notifyEnergyChanged } from "@/lib/energy";
 
 const CATEGORY_OPTIONS = ["Jogging", "Jalan Santai", "Gowes", "Renang", "Explore Alam"];
 
@@ -57,6 +57,7 @@ export default function CreateCircleModal({
           join_birth_year_max: editCircle.join_birth_year_max ?? null,
           join_verified_only: editCircle.join_verified_only ?? false,
           allow_late_join: editCircle.allow_late_join ?? false,
+          require_checkin: editCircle.require_checkin ?? true,
         }
       : templateCircle
       ? {
@@ -79,6 +80,7 @@ export default function CreateCircleModal({
           join_birth_year_max: templateCircle.join_birth_year_max ?? null,
           join_verified_only: templateCircle.join_verified_only ?? false,
           allow_late_join: templateCircle.allow_late_join ?? false,
+          require_checkin: templateCircle.require_checkin ?? true,
         }
       : {
           name: "",
@@ -100,6 +102,7 @@ export default function CreateCircleModal({
           join_birth_year_max: null,
           join_verified_only: false,
           allow_late_join: false,
+          require_checkin: true,
         }
   );
   const [saving, setSaving] = useState(false);
@@ -128,7 +131,9 @@ export default function CreateCircleModal({
 
   // ===== Wizard per langkah (gaya Duolingo) =====
   // 1 Dasar · 2 Lokasi · 3 Waktu · 4 Peserta & rundown · (Circle+) 5 Tampilan & akses · 6 Aturan join
-  const totalSteps = isPlus ? 6 : 4;
+  const formSteps = isPlus ? 6 : 4;
+  const totalSteps = formSteps + 1; // langkah terakhir = Review sebelum menyimpan
+  const reviewStep = totalSteps;
   const [step, setStep] = useState(1);
   const bodyRef = useRef<HTMLDivElement>(null);
   const STEP_OF: Record<string, number> = { name: 1, category: 1, city: 2, location: 2, event_date: 3, start_time: 3, description: 4 };
@@ -140,10 +145,17 @@ export default function CreateCircleModal({
     5: { title: "Tampilan & akses", hint: "Cover, private, dan link undangan." },
     6: { title: "Aturan join", hint: "Batasi peserta & atur approval." },
   };
+  const stepInfo =
+    step === reviewStep
+      ? { title: "Cek lagi, ya!", hint: isEdit ? "Pastikan perubahan sudah benar sebelum disimpan." : "Pastikan semuanya sudah benar sebelum circle dibuat." }
+      : STEP_TITLE[step];
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: 0 });
   }, [step]);
 
+  // opsi check-in terkunci kalau circle sudah dimulai / selesai / lewat jam mulai (juga dijaga di DB)
+  const checkinLocked =
+    isEdit && (!!editCircle.started_at || editCircle.status !== "active" || new Date(editCircle.event_date) <= new Date());
   const missingInstagram = !isEdit && hostChecked && !host?.instagram;
   const missingAvatar = !isEdit && hostChecked && !host?.avatar_url;
   const createCost = isPlus ? ENERGY_COST.createPlus : ENERGY_COST.create;
@@ -331,6 +343,7 @@ export default function CreateCircleModal({
       event_date: startIso,
       description: form.description.trim(),
       allow_late_join: form.allow_late_join,
+      require_checkin: form.require_checkin,
     };
 
     if (isPlus) {
@@ -499,6 +512,32 @@ export default function CreateCircleModal({
     onClose();
   };
 
+  // ===== Ringkasan (langkah Review) =====
+  const reviewWhen = (() => {
+    const iso = combineDateTime(form.event_day, form.start_time);
+    if (!iso) return "-";
+    return new Date(iso).toLocaleString("id-ID", {
+      weekday: "long", day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
+    });
+  })();
+  const genderLabel = form.join_gender === "female" ? "Khusus perempuan" : form.join_gender === "male" ? "Khusus laki-laki" : "Semua gender";
+  const reviewGroup = (title: string, toStep: number, rows: [string, React.ReactNode][]) => (
+    <div className="border-2 border-gray-200 rounded-2xl p-4 space-y-2">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-extrabold text-gray-700">{title}</p>
+        <button type="button" onClick={() => setStep(toStep)} className="btn-flat text-xs font-bold text-primary">
+          Ubah
+        </button>
+      </div>
+      {rows.map(([label, value]) => (
+        <div key={label} className="text-sm">
+          <span className="text-gray-400">{label}</span>
+          <div className="text-gray-700 break-words">{value || "-"}</div>
+        </div>
+      ))}
+    </div>
+  );
+
   const clearErr = (k: string) => {
     if (fieldErrors[k]) setFieldErrors({ ...fieldErrors, [k]: false });
   };
@@ -582,8 +621,8 @@ export default function CreateCircleModal({
         ) : (
         <>
         <div>
-          <h2 className="text-2xl font-extrabold text-gray-800">{STEP_TITLE[step].title}</h2>
-          <p className="text-sm text-gray-500">{STEP_TITLE[step].hint}</p>
+          <h2 className="text-2xl font-extrabold text-gray-800">{stepInfo.title}</h2>
+          <p className="text-sm text-gray-500">{stepInfo.hint}</p>
           {step === 1 && !isEdit && templateCircle && (
             <p className="text-xs text-gray-400 mt-1">Salinan dari "{templateCircle.name}" — isi tanggal & jam baru</p>
           )}
@@ -779,6 +818,25 @@ export default function CreateCircleModal({
               </div>
             </div>
 
+            <div className="space-y-1">
+              <label className={`flex items-center gap-2 text-sm ${checkinLocked ? "opacity-50" : ""}`}>
+                <input
+                  type="checkbox"
+                  checked={form.require_checkin}
+                  disabled={checkinLocked}
+                  onChange={(e) => setForm({ ...form, require_checkin: e.target.checked })}
+                />
+                Pakai check-in peserta
+              </label>
+              <p className="text-xs text-gray-400">
+                {checkinLocked
+                  ? "Tidak bisa diubah setelah circle dimulai."
+                  : form.require_checkin
+                  ? `Peserta check-in saat acara. Yang tidak check-in kena penalti ${NO_SHOW_PENALTY} energy saat circle selesai.`
+                  : "Tanpa check-in: tidak ada penalti, semua peserta yang join dianggap hadir."}
+              </p>
+            </div>
+
             <div ref={(el) => { fieldRefs.current.description = el; }}>
               <label className="text-sm text-gray-500">
                 Rundown / Detail Kegiatan{fieldErrors.description && <span className="text-red-500 font-medium"> — Wajib diisi</span>}
@@ -909,6 +967,52 @@ export default function CreateCircleModal({
               </div>
             )}
           </>
+        )}
+
+        {/* ===== LANGKAH TERAKHIR: REVIEW ===== */}
+        {step === reviewStep && (
+          <div className="space-y-3">
+            {reviewGroup("Dasar", 1, [
+              ["Nama event", form.name],
+              ["Nama grup", form.group_name],
+              ["Aktivitas", form.category],
+            ])}
+            {reviewGroup("Lokasi", 2, [
+              ["Kota / domisili", form.city],
+              ["Titik kumpul", form.location],
+            ])}
+            {reviewGroup("Waktu", 3, [
+              ["Mulai", reviewWhen],
+              ["Join setelah dimulai", form.allow_late_join ? "Diizinkan (sampai 3 jam)" : "Ditutup saat dimulai"],
+            ])}
+            {reviewGroup("Peserta", 4, [
+              ["Jumlah orang", `${form.max_participants} orang`],
+              ["Check-in peserta", form.require_checkin ? `Ya (tidak check-in: -${NO_SHOW_PENALTY} energy)` : "Tidak pakai check-in"],
+              ["Rundown", <p key="d" className="whitespace-pre-wrap line-clamp-4">{form.description}</p>],
+            ])}
+            {isPlus &&
+              reviewGroup("Tampilan & akses", 5, [
+                ["Cover", form.cover_url && !coverError ? (
+                  <img key="c" src={form.cover_url} alt="cover" className="w-full h-24 object-cover rounded-xl mt-1" />
+                ) : "Cover default sesuai aktivitas"],
+                ["Visibilitas", form.is_private ? "Private (hanya lewat link undangan)" : "Tampil di Explore"],
+                ["Link undangan", form.invite_code.trim() ? `/join/${form.invite_code.trim().toUpperCase()}` : "Dibuat otomatis"],
+              ])}
+            {isPlus &&
+              reviewGroup("Aturan join", 6, [
+                ["Peserta", genderLabel + (form.join_verified_only ? " · hanya akun terverifikasi" : "")],
+                ["Approval host", form.requires_approval ? "Perlu approval" : "Langsung masuk"],
+                ...(form.requires_approval && form.join_question.trim()
+                  ? ([["Pertanyaan join", form.join_question.trim()]] as [string, React.ReactNode][])
+                  : []),
+              ])}
+            {!isEdit && (
+              <p className="text-xs text-yellow-700 bg-yellow-50 rounded-xl p-3">
+                ⚡ Membuat circle memakai {createCost} energy
+                {energy !== null ? ` (sisa ${energy} → ${Math.max(0, energy - createCost)})` : ""}.
+              </p>
+            )}
+          </div>
         )}
 
         {error && <p className="text-sm text-red-500">{error}</p>}

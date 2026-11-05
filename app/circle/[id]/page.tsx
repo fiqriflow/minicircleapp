@@ -85,6 +85,8 @@ export default function CircleDetailPage() {
   const isCoHost = !isHost && myIsCoHost && !!circle?.is_circle_plus;
   const canManage = isHost || isCoHost; // host atau co host: approve/tolak, koreksi hadir
   const coHostCount = members.filter((m) => m.is_co_host).length;
+  const useCheckin = circle?.require_checkin !== false; // false = circle tanpa check-in
+  const [kickTarget, setKickTarget] = useState<any>(null);
   const displayStatus = circle ? getCircleDisplayStatus(circle, { joined: joinedCount, max: circle.max_participants }) : null;
   const isCommentLocked = displayStatus === "completed" || displayStatus === "cancelled";
 
@@ -430,6 +432,25 @@ export default function CircleDetailPage() {
       },
       run: () => supabase.rpc("set_circle_co_host", { p_member_row_id: m.id, p_value: next }),
       onSuccess: () => toast.success(next ? "Co host ditunjuk." : "Co host dicabut."),
+      onSettled: () => load(),
+    });
+  };
+
+  // Keluarkan peserta (host / co host, sebelum circle dimulai). Energy join dikembalikan oleh DB (kick_member).
+  const handleKick = async (m: any) => {
+    const prev = { members, count: joinedCount };
+    await optimistic({
+      apply: () => {
+        setMembers((ms) => ms.filter((x) => x.id !== m.id));
+        setJoinedCount((c) => Math.max(0, c - 1));
+        return () => {
+          setMembers(prev.members);
+          setJoinedCount(prev.count);
+        };
+      },
+      run: () => supabase.rpc("kick_member", { p_member_row_id: m.id }),
+      errorMessage: (r) => "Gagal mengeluarkan peserta: " + (r.error?.message ?? ""),
+      onSuccess: () => toast.success("Peserta dikeluarkan, energy-nya dikembalikan."),
       onSettled: () => load(),
     });
   };
@@ -913,6 +934,34 @@ export default function CircleDetailPage() {
         />
       )}
 
+      {kickTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-end justify-center z-50" onClick={() => setKickTarget(null)}>
+          <div className="bg-white rounded-t-2xl p-6 w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-lg">Keluarkan peserta?</h3>
+            <p className="text-sm text-gray-600">
+              <span className="font-semibold">{kickTarget.profile?.nickname || kickTarget.profile?.full_name}</span> akan
+              dikeluarkan dari circle ini. Energy join ({ENERGY_COST.join}) dikembalikan ke dia dan dia mendapat
+              notifikasi.
+            </p>
+            <div className="flex gap-2">
+              <button onClick={() => setKickTarget(null)} className="flex-1 border-2 rounded-xl py-3 font-bold text-gray-500">
+                Batal
+              </button>
+              <button
+                onClick={() => {
+                  const t = kickTarget;
+                  setKickTarget(null);
+                  handleKick(t);
+                }}
+                className="flex-1 rounded-xl py-3 font-bold text-white bg-red-500 hover:bg-red-600"
+              >
+                Ya, Keluarkan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {confirmAction && (
         <div
           className="fixed inset-0 bg-black/40 flex items-end justify-center z-50 p-4"
@@ -964,9 +1013,9 @@ export default function CircleDetailPage() {
             </h3>
             <p className="text-sm text-gray-600">
               {confirmStatusAction === "started"
-                ? `Circle "${circle.name}" akan ditandai sedang berlangsung (check-in dibuka). Bisa dilakukan maksimal 2 jam sebelum acara.`
+                ? `Circle "${circle.name}" akan ditandai sedang berlangsung${useCheckin ? " (check-in dibuka)" : ""}. Bisa dilakukan maksimal 2 jam sebelum acara.`
                 : confirmStatusAction === "completed"
-                ? `Circle "${circle.name}" akan ditandai selesai. Member yang belum check-in kena penalti energy.`
+                ? `Circle "${circle.name}" akan ditandai selesai.${useCheckin ? " Member yang belum check-in kena penalti energy." : ""}`
                 : `Circle "${circle.name}" akan dibatalkan.`}{" "}
               Tindakan ini <span className="font-semibold">tidak bisa diubah kembali</span>.
             </p>
@@ -1174,15 +1223,20 @@ export default function CircleDetailPage() {
 
       {tab === "lineup" && (
         <div className="space-y-3">
-          {(displayStatus === "ongoing" || displayStatus === "completed") && (
+          {useCheckin && (displayStatus === "ongoing" || displayStatus === "completed") && (
             <p className="text-xs text-gray-400">
               {members.filter((m) => m.checked_in).length}/{members.length} sudah check-in
             </p>
           )}
+          {!useCheckin && <p className="text-xs text-gray-400">Circle ini tanpa check-in.</p>}
           {members.map((m) => {
             const checkinOpen = Date.now() <= new Date(circle.event_date).getTime() + 24 * 60 * 60 * 1000; // sama dengan policy DB
-            const canSelfCheckin = displayStatus === "ongoing" && checkinOpen && m.user_id === userId && !m.checked_in;
-            const canHostOverride = canManage && displayStatus === "completed";
+            const canSelfCheckin = useCheckin && displayStatus === "ongoing" && checkinOpen && m.user_id === userId && !m.checked_in;
+            const canHostOverride = useCheckin && canManage && displayStatus === "completed";
+            // keluarkan peserta: sebelum circle dimulai; co host tidak bisa mengeluarkan co host lain / host
+            const canKick =
+              canManage && (displayStatus === "open" || displayStatus === "full") &&
+              m.user_id !== circle.created_by && m.user_id !== userId && (isHost || !m.is_co_host);
             const canSetCoHost =
               isHost && !!circle.is_circle_plus && displayStatus !== "completed" && displayStatus !== "cancelled" &&
               m.user_id !== circle.created_by && (m.is_co_host || coHostCount < 2);
@@ -1215,7 +1269,7 @@ export default function CircleDetailPage() {
                 </button>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  {m.checked_in && (
+                  {useCheckin && m.checked_in && (
                     <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
                       ✅ Hadir
                     </span>
@@ -1236,6 +1290,15 @@ export default function CircleDetailPage() {
                       className="text-xs text-primary underline whitespace-nowrap"
                     >
                       {m.is_co_host ? "Cabut Co Host" : "Jadikan Co Host"}
+                    </button>
+                  )}
+
+                  {canKick && (
+                    <button
+                      onClick={() => setKickTarget(m)}
+                      className="btn-flat text-xs text-red-500 underline whitespace-nowrap"
+                    >
+                      Keluarkan
                     </button>
                   )}
 

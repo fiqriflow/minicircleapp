@@ -29,7 +29,7 @@ export default function MemberProfileModal({
       // Host Circle = circle yang dia buat, SUDAH SELESAI & SUKSES (>80% peserta check-in)
       const { data: hostedCircles } = await supabase
         .from("circles")
-        .select("id, status, event_date")
+        .select("id, status, event_date, require_checkin")
         .eq("created_by", profile.id);
 
       const completedIds = (hostedCircles ?? [])
@@ -52,20 +52,23 @@ export default function MemberProfileModal({
           byCircle[r.circle_id].total += 1;
           if (r.checked_in) byCircle[r.circle_id].checked += 1;
         });
-        hostCircle = Object.values(byCircle).filter((v) => v.total > 0 && v.checked / v.total > 0.8).length;
+        const noCheckinIds = new Set((hostedCircles ?? []).filter((c: any) => c.require_checkin === false).map((c: any) => c.id));
+        hostCircle = Object.entries(byCircle).filter(
+          ([cid, v]) => v.total > 0 && (noCheckinIds.has(cid) || v.checked / v.total > 0.8)
+        ).length;
       }
 
       // Join Circle = circle ORANG LAIN yang dia join, SUDAH SELESAI & dia HADIR (checked-in)
       const { data: memberships } = await supabase
         .from("circle_members")
-        .select("checked_in, circle:circles(id, created_by, status, event_date)")
+        .select("checked_in, circle:circles(id, created_by, status, event_date, require_checkin)")
         .eq("user_id", profile.id)
         .eq("status", "joined");
 
       const joinCircle = (memberships ?? []).filter((m: any) => {
         if (!m.circle) return false;
         if (m.circle.created_by === profile.id) return false;
-        if (!m.checked_in) return false;
+        if (!m.checked_in && m.circle.require_checkin !== false) return false;
         return getCircleDisplayStatus(m.circle) === "completed";
       }).length;
 
