@@ -26,6 +26,7 @@ Stack: Next.js 16 (App Router) + React 19 + Tailwind 3 + Supabase + Vercel. Font
    - Update Redirect URL Supabase ke domain produksi
 
 ## Struktur halaman
+- `/landing` — landing page publik (tanpa login)
 - `/notifications` — halaman notifikasi (lonceng di header Beranda membuka halaman ini)
 - `/login` — Google SSO · `/onboarding` — lengkapi profil
 - `/` — Beranda · `/explore` (+ `/explore/categories`) — cari circle
@@ -84,6 +85,7 @@ Sudah dipakai di:
 - Chat circle bisa ditingkatkan pakai `supabase.channel()` supaya auto-update tanpa reload
 
 ## Changelog
+- **Landing page publik `/landing`**: hero, aktivitas, cara kerja, kenapa Mincle, FAQ, CTA ke `/login`. Bisa dibuka tanpa login (diperlakukan seperti halaman kebijakan di `proxy.ts`), tanpa BottomNav (`AppShell`). Halaman login punya tautan "Kenalan dulu sama Mincle →". Link circle yang dibagikan tetap wajib login (tidak ada preview publik)
 - **Wizard Buat/Edit Circle: langkah Review** di akhir (ringkasan per grup + tombol "Ubah" yang melompat ke langkahnya, info biaya energy) sebelum Simpan/Buat Circle
 - **Kick peserta + opsi check-in** (migration 0068): host & co host bisa "Keluarkan" peserta di tab Line Up sebelum circle dimulai (RPC `kick_member`, energy join 100 dikembalikan, peserta dapat notifikasi; co host tidak bisa mengeluarkan host/co host lain). Setting circle baru **"Pakai check-in peserta"** (`circles.require_checkin`, default aktif, terkunci setelah circle dimulai): kalau dimatikan tidak ada tombol check-in/koreksi hadir, tidak ada penalti, dan statistik menganggap semua peserta hadir. **Jalankan 0068 SEBELUM deploy kode** (kode membaca kolom baru)
 - **Onboarding keyboard-aware**: tinggi layar mengikuti `visualViewport`, isi langkah scroll sendiri, input/select yang difokus otomatis dibawa ke tengah (tidak tertutup keyboard), header progress & tombol Lanjut/Kembali tetap terlihat di atas keyboard, ilustrasi bawah disembunyikan saat keyboard terbuka; Enter di Nama Lengkap pindah ke Nama Panggilan, Enter di field terakhir menutup keyboard
