@@ -85,6 +85,7 @@ Sudah dipakai di:
 - Chat circle bisa ditingkatkan pakai `supabase.channel()` supaya auto-update tanpa reload
 
 ## Changelog
+- **Landing**: hero ditambah ilustrasi kota + maskot seperti halaman login
 - **Landing page publik `/landing`**: hero, aktivitas, cara kerja, kenapa Mincle, FAQ, CTA ke `/login`. Bisa dibuka tanpa login (diperlakukan seperti halaman kebijakan di `proxy.ts`), tanpa BottomNav (`AppShell`). Halaman login punya tautan "Kenalan dulu sama Mincle →". Link circle yang dibagikan tetap wajib login (tidak ada preview publik)
 - **Wizard Buat/Edit Circle: langkah Review** di akhir (ringkasan per grup + tombol "Ubah" yang melompat ke langkahnya, info biaya energy) sebelum Simpan/Buat Circle
 - **Kick peserta + opsi check-in** (migration 0068): host & co host bisa "Keluarkan" peserta di tab Line Up sebelum circle dimulai (RPC `kick_member`, energy join 100 dikembalikan, peserta dapat notifikasi; co host tidak bisa mengeluarkan host/co host lain). Setting circle baru **"Pakai check-in peserta"** (`circles.require_checkin`, default aktif, terkunci setelah circle dimulai): kalau dimatikan tidak ada tombol check-in/koreksi hadir, tidak ada penalti, dan statistik menganggap semua peserta hadir. **Jalankan 0068 SEBELUM deploy kode** (kode membaca kolom baru)

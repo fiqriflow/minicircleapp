@@ -50,7 +50,18 @@ export default function LandingPage() {
         <p className="text-gray-500">
           Gabung circle gowes, jogging, renang, dan explore alam di sekitarmu. Atau buat circle-mu sendiri.
         </p>
-        <LottieMascot src="/login.json" className="w-[75%] max-w-[300px] aspect-[489/314] mx-auto" />
+        {/* Ilustrasi kota + maskot (sama seperti halaman login) */}
+        <div aria-hidden="true" className="relative -mx-6 h-[250px] overflow-hidden pointer-events-none">
+          <img
+            src="/bgbawah.svg"
+            alt=""
+            className="absolute bottom-0 right-0 w-[80%] translate-y-[28%] select-none"
+          />
+          <LottieMascot
+            src="/login.json"
+            className="absolute bottom-0 left-0 w-[62%] max-w-[300px] aspect-[489/314] translate-y-[6%]"
+          />
+        </div>
         <Link
           href="/login"
           className="block w-full bg-primary text-white rounded-xl py-3 font-bold"
