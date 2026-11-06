@@ -260,7 +260,7 @@ export default function DataUserPage() {
           {showPresets ? "Tutup Pilihan Avatar" : "Pilih Avatar"}
         </button>
         {showPresets && (
-          <AvatarPresetPicker selectedUrl={profile.avatar_url} onSelect={handlePickPreset} />
+          <AvatarPresetPicker gender={profile.gender} selectedUrl={profile.avatar_url} onSelect={handlePickPreset} />
         )}
       </div>
 

@@ -8,7 +8,7 @@ Stack: Next.js 16 (App Router) + React 19 + Tailwind 3 + Supabase + Vercel. Font
 
 1. **Supabase**
    - Buat project di supabase.com
-   - SQL Editor → jalankan semua file di `supabase/migrations/` **urut dari 0000 sampai 0068**. Detail: `supabase/README.md`
+   - SQL Editor → jalankan semua file di `supabase/migrations/` **urut dari 0000 sampai 0070**. Detail: `supabase/README.md`
    - Authentication → Providers → aktifkan **Google** (Client ID/Secret dari Google Cloud Console)
    - Authentication → URL Configuration → Redirect URL: `https://DOMAIN_KAMU/auth/callback` (dan `http://localhost:3000/auth/callback` untuk dev)
    - Jadikan 1 user super admin: `update profiles set is_super_admin = true where id = 'USER_UUID';`
@@ -85,6 +85,9 @@ Sudah dipakai di:
 - Chat circle bisa ditingkatkan pakai `supabase.channel()` supaya auto-update tanpa reload
 
 ## Changelog
+- **Admin Avatar dipisah Pria/Wanita + hapus banyak** (migration 0069, jalankan SEBELUM deploy): kolom `avatar_presets.gender` (NULL = belum dikategorikan, tampil ke semua); tab Pria / Wanita / Belum dikategorikan, upload memilih tujuan gender, centang banyak avatar → Hapus / Pindahkan ke Pria/Wanita, pilih semua. Di onboarding & data user, avatar difilter sesuai gender user (+ yang belum dikategorikan). **Avatar lama otomatis masuk "Belum dikategorikan"**: kelompokkan lewat tab itu
+- **Rincian energi: dari mana & ke mana** (migration 0070): tiap baris riwayat mencatat nama circle (join, buat circle, penalti, refund koreksi host, refund kick) lewat kolom `energy_ledger.note`; ringkasan bulan ini "Dari mana / Ke mana" per jenis; filter Semua/Masuk/Keluar. Kode tetap jalan (tanpa catatan) kalau 0070 belum dijalankan
+- **Rincian Energi: tombol Reset riwayat**: menyembunyikan riwayat yang ada dari tampilan (disimpan di perangkat via localStorage, per akun), dengan konfirmasi dan tautan "Tampilkan semua riwayat lagi". Saldo & data server tidak berubah
 - **Landing**: hero ditambah ilustrasi kota + maskot seperti halaman login
 - **Landing page publik `/landing`**: hero, aktivitas, cara kerja, kenapa Mincle, FAQ, CTA ke `/login`. Bisa dibuka tanpa login (diperlakukan seperti halaman kebijakan di `proxy.ts`), tanpa BottomNav (`AppShell`). Halaman login punya tautan "Kenalan dulu sama Mincle →". Link circle yang dibagikan tetap wajib login (tidak ada preview publik)
 - **Wizard Buat/Edit Circle: langkah Review** di akhir (ringkasan per grup + tombol "Ubah" yang melompat ke langkahnya, info biaya energy) sebelum Simpan/Buat Circle

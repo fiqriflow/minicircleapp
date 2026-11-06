@@ -420,6 +420,7 @@ export default function OnboardingPage() {
               </div>
 
               <AvatarPresetPicker
+                gender={profile.gender}
                 selectedUrl={profile.avatar_url}
                 onSelect={(url) => setProfile((p: any) => ({ ...p, avatar_url: url }))}
               />
