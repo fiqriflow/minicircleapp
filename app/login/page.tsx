@@ -103,6 +103,10 @@ function LoginPageContent() {
           </button>
         </div>
 
+        <a href="/landing" className="block text-sm font-bold text-primary">
+          Kenalan dulu sama Mincle →
+        </a>
+
         <p className="text-xs text-gray-400 px-2">
           Dengan melanjutkan, kamu setuju dengan{" "}
           <a href="/profile/syarat-ketentuan" className="underline">Syarat &amp; Ketentuan</a> dan{" "}

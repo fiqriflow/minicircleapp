@@ -53,6 +53,12 @@ export default function AdminAvatarPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [crop, setCrop] = useState<CropTarget | null>(null);
   const [uploading, setUploading] = useState(false);
+  // tab gender + pilih banyak
+  type Tab = "male" | "female" | "unassigned";
+  const [tab, setTab] = useState<Tab>("male");
+  const [uploadGender, setUploadGender] = useState<"male" | "female">("male");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const addInputRef = useRef<HTMLInputElement>(null);
   // batch upload (maks 10 gambar sekali proses)
   const [queue, setQueue] = useState<BatchItem[]>([]);
@@ -73,6 +79,81 @@ export default function AdminAvatarPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const groupOf = (i: AvatarPreset): Tab => i.gender ?? "unassigned";
+  const counts = {
+    male: items.filter((i) => groupOf(i) === "male").length,
+    female: items.filter((i) => groupOf(i) === "female").length,
+    unassigned: items.filter((i) => groupOf(i) === "unassigned").length,
+  };
+  // tab "Belum dikategorikan" hilang otomatis kalau sudah kosong
+  const activeTab: Tab = tab === "unassigned" && counts.unassigned === 0 ? "male" : tab;
+  const visible = items.filter((i) => groupOf(i) === activeTab);
+  const allVisibleSelected = visible.length > 0 && visible.every((i) => selected.has(i.id));
+
+  // ganti tab: kosongkan pilihan; tujuan upload mengikuti tab Pria/Wanita
+  useEffect(() => {
+    setSelected(new Set());
+    if (activeTab === "male" || activeTab === "female") setUploadGender(activeTab);
+  }, [activeTab]);
+
+  const toggleSelect = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleSelectAll = () =>
+    setSelected(allVisibleSelected ? new Set() : new Set(visible.map((i) => i.id)));
+
+  // ===== HAPUS BANYAK =====
+  const handleBulkDelete = async () => {
+    const ids = Array.from(selected);
+    if (ids.length === 0 || bulkBusy) return;
+    if (
+      !confirm(
+        `Hapus ${ids.length} avatar dari daftar pilihan? Foto profil user yang sudah memilihnya tidak berubah. Tidak bisa dikembalikan.`
+      )
+    )
+      return;
+    setBulkBusy(true);
+    const deletedIds: string[] = [];
+    const paths: string[] = [];
+    let failed = 0;
+    for (const id of ids) {
+      const { data: path, error } = await supabase.rpc("admin_delete_avatar_preset", { p_id: id });
+      if (error) {
+        failed++;
+        continue;
+      }
+      deletedIds.push(id);
+      if (path) paths.push(path as string); // null = masih dipakai profil lama, file dipertahankan
+    }
+    if (paths.length) await supabase.storage.from(AVATAR_PRESET_BUCKET).remove(paths);
+    setItems((prev) => prev.filter((i) => !deletedIds.includes(i.id)));
+    setSelected(new Set());
+    setBulkBusy(false);
+    if (deletedIds.length) toast.success(`${deletedIds.length} avatar dihapus.`);
+    if (failed) toast.error(`${failed} avatar gagal dihapus.`);
+  };
+
+  // ===== PINDAHKAN GENDER (banyak) =====
+  const handleBulkMove = async (gender: "male" | "female") => {
+    const ids = Array.from(selected);
+    if (ids.length === 0 || bulkBusy) return;
+    setBulkBusy(true);
+    const { error } = await supabase.from("avatar_presets").update({ gender }).in("id", ids);
+    setBulkBusy(false);
+    if (error) {
+      toast.error("Gagal memindahkan: " + error.message);
+      return;
+    }
+    setItems((prev) => prev.map((i) => (selected.has(i.id) ? { ...i, gender } : i)));
+    setSelected(new Set());
+    toast.success(`${ids.length} avatar dipindahkan ke ${gender === "male" ? "Pria" : "Wanita"}.`);
+  };
 
   const uploadBlob = async (blob: Blob) => {
     const path = `${crypto.randomUUID()}.jpg`;
@@ -158,6 +239,7 @@ export default function AdminAvatarPage() {
           image_url: uploaded.url,
           storage_path: uploaded.path,
           sort_order: order,
+          gender: uploadGender,
         });
         if (error) throw new Error(error.message);
         order++;
@@ -279,6 +361,7 @@ export default function AdminAvatarPage() {
           <li>Latar polos/solid; PNG transparan akan jadi latar hitam setelah crop</li>
           <li>Hasil akhir otomatis di-crop & dikompres ke 256×256 px JPG (sekitar 15–40 KB)</li>
           <li>Upload sekaligus maks 10 gambar. Nama default diambil dari nama file (bisa diedit). Batal di crop manual = gambar dilewati</li>
+          <li>Avatar dikelompokkan <b>Pria / Wanita</b>: user hanya melihat avatar sesuai gendernya (avatar "Belum dikategorikan" tampil ke semua)</li>
           <li>Nama maks 40 karakter; urutan kecil tampil lebih dulu; avatar nonaktif disembunyikan dari user</li>
         </ul>
       </div>
@@ -288,6 +371,23 @@ export default function AdminAvatarPage() {
         <h2 className="font-semibold flex items-center gap-2">
           <Plus size={16} /> Tambah Avatar (maks {MAX_BATCH} sekali proses)
         </h2>
+
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-gray-500">Untuk:</span>
+          {(["male", "female"] as const).map((g) => (
+            <button
+              key={g}
+              type="button"
+              disabled={uploading}
+              onClick={() => setUploadGender(g)}
+              className={`px-3 py-1 rounded-full border text-sm ${
+                uploadGender === g ? "bg-primary text-white border-primary" : "text-gray-600"
+              }`}
+            >
+              {g === "male" ? "Pria" : "Wanita"}
+            </button>
+          ))}
+        </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center gap-2">
           <button
@@ -359,14 +459,81 @@ export default function AdminAvatarPage() {
         />
       </div>
 
+      {/* TAB GENDER */}
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            ["male", "Pria", counts.male],
+            ["female", "Wanita", counts.female],
+            ...(counts.unassigned > 0 ? ([["unassigned", "Belum dikategorikan", counts.unassigned]] as const) : []),
+          ] as const
+        ).map(([key, label, n]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setTab(key)}
+            className={`px-4 py-1.5 rounded-full border text-sm font-medium ${
+              activeTab === key ? "bg-primary text-white border-primary" : "text-gray-600 bg-white"
+            }`}
+          >
+            {label} ({n})
+          </button>
+        ))}
+      </div>
+
+      {/* TOOLBAR PILIH BANYAK */}
+      {visible.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 bg-white border rounded-2xl px-4 py-2 text-sm">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} disabled={bulkBusy} />
+            Pilih semua
+          </label>
+          <span className="text-gray-400">{selected.size} dipilih</span>
+          {selected.size > 0 && (
+            <div className="flex flex-wrap items-center gap-2 ml-auto">
+              {activeTab !== "male" && (
+                <button
+                  type="button"
+                  disabled={bulkBusy}
+                  onClick={() => handleBulkMove("male")}
+                  className="border rounded-xl px-3 py-1 disabled:opacity-40"
+                >
+                  Pindahkan ke Pria
+                </button>
+              )}
+              {activeTab !== "female" && (
+                <button
+                  type="button"
+                  disabled={bulkBusy}
+                  onClick={() => handleBulkMove("female")}
+                  className="border rounded-xl px-3 py-1 disabled:opacity-40"
+                >
+                  Pindahkan ke Wanita
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={bulkBusy}
+                onClick={handleBulkDelete}
+                className="bg-red-500 text-white rounded-xl px-3 py-1 flex items-center gap-1 disabled:opacity-40"
+              >
+                <Trash2 size={14} /> {bulkBusy ? "Memproses..." : `Hapus (${selected.size})`}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* LIST */}
       {loading ? (
         <p className="text-gray-400">Memuat...</p>
-      ) : items.length === 0 ? (
-        <p className="text-gray-400 text-sm">Belum ada avatar. Tambah di atas.</p>
+      ) : visible.length === 0 ? (
+        <p className="text-gray-400 text-sm">
+          {items.length === 0 ? "Belum ada avatar. Tambah di atas." : "Belum ada avatar di kelompok ini."}
+        </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {items.map((item) => {
+          {visible.map((item) => {
             const busy = busyId === item.id;
             return (
               <div
@@ -375,6 +542,14 @@ export default function AdminAvatarPage() {
                   item.is_active ? "" : "opacity-60"
                 }`}
               >
+                <input
+                  type="checkbox"
+                  checked={selected.has(item.id)}
+                  onChange={() => toggleSelect(item.id)}
+                  disabled={bulkBusy}
+                  aria-label={`Pilih ${item.name}`}
+                  className="shrink-0 w-4 h-4"
+                />
                 <button
                   type="button"
                   disabled={busy || uploading}

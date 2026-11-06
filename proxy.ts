@@ -129,7 +129,9 @@ export async function proxy(request: NextRequest) {
   const isOnboardingPage = path === "/onboarding";
   const isSuspendedPage = path === "/akun-dinonaktifkan";
   const isMaintenancePage = path === "/maintenance";
+  // Landing page publik (dibuka dari halaman login) + halaman kebijakan: bisa diakses tanpa login
   const isPublicPolicyPage =
+    path === "/landing" ||
     path === "/profile/syarat-ketentuan" ||
     path === "/profile/kebijakan-privasi" ||
     path === "/profile/panduan-komunitas";

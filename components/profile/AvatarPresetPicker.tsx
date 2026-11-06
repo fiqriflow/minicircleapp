@@ -9,9 +9,11 @@ import { fetchAvatarPresets, type AvatarPreset } from "@/lib/avatarPresets";
 // sama seperti foto upload. Jadi kalau admin menghapus/mengganti preset, foto profil user tetap.
 export default function AvatarPresetPicker({
   selectedUrl,
+  gender,
   onSelect,
 }: {
   selectedUrl?: string | null;
+  gender?: string | null; // gender user -> hanya avatar yang sesuai (+ yang belum dikategorikan)
   onSelect: (url: string) => void | Promise<void>;
 }) {
   const supabase = createClient();
@@ -20,8 +22,9 @@ export default function AvatarPresetPicker({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    fetchAvatarPresets(supabase, true).then(({ data }) => setPresets(data));
-  }, []);
+    fetchAvatarPresets(supabase, true, gender).then(({ data }) => setPresets(data));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gender]);
 
   if (presets === null) return <p className="text-xs text-gray-400 text-center">Memuat avatar...</p>;
   if (presets.length === 0) return null;
